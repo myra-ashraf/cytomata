@@ -19,5 +19,4 @@ __keywords__ = 'cytomata deep-learning reinforcement-learning research cells eng
 __website__ = 'https://github.com/phuongho43/cytomata'
 
 
-from cytomata import simulator
-from cytomata import controller
+from cytomata import utils
