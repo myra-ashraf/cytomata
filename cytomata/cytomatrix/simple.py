@@ -1,10 +1,12 @@
 import sys
+import os
 import pygame as pg
 from settings import *
 from sprites import *
+from tilemap import *
 
 
-class Game:
+class Game(object):
     """Game manager"""
     def __init__(self):
         """Initialize game, window, etc."""
@@ -12,19 +14,24 @@ class Game:
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
-        pg.key.set_repeat(500, 100)
+        pg.key.set_repeat(100, 100)
         self.load_data()
 
     def load_data(self):
-        pass
+        game_dir = os.path.dirname(__file__)
+        self.map = Map(os.path.join(game_dir, 'maps', 'm2.txt'))
 
     def new(self):
         """Set up vars/objects for new game"""
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
-        self.player = Player(self, 10, 10)
-        for x in range(10, 20):
-            Wall(self, x, 5)
+        for row, tiles in enumerate(self.map.data):
+            for col, tile in enumerate(tiles):
+                if tile == '1':
+                    Wall(self, col, row)
+                if tile == 'P':
+                    self.player = Player(self, col, row)
+        self.camera = Camera(self.map.width, self.map.height)
 
     def run(self):
         """Game loop"""
@@ -43,6 +50,7 @@ class Game:
     def update(self):
         """Game loop - updates"""
         self.all_sprites.update()
+        self.camera.update(self.player)
 
     def draw_grid(self):
         """Draw the tiles based on settings"""
@@ -53,9 +61,10 @@ class Game:
 
     def draw(self):
         """Game loop - render"""
-        self.screen.fill(BGCOLOR)
+        self.screen.fill(LIGHTBLUE)
         self.draw_grid()
-        self.all_sprites.draw(self.screen)
+        for sprite in self.all_sprites:
+            self.screen.blit(sprite.image, self.camera.apply(sprite))
         pg.display.flip()
 
     def events(self):
@@ -66,14 +75,6 @@ class Game:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
                     self.quit()
-                if event.key == pg.K_LEFT:
-                    self.player.move(dx=-1)
-                if event.key == pg.K_RIGHT:
-                    self.player.move(dx=1)
-                if event.key == pg.K_UP:
-                    self.player.move(dy=-1)
-                if event.key == pg.K_DOWN:
-                    self.player.move(dy=1)
 
     def show_start_screen(self):
         """Game start screen"""
