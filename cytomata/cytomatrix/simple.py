@@ -19,7 +19,9 @@ class Game(object):
 
     def load_data(self):
         game_dir = os.path.dirname(__file__)
-        self.map = Map(os.path.join(game_dir, 'maps', 'm2.txt'))
+        img_dir = os.path.join(game_dir, 'img')
+        self.map = Map(os.path.join(game_dir, 'maps', MAP_FILE))
+        self.player_img = pg.image.load(os.path.join(img_dir, PLAYER_IMG))
 
     def new(self):
         """Set up vars/objects for new game"""
