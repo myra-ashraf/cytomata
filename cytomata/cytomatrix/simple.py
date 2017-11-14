@@ -13,18 +13,21 @@ class Game(object):
         pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
         pg.display.set_caption(TITLE)
+        # Clock for setting tempo of game
         self.clock = pg.time.Clock()
+        # Time before key hold detected + frequency of key press
         pg.key.set_repeat(100, 100)
         self.load_data()
 
     def load_data(self):
+        """Load maps and other game resources"""
         game_dir = os.path.dirname(__file__)
         img_dir = os.path.join(game_dir, 'img')
         self.map = Map(os.path.join(game_dir, 'maps', MAP_FILE))
         self.player_img = pg.image.load(os.path.join(img_dir, PLAYER_IMG))
 
     def new(self):
-        """Set up vars/objects for new game"""
+        """Set up objects (sprites, camera, etc.) for new game"""
         self.all_sprites = pg.sprite.Group()
         self.walls = pg.sprite.Group()
         for row, tiles in enumerate(self.map.data):
@@ -44,14 +47,19 @@ class Game(object):
             self.update()
             self.draw()
 
-    def quit(self):
-        """Quit to desktop"""
-        pg.quit()
-        sys.exit()
+    def events(self):
+        """Game loop - process inputs/events"""
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                self.quit()
+            if event.type == pg.KEYDOWN:
+                if event.key == pg.K_ESCAPE:
+                    self.quit()
 
     def update(self):
         """Game loop - updates"""
         self.all_sprites.update()
+        # Camera tracking
         self.camera.update(self.player)
 
     def draw_grid(self):
@@ -63,20 +71,11 @@ class Game(object):
 
     def draw(self):
         """Game loop - render"""
-        self.screen.fill(LIGHTBLUE)
+        self.screen.fill(BGCOLOR)
         self.draw_grid()
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
         pg.display.flip()
-
-    def events(self):
-        """Game loop - process inputs/events"""
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                self.quit()
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_ESCAPE:
-                    self.quit()
 
     def show_start_screen(self):
         """Game start screen"""
@@ -85,6 +84,11 @@ class Game(object):
     def show_go_screen(self):
         """Game over screen"""
         pass
+
+    def quit(self):
+        """Quit to desktop"""
+        pg.quit()
+        sys.exit()
 
 # Executed code
 g = Game()
