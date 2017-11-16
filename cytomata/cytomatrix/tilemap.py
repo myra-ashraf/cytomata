@@ -12,6 +12,7 @@ class Map(object):
         self.tile_height = len(self.data)
         self.width = self.tile_width * TILESIZE
         self.height = self.tile_height * TILESIZE
+        self.occupied_tiles = []
 
 
 class Camera(object):

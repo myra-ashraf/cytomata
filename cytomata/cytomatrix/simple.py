@@ -1,5 +1,6 @@
 import sys
 import os
+import random as rnd
 import pygame as pg
 from settings import *
 from sprites import *
@@ -20,22 +21,43 @@ class Game(object):
         self.load_data()
 
     def load_data(self):
-        """Load maps and other game resources"""
+        """Load maps, sprites, and other game resources"""
         game_dir = os.path.dirname(__file__)
         img_dir = os.path.join(game_dir, 'img')
         self.map = Map(os.path.join(game_dir, 'maps', MAP_FILE))
-        self.player_img = pg.image.load(os.path.join(img_dir, PLAYER_IMG))
+        self.ally_img = pg.image.load(os.path.join(img_dir, 'chars', ALLY_IMG)).convert_alpha()
+        self.ally_img = pg.transform.scale(self.ally_img, (TILESIZE, TILESIZE))
+        self.mob_img = pg.image.load(os.path.join(img_dir, 'chars', MOB_IMG)).convert_alpha()
+        self.mob_img = pg.transform.scale(self.mob_img, (TILESIZE, TILESIZE))
+        self.wall_img = pg.image.load(os.path.join(img_dir, 'bkgd', WALL_IMG)).convert_alpha()
+        self.wall_img = pg.transform.scale(self.wall_img, (TILESIZE, TILESIZE))
 
     def new(self):
         """Set up objects (sprites, camera, etc.) for new game"""
         self.all_sprites = pg.sprite.Group()
+        self.allies = pg.sprite.Group()
         self.walls = pg.sprite.Group()
+        self.mobs = pg.sprite.Group()
         for row, tiles in enumerate(self.map.data):
             for col, tile in enumerate(tiles):
                 if tile == '1':
+                    self.map.occupied_tiles.append((col, row))
                     Wall(self, col, row)
-                if tile == 'P':
-                    self.player = Player(self, col, row)
+                if tile == 'M':
+                    self.map.occupied_tiles.append((col, row))
+                    Mob(self, col, row)
+                if tile == 'A':
+                    self.map.occupied_tiles.append((col, row))
+                    self.ally = Ally(self, col, row)
+        if RANDOM_SPAWN_MOBS:
+            allowed = [
+                (x, y) for x in range(round(int(self.map.width/TILESIZE)))
+                for y in range(round(int(self.map.height/TILESIZE)))
+                if (x, y) not in self.map.occupied_tiles
+            ]
+            for i in range(NUMBER_RANDOM_MOBS):
+                rand_x, rand_y = rnd.choice(allowed)
+                Mob(self, rand_x, rand_y)
         self.camera = Camera(self.map.width, self.map.height)
 
     def run(self):
@@ -60,7 +82,7 @@ class Game(object):
         """Game loop - updates"""
         self.all_sprites.update()
         # Camera tracking
-        self.camera.update(self.player)
+        self.camera.update(self.ally)
 
     def draw_grid(self):
         """Draw the tiles based on settings"""
@@ -71,8 +93,10 @@ class Game(object):
 
     def draw(self):
         """Game loop - render"""
+        if DEBUG:
+            pg.display.set_caption('{:.2f}'.format(self.clock.get_fps()))
         self.screen.fill(BGCOLOR)
-        self.draw_grid()
+        # self.draw_grid()
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
         pg.display.flip()

@@ -1,4 +1,5 @@
 # Game Settings
+DEBUG= True
 TITLE = "Cytomata"
 WIDTH = 1024
 HEIGHT = 768
@@ -6,7 +7,7 @@ FPS = 60
 TILESIZE = 64
 GRIDWIDTH = WIDTH / TILESIZE
 GRIDHEIGHT = HEIGHT / TILESIZE
-MAP_FILE = 'm4.txt'
+MAP_FILE = 'm1.txt'
 
 # Colors
 WHITE = (255, 255, 255)
@@ -20,6 +21,17 @@ RED = (194, 40, 40)
 GREEN = (54,143,59)
 YELLOW = (253, 215, 40)
 
-# Player Settings
-PLAYER_SPEED = 250
-PLAYER_IMG = 'player.png'
+# Background Settings
+GRND_IMG = 'tile3.png'
+WALL_IMG = 'tile10.png'
+
+
+# Ally Settings
+ALLY_SPEED = 250
+ALLY_IMG = 'player64.png'
+
+
+# Mob Settings
+RANDOM_SPAWN_MOBS = True
+NUMBER_RANDOM_MOBS = 4
+MOB_IMG = 'cancer.png'
