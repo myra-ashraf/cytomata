@@ -2,9 +2,9 @@ import sys
 import os
 import random as rnd
 import pygame as pg
-from settings import *
-from sprites import *
-from tilemap import *
+from .settings import *
+from .sprites import *
+from .tilemap import *
 
 
 class Game(object):
@@ -26,6 +26,7 @@ class Game(object):
         game_dir = os.path.dirname(__file__)
         img_dir = os.path.join(game_dir, 'img')
         snd_dir = os.path.join(game_dir, 'snd')
+        music_dir = os.path.join(game_dir, 'music')
         self.map = Map(os.path.join(game_dir, 'maps', MAP_FILE))
         # self.bkg_img = pg.image.load(os.path.join(img_dir, 'bkgd', GRND_IMG)).convert()
         # self.bkg_rect = self.bkg_img.get_rect()
@@ -36,7 +37,7 @@ class Game(object):
         self.wall_img = pg.image.load(os.path.join(img_dir, 'bkgd', WALL_IMG)).convert_alpha()
         self.wall_img = pg.transform.scale(self.wall_img, (TILESIZE, TILESIZE))
         self.eat_snd = pg.mixer.Sound(os.path.join(snd_dir, EAT_SND))
-        pg.mixer.music.load(os.path.join(snd_dir, MUSIC))
+        pg.mixer.music.load(os.path.join(music_dir, MUSIC))
         pg.mixer.music.set_volume(3.0)
 
     def new(self):
@@ -67,7 +68,7 @@ class Game(object):
                 rand_x, rand_y = rnd.choice(allowed)
                 Mob(self, rand_x, rand_y)
         self.camera = Camera(self.map.width, self.map.height)
-        pg.mixer.music.play()
+        pg.mixer.music.play(-1)
 
     def run(self):
         """Game loop"""
@@ -136,9 +137,10 @@ class Game(object):
         sys.exit()
 
 # Executed code
-g = Game()
-g.show_start_screen()
-while True:
-    g.new()
-    g.run()
-    g.show_go_screen()
+def run():
+    g = Game()
+    g.show_start_screen()
+    while True:
+        g.new()
+        g.run()
+        g.show_go_screen()

@@ -1,5 +1,5 @@
 # Game Settings
-DEBUG= True
+DEBUG= False
 TITLE = "Cytomata"
 WIDTH = 1024
 HEIGHT = 768
@@ -8,7 +8,7 @@ TILESIZE = 64
 GRIDWIDTH = WIDTH / TILESIZE
 GRIDHEIGHT = HEIGHT / TILESIZE
 MAP_FILE = 'm1.txt'
-MUSIC = 'ambience1.ogg'
+MUSIC = 'riseOfSpirit.ogg'
 
 # Colors
 WHITE = (255, 255, 255)
@@ -35,5 +35,5 @@ EAT_SND = 'eat.wav'
 
 # Mob Settings
 RANDOM_SPAWN_MOBS = True
-NUMBER_RANDOM_MOBS = 6
+NUMBER_RANDOM_MOBS = 10
 MOB_IMG = 'nalm0.png'
