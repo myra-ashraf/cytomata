@@ -14,8 +14,7 @@ class Ally(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.pos = vec(x, y) * TILESIZE
         self.vel = vec(0, 0)
-        self.radius = int(self.rect.width/2)
-        pg.draw.circle(self.image, RED, self.rect.center, self.radius)
+        self.last_update = pg.time.get_ticks()
 
     def get_keys(self):
         self.vel = vec(0, 0)
@@ -31,10 +30,9 @@ class Ally(pg.sprite.Sprite):
         if self.vel.x != 0 and self.vel.y != 0:
             self.vel *= 0.7071
 
-    def collide(self, group, ax):
+    def collide_wall(self, ax):
         if ax == 'x':
-            hits = pg.sprite.spritecollide(self, group, False)
-            print(hits)
+            hits = pg.sprite.spritecollide(self, self.game.walls, False)
             if hits:
                 if self.vel.x > 0:
                     self.pos.x = hits[0].rect.left - self.rect.width
@@ -43,7 +41,7 @@ class Ally(pg.sprite.Sprite):
                 self.vel.x = 0
                 self.rect.x = self.pos.x
         if ax == 'y':
-            hits = pg.sprite.spritecollide(self, group, False)
+            hits = pg.sprite.spritecollide(self, self.game.walls, False)
             if hits:
                 if self.vel.y > 0:
                     self.pos.y = hits[0].rect.top - self.rect.height
@@ -52,14 +50,28 @@ class Ally(pg.sprite.Sprite):
                 self.vel.y = 0
                 self.rect.y = self.pos.y
 
+    def collide_enemy(self):
+        hits = pg.sprite.spritecollide(self, self.game.mobs, True)
+        if hits:
+            self.game.eat_snd.play()
+            for hit in hits:
+                self.game.score += 15
+
+    def time_penalty(self):
+        now = pg.time.get_ticks()
+        if now - self.last_update > 600:
+            self.last_update = now
+            self.game.score -= 1
+
     def update(self):
         self.get_keys()
         self.pos += self.vel * self.game.dt
         self.rect.x = self.pos.x
-        self.collide(self.game.walls, 'x')
+        self.collide_wall('x')
         self.rect.y = self.pos.y
-        self.collide(self.game.walls, 'y')
-
+        self.collide_wall('y')
+        self.collide_enemy()
+        self.time_penalty()
 
 
 class Mob(pg.sprite.Sprite):
@@ -83,4 +95,3 @@ class Wall(pg.sprite.Sprite):
         self.y = y
         self.rect.x = x * TILESIZE
         self.rect.y = y * TILESIZE
-        pg.draw.rect(self.image, RED, self.rect, self.rect.width)

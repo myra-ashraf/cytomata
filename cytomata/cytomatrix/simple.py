@@ -11,6 +11,7 @@ class Game(object):
     """Game manager"""
     def __init__(self):
         """Initialize game, window, etc."""
+        pg.mixer.pre_init(44100, -16, 1, 512)
         pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
         pg.display.set_caption(TITLE)
@@ -24,13 +25,19 @@ class Game(object):
         """Load maps, sprites, and other game resources"""
         game_dir = os.path.dirname(__file__)
         img_dir = os.path.join(game_dir, 'img')
+        snd_dir = os.path.join(game_dir, 'snd')
         self.map = Map(os.path.join(game_dir, 'maps', MAP_FILE))
+        # self.bkg_img = pg.image.load(os.path.join(img_dir, 'bkgd', GRND_IMG)).convert()
+        # self.bkg_rect = self.bkg_img.get_rect()
         self.ally_img = pg.image.load(os.path.join(img_dir, 'chars', ALLY_IMG)).convert_alpha()
         self.ally_img = pg.transform.scale(self.ally_img, (TILESIZE, TILESIZE))
         self.mob_img = pg.image.load(os.path.join(img_dir, 'chars', MOB_IMG)).convert_alpha()
         self.mob_img = pg.transform.scale(self.mob_img, (TILESIZE, TILESIZE))
         self.wall_img = pg.image.load(os.path.join(img_dir, 'bkgd', WALL_IMG)).convert_alpha()
         self.wall_img = pg.transform.scale(self.wall_img, (TILESIZE, TILESIZE))
+        self.eat_snd = pg.mixer.Sound(os.path.join(snd_dir, EAT_SND))
+        pg.mixer.music.load(os.path.join(snd_dir, MUSIC))
+        pg.mixer.music.set_volume(3.0)
 
     def new(self):
         """Set up objects (sprites, camera, etc.) for new game"""
@@ -38,6 +45,7 @@ class Game(object):
         self.allies = pg.sprite.Group()
         self.walls = pg.sprite.Group()
         self.mobs = pg.sprite.Group()
+        self.score = 0
         for row, tiles in enumerate(self.map.data):
             for col, tile in enumerate(tiles):
                 if tile == '1':
@@ -59,6 +67,7 @@ class Game(object):
                 rand_x, rand_y = rnd.choice(allowed)
                 Mob(self, rand_x, rand_y)
         self.camera = Camera(self.map.width, self.map.height)
+        pg.mixer.music.play()
 
     def run(self):
         """Game loop"""
@@ -83,6 +92,20 @@ class Game(object):
         self.all_sprites.update()
         # Camera tracking
         self.camera.update(self.ally)
+        if len(self.mobs) < 1:
+            self.playing = False
+
+    def draw(self):
+        """Game loop - render"""
+        if DEBUG:
+            pg.display.set_caption('{:.2f}'.format(self.clock.get_fps()))
+        self.screen.fill(BGCOLOR)
+        # self.screen.blit(self.bkg_img, self.bkg_rect)
+        # self.draw_grid()
+        for sprite in self.all_sprites:
+            self.screen.blit(sprite.image, self.camera.apply(sprite))
+        self.draw_text(self.screen, str(self.score), 18, WIDTH/2, 10)
+        pg.display.flip()
 
     def draw_grid(self):
         """Draw the tiles based on settings"""
@@ -91,15 +114,13 @@ class Game(object):
         for y in range(0, HEIGHT, TILESIZE):
             pg.draw.line(self.screen, LIGHTGREY, (0, y), (WIDTH, y))
 
-    def draw(self):
-        """Game loop - render"""
-        if DEBUG:
-            pg.display.set_caption('{:.2f}'.format(self.clock.get_fps()))
-        self.screen.fill(BGCOLOR)
-        # self.draw_grid()
-        for sprite in self.all_sprites:
-            self.screen.blit(sprite.image, self.camera.apply(sprite))
-        pg.display.flip()
+    def draw_text(self, surf, text, size, x, y):
+        font_name = pg.font.match_font('arial')
+        font = pg.font.Font(font_name, size)
+        text_surface = font.render(text, True, DARKGREY)
+        text_rect = text_surface.get_rect()
+        text_rect.midtop = (x, y)
+        surf.blit(text_surface, text_rect)
 
     def show_start_screen(self):
         """Game start screen"""
