@@ -30,43 +30,54 @@ class Game(object):
         self.map = Map(os.path.join(game_dir, 'maps', MAP_FILE))
         # self.bkg_img = pg.image.load(os.path.join(img_dir, 'bkgd', GRND_IMG)).convert()
         # self.bkg_rect = self.bkg_img.get_rect()
-        self.ally_img = pg.image.load(os.path.join(img_dir, 'chars', ALLY_IMG)).convert_alpha()
-        self.ally_img = pg.transform.scale(self.ally_img, (TILESIZE, TILESIZE))
-        self.mob_img = pg.image.load(os.path.join(img_dir, 'chars', MOB_IMG)).convert_alpha()
-        self.mob_img = pg.transform.scale(self.mob_img, (TILESIZE, TILESIZE))
-        self.wall_img = pg.image.load(os.path.join(img_dir, 'bkgd', WALL_IMG)).convert_alpha()
-        self.wall_img = pg.transform.scale(self.wall_img, (TILESIZE, TILESIZE))
+        self.proxy_img = pg.image.load(os.path.join(img_dir, 'chars', PROXY_IMG)).convert_alpha()
+        self.proxy_img = pg.transform.scale(self.proxy_img, (TILESIZE, TILESIZE))
+        self.cancer_img = pg.image.load(os.path.join(img_dir, 'chars', CANCER_IMG)).convert_alpha()
+        self.cancer_img = pg.transform.scale(self.cancer_img, (TILESIZE, TILESIZE))
+        self.cell_img = pg.image.load(os.path.join(img_dir, 'bkgd', CELL_IMG)).convert_alpha()
+        self.cell_img = pg.transform.scale(self.cell_img, (TILESIZE, TILESIZE))
         self.eat_snd = pg.mixer.Sound(os.path.join(snd_dir, EAT_SND))
         pg.mixer.music.load(os.path.join(music_dir, MUSIC))
-        pg.mixer.music.set_volume(3.0)
+        pg.mixer.music.set_volume(1.0)
 
     def new(self):
         """Set up objects (sprites, camera, etc.) for new game"""
         self.all_sprites = pg.sprite.Group()
-        self.allies = pg.sprite.Group()
-        self.walls = pg.sprite.Group()
-        self.mobs = pg.sprite.Group()
+        self.proxies = pg.sprite.Group()
+        self.cells = pg.sprite.Group()
+        self.cancers = pg.sprite.Group()
         self.score = 0
         for row, tiles in enumerate(self.map.data):
             for col, tile in enumerate(tiles):
+                if tile == '0':
+                    self.map.occupied_tiles.append((col, row))
+                    Cell(self, col, row)
                 if tile == '1':
                     self.map.occupied_tiles.append((col, row))
-                    Wall(self, col, row)
-                if tile == 'M':
+                    self.proxy = Proxy(self, col, row)
+                if tile == '2':
                     self.map.occupied_tiles.append((col, row))
-                    Mob(self, col, row)
-                if tile == 'A':
-                    self.map.occupied_tiles.append((col, row))
-                    self.ally = Ally(self, col, row)
-        if RANDOM_SPAWN_MOBS:
+                    Cancer(self, col, row)
+        if SPAWN_CELLS_RANDOMLY:
             allowed = [
                 (x, y) for x in range(round(int(self.map.width/TILESIZE)))
                 for y in range(round(int(self.map.height/TILESIZE)))
                 if (x, y) not in self.map.occupied_tiles
             ]
-            for i in range(NUMBER_RANDOM_MOBS):
+            for i in range(NUM_RANDOM_CELLS):
                 rand_x, rand_y = rnd.choice(allowed)
-                Mob(self, rand_x, rand_y)
+                Cell(self, rand_x, rand_y)
+                self.map.occupied_tiles.append((rand_x, rand_y))
+        if SPAWN_CANCERS_RANDOMLY:
+            allowed = [
+                (x, y) for x in range(round(int(self.map.width/TILESIZE)))
+                for y in range(round(int(self.map.height/TILESIZE)))
+                if (x, y) not in self.map.occupied_tiles
+            ]
+            for i in range(NUM_RANDOM_CANCERS):
+                rand_x, rand_y = rnd.choice(allowed)
+                Cancer(self, rand_x, rand_y)
+                self.map.occupied_tiles.append((rand_x, rand_y))
         self.camera = Camera(self.map.width, self.map.height)
         pg.mixer.music.play(-1)
 
@@ -92,8 +103,8 @@ class Game(object):
         """Game loop - updates"""
         self.all_sprites.update()
         # Camera tracking
-        self.camera.update(self.ally)
-        if len(self.mobs) < 1:
+        self.camera.update(self.proxy)
+        if len(self.cancers) < 1:
             self.playing = False
 
     def draw(self):

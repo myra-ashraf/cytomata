@@ -8,7 +8,8 @@ TILESIZE = 64
 GRIDWIDTH = WIDTH / TILESIZE
 GRIDHEIGHT = HEIGHT / TILESIZE
 MAP_FILE = 'm1.txt'
-MUSIC = 'riseOfSpirit.ogg'
+GRND_IMG = 'mic_bkg0.png'
+MUSIC = 'space.mp3'
 
 # Colors
 WHITE = (255, 255, 255)
@@ -22,18 +23,20 @@ RED = (194, 40, 40)
 GREEN = (54,143,59)
 YELLOW = (253, 215, 40)
 
-# Background Settings
-GRND_IMG = 'mic_bkg0.png'
-WALL_IMG = 'tile10.png'
+
+# Cell Settings
+SPAWN_CELLS_RANDOMLY = True
+NUM_RANDOM_CELLS = 80
+CELL_IMG = 'tile10.png'
 
 
-# Ally Settings
-ALLY_SPEED = 250
-ALLY_IMG = 'macrophage2.png'
+# Proxy Settings
+PROXY_SPEED = 250
+PROXY_IMG = 'macrophage2.png'
 EAT_SND = 'eat.wav'
 
 
-# Mob Settings
-RANDOM_SPAWN_MOBS = True
-NUMBER_RANDOM_MOBS = 10
-MOB_IMG = 'nalm0.png'
+# Cancer Settings
+SPAWN_CANCERS_RANDOMLY = True
+NUM_RANDOM_CANCERS = 10
+CANCER_IMG = 'nalm0.png'
