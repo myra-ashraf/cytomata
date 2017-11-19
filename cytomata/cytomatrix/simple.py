@@ -114,6 +114,7 @@ class Game(object):
         self.screen.fill(BGCOLOR)
         # self.screen.blit(self.bkg_img, self.bkg_rect)
         # self.draw_grid()
+        # pg.draw.rect(self.screen, BLACK, self.camera.apply(self.proxy), 2)
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image, self.camera.apply(sprite))
         self.draw_text(self.screen, str(self.score), 18, WIDTH/2, 10)

@@ -31,7 +31,7 @@ CELL_IMG = 'tile10.png'
 
 
 # Proxy Settings
-PROXY_SPEED = 250
+PROXY_SPEED = 30
 PROXY_IMG = 'macrophage2.png'
 EAT_SND = 'eat.wav'
 

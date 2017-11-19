@@ -29,19 +29,23 @@ class Proxy(pg.sprite.Sprite):
         self.vel = vec(0, 0)
         self.last_update = pg.time.get_ticks()
 
-    def get_keys(self):
+    def get_inputs(self):
         self.vel = vec(0, 0)
         keys = pg.key.get_pressed()
-        if keys[pg.K_LEFT] or keys[pg.K_a]:
-            self.vel.x = -PROXY_SPEED
-        if keys[pg.K_RIGHT] or keys[pg.K_d]:
-            self.vel.x = PROXY_SPEED
-        if keys[pg.K_UP] or keys[pg.K_w]:
-            self.vel.y = -PROXY_SPEED
-        if keys[pg.K_DOWN] or keys[pg.K_s]:
-            self.vel.y = PROXY_SPEED
-        if self.vel.x != 0 and self.vel.y != 0:
-            self.vel *= 0.7071
+        clicks = pg.mouse.get_pressed()
+        if clicks[0]:
+            mouse_x, mouse_y = pg.mouse.get_pos()
+            mouse_pos = vec(mouse_x, mouse_y)
+            proxy_camera_rect = self.game.camera.apply(self)
+            if proxy_camera_rect.collidepoint(mouse_x, mouse_y):
+                mvmt = mouse_pos - proxy_camera_rect.center
+                try:
+                    norm_mvmt = mvmt.normalize()
+                except ValueError:
+                    norm_mvmt = mvmt
+                self.vel.x = norm_mvmt.x * PROXY_SPEED
+                self.vel.y = norm_mvmt.y * PROXY_SPEED
+                print(self.vel)
 
     def collide_cell(self, ax):
         if ax == 'x':
@@ -72,12 +76,12 @@ class Proxy(pg.sprite.Sprite):
 
     def time_penalty(self):
         now = pg.time.get_ticks()
-        if now - self.last_update > 600:
+        if now - self.last_update > 2400:
             self.last_update = now
             self.game.score -= 1
 
     def update(self):
-        self.get_keys()
+        self.get_inputs()
         self.pos += self.vel * self.game.dt
         self.rect.x = self.pos.x
         self.collide_cell('x')
