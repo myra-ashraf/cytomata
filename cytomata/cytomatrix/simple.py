@@ -78,7 +78,7 @@ class Game(object):
                 rand_x, rand_y = rnd.choice(allowed)
                 Cancer(self, rand_x, rand_y)
                 self.map.occupied_tiles.append((rand_x, rand_y))
-        self.camera = Camera(self.map.width, self.map.height)
+        # self.camera = Camera(self.map.width, self.map.height)
         pg.mixer.music.play(-1)
 
     def run(self):
@@ -103,7 +103,7 @@ class Game(object):
         """Game loop - updates"""
         self.all_sprites.update()
         # Camera tracking
-        self.camera.update(self.proxy)
+        # self.camera.update(self.proxy)
         if len(self.cancers) < 1:
             self.playing = False
 
@@ -116,7 +116,8 @@ class Game(object):
         # self.draw_grid()
         # pg.draw.rect(self.screen, BLACK, self.camera.apply(self.proxy), 2)
         for sprite in self.all_sprites:
-            self.screen.blit(sprite.image, self.camera.apply(sprite))
+            # self.screen.blit(sprite.image, self.camera.apply(sprite))
+            self.screen.blit(sprite.image, sprite.rect)
         self.draw_text(self.screen, str(self.score), 18, WIDTH/2, 10)
         pg.display.flip()
 

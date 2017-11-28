@@ -35,8 +35,9 @@ class Proxy(pg.sprite.Sprite):
         if clicks[0]:
             mouse_x, mouse_y = pg.mouse.get_pos()
             mouse_pos = vec(mouse_x, mouse_y)
-            proxy_camera_rect = self.game.camera.apply(self)
-            if proxy_camera_rect.collidepoint(mouse_x, mouse_y):
+            # proxy_camera_rect = self.game.camera.apply(self)
+            # if proxy_camera_rect.collidepoint(mouse_x, mouse_y):
+            if self.rect.collidepoint(mouse_x, mouse_y):
                 for proxy in self.game.proxies:
                     proxy.is_selected = False
                 self.is_selected = True
@@ -61,9 +62,11 @@ class Proxy(pg.sprite.Sprite):
             if clicks[0]:
                 mouse_x, mouse_y = pg.mouse.get_pos()
                 mouse_pos = vec(mouse_x, mouse_y)
-                proxy_camera_rect = self.game.camera.apply(self)
-                if proxy_camera_rect.collidepoint(mouse_x, mouse_y):
-                    mvmt = mouse_pos - proxy_camera_rect.center
+                # proxy_camera_rect = self.game.camera.apply(self)
+                # if proxy_camera_rect.collidepoint(mouse_x, mouse_y):
+                if self.rect.collidepoint(mouse_x, mouse_y):
+                    # mvmt = mouse_pos - proxy_camera_rect.center
+                    mvmt = mouse_pos - self.rect.center
                     try:
                         norm_mvmt = mvmt.normalize()
                     except ValueError:
