@@ -54,7 +54,7 @@ class Game(object):
                     Cell(self, col, row)
                 if tile == '1':
                     self.map.occupied_tiles.append((col, row))
-                    self.proxy = Proxy(self, col, row)
+                    Proxy(self, col, row)
                 if tile == '2':
                     self.map.occupied_tiles.append((col, row))
                     Cancer(self, col, row)

@@ -25,27 +25,58 @@ class Proxy(pg.sprite.Sprite):
         self.game = game
         self.image = game.proxy_img
         self.rect = self.image.get_rect()
+        self.is_selected = False
         self.pos = vec(x, y) * TILESIZE
         self.vel = vec(0, 0)
         self.last_update = pg.time.get_ticks()
 
-    def get_inputs(self):
-        self.vel = vec(0, 0)
-        keys = pg.key.get_pressed()
+    def check_selected(self):
         clicks = pg.mouse.get_pressed()
         if clicks[0]:
             mouse_x, mouse_y = pg.mouse.get_pos()
             mouse_pos = vec(mouse_x, mouse_y)
             proxy_camera_rect = self.game.camera.apply(self)
             if proxy_camera_rect.collidepoint(mouse_x, mouse_y):
-                mvmt = mouse_pos - proxy_camera_rect.center
-                try:
-                    norm_mvmt = mvmt.normalize()
-                except ValueError:
-                    norm_mvmt = mvmt
-                self.vel.x = norm_mvmt.x * PROXY_SPEED
-                self.vel.y = norm_mvmt.y * PROXY_SPEED
-                print(self.vel)
+                for proxy in self.game.proxies:
+                    proxy.is_selected = False
+                self.is_selected = True
+
+    def get_inputs(self, control_scheme='joystick'):
+        if control_scheme == 'joystick':
+            self.vel = vec(0, 0)
+            keys = pg.key.get_pressed()
+            if keys[pg.K_LEFT] or keys[pg.K_a]:
+              self.vel.x = -PROXY_SPEED
+            if keys[pg.K_RIGHT] or keys[pg.K_d]:
+              self.vel.x = PROXY_SPEED
+            if keys[pg.K_UP] or keys[pg.K_w]:
+              self.vel.y = -PROXY_SPEED
+            if keys[pg.K_DOWN] or keys[pg.K_s]:
+              self.vel.y = PROXY_SPEED
+            if self.vel.x != 0 and self.vel.y != 0:
+              self.vel *= 0.7071
+        elif control_scheme == 'pointer':
+            self.vel = vec(0, 0)
+            clicks = pg.mouse.get_pressed()
+            if clicks[0]:
+                mouse_x, mouse_y = pg.mouse.get_pos()
+                mouse_pos = vec(mouse_x, mouse_y)
+                proxy_camera_rect = self.game.camera.apply(self)
+                if proxy_camera_rect.collidepoint(mouse_x, mouse_y):
+                    mvmt = mouse_pos - proxy_camera_rect.center
+                    try:
+                        norm_mvmt = mvmt.normalize()
+                    except ValueError:
+                        norm_mvmt = mvmt
+                    self.vel.x = norm_mvmt.x * PROXY_SPEED
+                    self.vel.y = norm_mvmt.y * PROXY_SPEED
+        elif control_scheme == 'rts':
+            pass
+        elif control_scheme == 'mask':
+            pass
+        else:
+            raise ValueError('Valid options for control_scheme: joystick, pointer, rts, mask')
+
 
     def collide_cell(self, ax):
         if ax == 'x':
@@ -81,8 +112,10 @@ class Proxy(pg.sprite.Sprite):
             self.game.score -= 1
 
     def update(self):
-        self.get_inputs()
-        self.pos += self.vel * self.game.dt
+        self.check_selected()
+        if self.is_selected:
+            self.get_inputs()
+            self.pos += self.vel * self.game.dt
         self.rect.x = self.pos.x
         self.collide_cell('x')
         self.rect.y = self.pos.y
