@@ -1,13 +1,13 @@
 # Game Settings
 DEBUG= False
 TITLE = "Cytomata"
-WIDTH = 1024
-HEIGHT = 768
+WIDTH = 800
+HEIGHT = 600
 FPS = 60
-TILESIZE = 64
+TILESIZE = 40
 GRIDWIDTH = WIDTH / TILESIZE
 GRIDHEIGHT = HEIGHT / TILESIZE
-MAP_FILE = 'm1.txt'
+MAP_FILE = 'm0.txt'
 GRND_IMG = 'mic_bkg0.png'
 MUSIC = 'space.mp3'
 
@@ -24,13 +24,15 @@ GREEN = (54,143,59)
 YELLOW = (253, 215, 40)
 
 
-# Cell Settings
-SPAWN_CELLS_RANDOMLY = True
-NUM_RANDOM_CELLS = 80
-CELL_IMG = 'tile10.png'
+# Cyte Settings
+SPAWN_CYTES_RANDOMLY = True
+NUM_RANDOM_CYTES = 80
+CYTE_IMG = 'tile10.png'
 
 
 # Proxy Settings
+SPAWN_PROXIES_RANDOMLY = True
+NUM_RANDOM_PROXIES = 1
 PROXY_SPEED = 100
 CONTROL_SCHEME = 'joystick'
 PROXY_IMG = 'macrophage2.png'

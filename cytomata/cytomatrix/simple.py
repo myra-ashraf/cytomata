@@ -2,6 +2,7 @@ import sys
 import os
 import random as rnd
 import pygame as pg
+import pymunk as pm
 from .settings import *
 from .sprites import *
 from .tilemap import *
@@ -32,41 +33,47 @@ class Game(object):
         # self.bkg_rect = self.bkg_img.get_rect()
         self.proxy_img = pg.image.load(os.path.join(img_dir, 'chars', PROXY_IMG)).convert_alpha()
         self.proxy_img = pg.transform.scale(self.proxy_img, (TILESIZE, TILESIZE))
+        self.cyte_img = pg.image.load(os.path.join(img_dir, 'bkgd', CYTE_IMG)).convert_alpha()
+        self.cyte_img = pg.transform.scale(self.cyte_img, (TILESIZE, TILESIZE))
         self.cancer_img = pg.image.load(os.path.join(img_dir, 'chars', CANCER_IMG)).convert_alpha()
         self.cancer_img = pg.transform.scale(self.cancer_img, (TILESIZE, TILESIZE))
-        self.cell_img = pg.image.load(os.path.join(img_dir, 'bkgd', CELL_IMG)).convert_alpha()
-        self.cell_img = pg.transform.scale(self.cell_img, (TILESIZE, TILESIZE))
         self.eat_snd = pg.mixer.Sound(os.path.join(snd_dir, EAT_SND))
         pg.mixer.music.load(os.path.join(music_dir, MUSIC))
         pg.mixer.music.set_volume(1.0)
 
     def new(self):
         """Set up objects (sprites, camera, etc.) for new game"""
-        self.all_sprites = pg.sprite.Group()
-        self.proxies = pg.sprite.Group()
-        self.cells = pg.sprite.Group()
-        self.cancers = pg.sprite.Group()
+        # self.all_sprites = pg.sprite.Group()
+        # self.proxies = pg.sprite.Group()
+        # self.cytes = pg.sprite.Group()
+        # self.cancers = pg.sprite.Group()
+        self.space = pm.Space()
+        self.space.gravity = (0.0, 0.0)
+        self.all_sprites = []
+        self.proxies = []
+        self.cytes = []
+        self.cancers = []
         self.score = 0
         for row, tiles in enumerate(self.map.data):
             for col, tile in enumerate(tiles):
                 if tile == '0':
                     self.map.occupied_tiles.append((col, row))
-                    Cell(self, col, row)
+                    Cyte(self, col, row)
                 if tile == '1':
                     self.map.occupied_tiles.append((col, row))
                     Proxy(self, col, row)
                 if tile == '2':
                     self.map.occupied_tiles.append((col, row))
                     Cancer(self, col, row)
-        if SPAWN_CELLS_RANDOMLY:
+        if SPAWN_CYTES_RANDOMLY:
             allowed = [
                 (x, y) for x in range(round(int(self.map.width/TILESIZE)))
                 for y in range(round(int(self.map.height/TILESIZE)))
                 if (x, y) not in self.map.occupied_tiles
             ]
-            for i in range(NUM_RANDOM_CELLS):
+            for i in range(NUM_RANDOM_CYTES):
                 rand_x, rand_y = rnd.choice(allowed)
-                Cell(self, rand_x, rand_y)
+                Cyte(self, rand_x, rand_y)
                 self.map.occupied_tiles.append((rand_x, rand_y))
         if SPAWN_CANCERS_RANDOMLY:
             allowed = [
@@ -77,6 +84,16 @@ class Game(object):
             for i in range(NUM_RANDOM_CANCERS):
                 rand_x, rand_y = rnd.choice(allowed)
                 Cancer(self, rand_x, rand_y)
+                self.map.occupied_tiles.append((rand_x, rand_y))
+        if SPAWN_PROXIES_RANDOMLY:
+            allowed = [
+                (x, y) for x in range(round(int(self.map.width/TILESIZE)))
+                for y in range(round(int(self.map.height/TILESIZE)))
+                if (x, y) not in self.map.occupied_tiles
+            ]
+            for i in range(NUM_RANDOM_PROXIES):
+                rand_x, rand_y = rnd.choice(allowed)
+                Proxy(self, rand_x, rand_y)
                 self.map.occupied_tiles.append((rand_x, rand_y))
         # self.camera = Camera(self.map.width, self.map.height)
         pg.mixer.music.play(-1)
@@ -89,6 +106,8 @@ class Game(object):
             self.events()
             self.update()
             self.draw()
+            self.clock.tick(FPS)
+
 
     def events(self):
         """Game loop - process inputs/events"""
@@ -114,11 +133,13 @@ class Game(object):
         self.screen.fill(BGCOLOR)
         # self.screen.blit(self.bkg_img, self.bkg_rect)
         # self.draw_grid()
-        # pg.draw.rect(self.screen, BLACK, self.camera.apply(self.proxy), 2)
+        # for proxy in self.proxies:
+        #     pg.draw.rect(self.screen, BLACK, proxy, 2)
         for sprite in self.all_sprites:
             # self.screen.blit(sprite.image, self.camera.apply(sprite))
             self.screen.blit(sprite.image, sprite.rect)
         self.draw_text(self.screen, str(self.score), 18, WIDTH/2, 10)
+        self.space.step(1/50.0)
         pg.display.flip()
 
     def draw_grid(self):
@@ -129,12 +150,17 @@ class Game(object):
             pg.draw.line(self.screen, LIGHTGREY, (0, y), (WIDTH, y))
 
     def draw_text(self, surf, text, size, x, y):
+        """Draws text on a specified surface"""
         font_name = pg.font.match_font('arial')
         font = pg.font.Font(font_name, size)
         text_surface = font.render(text, True, DARKGREY)
         text_rect = text_surface.get_rect()
         text_rect.midtop = (x, y)
         surf.blit(text_surface, text_rect)
+
+    def to_pygame(p):
+        """Convert pymunk to pygame coordinates"""
+        return int(p.x), int(-p.y+600)
 
     def show_start_screen(self):
         """Game start screen"""
