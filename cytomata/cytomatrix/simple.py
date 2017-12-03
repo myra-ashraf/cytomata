@@ -54,8 +54,8 @@ class Game(object):
         self.score = 0
         self.last_update = pg.time.get_ticks()
         self.spawn_from_map()
+        self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS, 'center')
         self.spawn_randomly(Cyte, NUM_RANDOM_CYTES)
-        self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS)
         self.spawn_randomly(Proxy, NUM_RANDOM_PROXIES)
         # self.camera = Camera(self.map.width, self.map.height)
         pg.mixer.music.play(-1)
@@ -76,18 +76,21 @@ class Game(object):
                     self.map.occupied_tiles.append((col, map_row))
                     Cancer(self, col, map_row)
 
-    def get_open_spots(self):
+    def get_open_spots(self, min_x, max_x, min_y, max_y):
         """Return grid coordinates of locations on the map not occupied by some object"""
         open_spots = [
-            (x, y) for x in range(round(int(self.map.tile_width)))
-            for y in range(round(int(self.map.tile_height)))
+            (x, y) for x in range(min_x, max_x)
+            for y in range(min_y, max_y)
             if (x, y) not in self.map.occupied_tiles
         ]
         return open_spots
 
-    def spawn_randomly(self, Entity, number):
+    def spawn_randomly(self, Entity, number, bias=None):
         """Creates a proxy/cyte/cancer in a random spot on the map"""
-        open_spots = self.get_open_spots()
+        if bias == 'center':
+            open_spots = self.get_open_spots(2, int(self.map.tile_width - 1), 2, int(self.map.tile_height - 1))
+        else:
+            open_spots = self.get_open_spots(0, int(self.map.tile_width), 0, int(self.map.tile_height))
         for i in range(number):
             rand_x, rand_y = rnd.choice(open_spots)
             Entity(self, rand_x, rand_y)
@@ -118,7 +121,7 @@ class Game(object):
         """Game loop - updates"""
         for sprite in self.all_sprites:
             sprite.update()
-        self.time_penalty(3000)
+        self.time_penalty(2400)
         # Camera tracking
         # self.camera.update(self.proxy)
         # End the current game if all cancers have been eliminated
@@ -176,6 +179,7 @@ class Game(object):
                 self.space.remove(cancer.shape, cancer.shape.body)
                 self.cancers.remove(cancer)
                 self.all_sprites.remove(cancer)
+                self.eat_snd.play()
 
     def proxy_cyte_collision(self, arbiter, space, _):
         """Collision between bird and pig"""
@@ -189,9 +193,9 @@ class Game(object):
                     self.space.remove(cyte.shape, cyte.shape.body)
                     self.cytes.remove(cyte)
                     self.all_sprites.remove(cyte)
-                    self.score -= 5
+                    self.score -= 10
                 else:
-                    cyte.shield = 8
+                    cyte.shield = 12
 
     def time_penalty(self, duration):
         now = pg.time.get_ticks()

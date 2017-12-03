@@ -113,16 +113,16 @@ class Proxy():
 
 class Cyte():
     def __init__(self, game, x, y):
-        self.mass = 200.0
+        self.mass = 300.0
         self.radius = TILESIZE / 2.0
         self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
         self.body = pm.Body(self.mass, self.inertia)
         self.body.position = (x + 0.5) * TILESIZE, (y + 0.5) * TILESIZE
         self.shape = pm.Circle(self.body, self.radius, (0, 0))
         self.shape.elasticity = 0.2
-        self.shape.friction = 2.0
+        self.shape.friction = 10.0
         self.shape.collision_type = 1
-        self.life = 4
+        self.life = 5
         self.shield = 0
         self.last_update = pg.time.get_ticks()
         self.game = game

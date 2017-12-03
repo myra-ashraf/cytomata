@@ -25,8 +25,8 @@ YELLOW = (253, 215, 40)
 
 
 # Cyte Settings
-NUM_RANDOM_CYTES = 72
-CYTE_IMG = 'epi0.png'
+NUM_RANDOM_CYTES = 96
+CYTE_IMG = 'epi1.png'
 
 
 # Proxy Settings
