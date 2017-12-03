@@ -54,6 +54,15 @@ class Game(object):
         self.cytes = []
         self.cancers = []
         self.score = 0
+        self.spawn_from_map()
+        self.spawn_randomly(Cyte, NUM_RANDOM_CYTES)
+        self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS)
+        self.spawn_randomly(Proxy, NUM_RANDOM_PROXIES)
+        # self.camera = Camera(self.map.width, self.map.height)
+        pg.mixer.music.play(-1)
+
+    def spawn_from_map(self):
+        """Spawn objects based on locations specified in the map file"""
         for row, tiles in enumerate(self.map.data):
             for col, tile in enumerate(tiles):
                 if tile == '0':
@@ -65,38 +74,23 @@ class Game(object):
                 if tile == '2':
                     self.map.occupied_tiles.append((col, row))
                     Cancer(self, col, row)
-        if SPAWN_CYTES_RANDOMLY:
-            allowed = [
-                (x, y) for x in range(round(int(self.map.width/TILESIZE)))
-                for y in range(round(int(self.map.height/TILESIZE)))
-                if (x, y) not in self.map.occupied_tiles
-            ]
-            for i in range(NUM_RANDOM_CYTES):
-                rand_x, rand_y = rnd.choice(allowed)
-                Cyte(self, rand_x, rand_y)
-                self.map.occupied_tiles.append((rand_x, rand_y))
-        if SPAWN_CANCERS_RANDOMLY:
-            allowed = [
-                (x, y) for x in range(round(int(self.map.width/TILESIZE)))
-                for y in range(round(int(self.map.height/TILESIZE)))
-                if (x, y) not in self.map.occupied_tiles
-            ]
-            for i in range(NUM_RANDOM_CANCERS):
-                rand_x, rand_y = rnd.choice(allowed)
-                Cancer(self, rand_x, rand_y)
-                self.map.occupied_tiles.append((rand_x, rand_y))
-        if SPAWN_PROXIES_RANDOMLY:
-            allowed = [
-                (x, y) for x in range(round(int(self.map.width/TILESIZE)))
-                for y in range(round(int(self.map.height/TILESIZE)))
-                if (x, y) not in self.map.occupied_tiles
-            ]
-            for i in range(NUM_RANDOM_PROXIES):
-                rand_x, rand_y = rnd.choice(allowed)
-                Proxy(self, rand_x, rand_y)
-                self.map.occupied_tiles.append((rand_x, rand_y))
-        # self.camera = Camera(self.map.width, self.map.height)
-        pg.mixer.music.play(-1)
+
+    def get_open_spots(self):
+        """Return x,y coordinates of locations on the map not occupied by some object"""
+        open_spots = [
+            (x, y) for x in range(round(int(self.map.width/TILESIZE)))
+            for y in range(round(int(self.map.height/TILESIZE)))
+            if (x, y) not in self.map.occupied_tiles
+        ]
+        return open_spots
+
+    def spawn_randomly(self, Entity, number):
+        """Creates a proxy/cyte/cancer in a random spot on the map"""
+        open_spots = self.get_open_spots()
+        for i in range(number):
+            rand_x, rand_y = rnd.choice(open_spots)
+            Entity(self, rand_x, rand_y)
+            self.map.occupied_tiles.append((rand_x, rand_y))
 
     def run(self):
         """Game loop"""
@@ -120,11 +114,14 @@ class Game(object):
 
     def update(self):
         """Game loop - updates"""
-        self.all_sprites.update()
+        for sprite in self.all_sprites:
+            sprite.update()
+        # self.all_sprites.update()
         # Camera tracking
         # self.camera.update(self.proxy)
-        if len(self.cancers) < 1:
-            self.playing = False
+        # End the current game if all cancers have been eliminated
+        # if len(self.cancers) < 1:
+        #     self.playing = False
 
     def draw(self):
         """Game loop - render"""
@@ -137,10 +134,17 @@ class Game(object):
         #     pg.draw.rect(self.screen, BLACK, proxy, 2)
         for sprite in self.all_sprites:
             # self.screen.blit(sprite.image, self.camera.apply(sprite))
-            self.screen.blit(sprite.image, sprite.rect)
+            # self.screen.blit(sprite.image, sprite.rect)
+            self.draw_sprite(self.screen, sprite, sprite.image)
         self.draw_text(self.screen, str(self.score), 18, WIDTH/2, 10)
-        self.space.step(1/50.0)
+        self.space.step(1.0/FPS)
         pg.display.flip()
+
+    def draw_sprite(self, screen, Entity, image):
+        p = pm.Vec2d(self.to_pygame(Entity.body.position))
+        pg.draw.circle(screen, (0,0,255), p, int(Entity.radius), 2)
+        p -= (20.0, 20.0)
+        # screen.blit(image, p)
 
     def draw_grid(self):
         """Draw the tiles based on settings"""
@@ -158,9 +162,9 @@ class Game(object):
         text_rect.midtop = (x, y)
         surf.blit(text_surface, text_rect)
 
-    def to_pygame(p):
+    def to_pygame(self, p):
         """Convert pymunk to pygame coordinates"""
-        return int(p.x), int(-p.y+600)
+        return int(p.x), int(-p.y + HEIGHT)
 
     def show_start_screen(self):
         """Game start screen"""
