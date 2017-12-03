@@ -1,5 +1,5 @@
 # Game Settings
-DEBUG= False
+DEBUG = False
 TITLE = "Cytomata"
 WIDTH = 800
 HEIGHT = 600
@@ -9,7 +9,7 @@ GRIDWIDTH = WIDTH / TILESIZE
 GRIDHEIGHT = HEIGHT / TILESIZE
 MAP_FILE = 'm0.txt'
 GRND_IMG = 'mic_bkg0.png'
-MUSIC = 'space.mp3'
+MUSIC = 'TheRush.mp3'
 
 # Colors
 WHITE = (255, 255, 255)
@@ -30,8 +30,8 @@ CYTE_IMG = 'tile10.png'
 
 
 # Proxy Settings
-NUM_RANDOM_PROXIES = 2
-PROXY_SPEED = 100
+NUM_RANDOM_PROXIES = 1
+PROXY_SPEED = 80.0
 CONTROL_SCHEME = 'joystick'
 PROXY_IMG = 'macrophage2.png'
 EAT_SND = 'eat.wav'

@@ -43,10 +43,6 @@ class Game(object):
 
     def new(self):
         """Set up objects (sprites, camera, etc.) for new game"""
-        # self.all_sprites = pg.sprite.Group()
-        # self.proxies = pg.sprite.Group()
-        # self.cytes = pg.sprite.Group()
-        # self.cancers = pg.sprite.Group()
         self.space = pm.Space()
         self.space.gravity = (0.0, 0.0)
         self.all_sprites = []
@@ -65,6 +61,7 @@ class Game(object):
         """Spawn objects based on locations specified in the map file"""
         for row, tiles in enumerate(self.map.data):
             for col, tile in enumerate(tiles):
+                # Convert coords to match y-axis position as seen on map
                 map_row = int(GRIDHEIGHT - row - 1.0)
                 if tile == '0':
                     self.map.occupied_tiles.append((col, map_row))
@@ -88,7 +85,6 @@ class Game(object):
     def spawn_randomly(self, Entity, number):
         """Creates a proxy/cyte/cancer in a random spot on the map"""
         open_spots = self.get_open_spots()
-        # print(open_spots)
         for i in range(number):
             rand_x, rand_y = rnd.choice(open_spots)
             Entity(self, rand_x, rand_y)
@@ -119,7 +115,6 @@ class Game(object):
         """Game loop - updates"""
         for sprite in self.all_sprites:
             sprite.update()
-        # self.all_sprites.update()
         # Camera tracking
         # self.camera.update(self.proxy)
         # End the current game if all cancers have been eliminated
@@ -132,22 +127,18 @@ class Game(object):
             pg.display.set_caption('{:.2f}'.format(self.clock.get_fps()))
         self.screen.fill(BGCOLOR)
         # self.screen.blit(self.bkg_img, self.bkg_rect)
-        self.draw_grid()
-        # for proxy in self.proxies:
-        #     pg.draw.rect(self.screen, BLACK, proxy, 2)
+        # self.draw_grid()
         for sprite in self.all_sprites:
-            # self.screen.blit(sprite.image, self.camera.apply(sprite))
-            # self.screen.blit(sprite.image, sprite.rect)
             self.draw_sprite(self.screen, sprite, sprite.image)
         self.draw_text(self.screen, str(self.score), 18, WIDTH/2, 10)
         self.space.step(1.0/FPS)
         pg.display.flip()
 
     def draw_sprite(self, screen, Entity, image):
-        x, y = Entity.body.position
-        p = pm.Vec2d(self.to_pygame(x, y))
-        pg.draw.circle(screen, (0,0,255), p, int(Entity.radius), 2)
-        p -= (20.0, 20.0)
+        p = pm.Vec2d(self.to_pygame(*Entity.body.position))
+        # pg.draw.circle(screen, (0,0,255), p, int(Entity.radius), 2)
+        img_offset = (20.0, 20.0)
+        p -= img_offset
         screen.blit(image, p)
 
     def draw_grid(self):
