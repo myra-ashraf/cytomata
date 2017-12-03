@@ -65,21 +65,22 @@ class Game(object):
         """Spawn objects based on locations specified in the map file"""
         for row, tiles in enumerate(self.map.data):
             for col, tile in enumerate(tiles):
+                map_row = int(GRIDHEIGHT - row - 1.0)
                 if tile == '0':
-                    self.map.occupied_tiles.append((col, row))
-                    Cyte(self, col, row)
+                    self.map.occupied_tiles.append((col, map_row))
+                    Cyte(self, col, map_row)
                 if tile == '1':
-                    self.map.occupied_tiles.append((col, row))
-                    Proxy(self, col, row)
+                    self.map.occupied_tiles.append((col, map_row))
+                    Proxy(self, col, map_row)
                 if tile == '2':
-                    self.map.occupied_tiles.append((col, row))
-                    Cancer(self, col, row)
+                    self.map.occupied_tiles.append((col, map_row))
+                    Cancer(self, col, map_row)
 
     def get_open_spots(self):
-        """Return x,y coordinates of locations on the map not occupied by some object"""
+        """Return grid coordinates of locations on the map not occupied by some object"""
         open_spots = [
-            (x, y) for x in range(round(int(self.map.width/TILESIZE)))
-            for y in range(round(int(self.map.height/TILESIZE)))
+            (x, y) for x in range(round(int(self.map.tile_width)))
+            for y in range(round(int(self.map.tile_height)))
             if (x, y) not in self.map.occupied_tiles
         ]
         return open_spots
@@ -87,9 +88,11 @@ class Game(object):
     def spawn_randomly(self, Entity, number):
         """Creates a proxy/cyte/cancer in a random spot on the map"""
         open_spots = self.get_open_spots()
+        # print(open_spots)
         for i in range(number):
             rand_x, rand_y = rnd.choice(open_spots)
             Entity(self, rand_x, rand_y)
+            open_spots.remove((rand_x, rand_y))
             self.map.occupied_tiles.append((rand_x, rand_y))
 
     def run(self):
@@ -129,7 +132,7 @@ class Game(object):
             pg.display.set_caption('{:.2f}'.format(self.clock.get_fps()))
         self.screen.fill(BGCOLOR)
         # self.screen.blit(self.bkg_img, self.bkg_rect)
-        # self.draw_grid()
+        self.draw_grid()
         # for proxy in self.proxies:
         #     pg.draw.rect(self.screen, BLACK, proxy, 2)
         for sprite in self.all_sprites:
@@ -141,10 +144,11 @@ class Game(object):
         pg.display.flip()
 
     def draw_sprite(self, screen, Entity, image):
-        p = pm.Vec2d(self.to_pygame(Entity.body.position))
+        x, y = Entity.body.position
+        p = pm.Vec2d(self.to_pygame(x, y))
         pg.draw.circle(screen, (0,0,255), p, int(Entity.radius), 2)
         p -= (20.0, 20.0)
-        # screen.blit(image, p)
+        screen.blit(image, p)
 
     def draw_grid(self):
         """Draw the tiles based on settings"""
@@ -162,9 +166,9 @@ class Game(object):
         text_rect.midtop = (x, y)
         surf.blit(text_surface, text_rect)
 
-    def to_pygame(self, p):
+    def to_pygame(self, x, y):
         """Convert pymunk to pygame coordinates"""
-        return int(p.x), int(-p.y + HEIGHT)
+        return int(x), int(-y + HEIGHT)
 
     def show_start_screen(self):
         """Game start screen"""

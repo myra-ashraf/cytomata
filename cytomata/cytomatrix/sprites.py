@@ -3,7 +3,7 @@ import pymunk as pm
 from .settings import *
 
 
-vec = pg.math.Vector2
+# vec = pg.math.Vector2
 
 
 class Proxy():
@@ -13,7 +13,7 @@ class Proxy():
         self.radius = TILESIZE / 2.0
         self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
         self.body = pm.Body(self.mass, self.inertia)
-        self.body.position = x * TILESIZE, y * TILESIZE
+        self.body.position = (x + 0.5) * TILESIZE, (y + 0.5) * TILESIZE
         self.shape = pm.Circle(self.body, self.radius, (0, 0))
         self.shape.elasticity = 0.95
         self.shape.friction = 1
@@ -146,7 +146,7 @@ class Cyte():
         self.radius = TILESIZE / 2.0
         self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
         self.body = pm.Body(self.mass, self.inertia)
-        self.body.position = x * TILESIZE, y * TILESIZE
+        self.body.position = (x + 0.5) * TILESIZE, (y + 0.5) * TILESIZE
         self.shape = pm.Circle(self.body, self.radius, (0, 0))
         self.shape.elasticity = 0.95
         self.shape.friction = 1
@@ -165,6 +165,7 @@ class Cyte():
         # self.y = y
         # self.rect.x = x * TILESIZE
         # self.rect.y = y * TILESIZE
+
     def update(self):
         pass
 
@@ -176,7 +177,7 @@ class Cancer():
         self.radius = TILESIZE / 2.0
         self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
         self.body = pm.Body(self.mass, self.inertia)
-        self.body.position = x * TILESIZE, y * TILESIZE
+        self.body.position = (x + 0.5) * TILESIZE, (y + 0.5) * TILESIZE
         self.shape = pm.Circle(self.body, self.radius, (0, 0))
         self.shape.elasticity = 0.95
         self.shape.friction = 1
