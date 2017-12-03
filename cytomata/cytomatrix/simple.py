@@ -51,6 +51,7 @@ class Game(object):
         self.proxies = []
         self.cytes = []
         self.cancers = []
+        self.map.occupied_tiles = []
         self.score = 0
         self.last_update = pg.time.get_ticks()
         self.spawn_from_map()
