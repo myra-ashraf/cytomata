@@ -33,7 +33,7 @@ class Game(object):
         # self.bkg_rect = self.bkg_img.get_rect()
         self.proxy_img = pg.image.load(os.path.join(img_dir, 'chars', PROXY_IMG)).convert_alpha()
         self.proxy_img = pg.transform.scale(self.proxy_img, (TILESIZE, TILESIZE))
-        self.cyte_img = pg.image.load(os.path.join(img_dir, 'bkgd', CYTE_IMG)).convert_alpha()
+        self.cyte_img = pg.image.load(os.path.join(img_dir, 'chars', CYTE_IMG)).convert_alpha()
         self.cyte_img = pg.transform.scale(self.cyte_img, (TILESIZE, TILESIZE))
         self.cancer_img = pg.image.load(os.path.join(img_dir, 'chars', CANCER_IMG)).convert_alpha()
         self.cancer_img = pg.transform.scale(self.cancer_img, (TILESIZE, TILESIZE))
@@ -45,11 +45,14 @@ class Game(object):
         """Set up objects (sprites, camera, etc.) for new game"""
         self.space = pm.Space()
         self.space.gravity = (0.0, 0.0)
+        self.space.add_collision_handler(0, 2).post_solve=self.proxy_cancer_collision
+        self.space.add_collision_handler(0, 1).post_solve=self.proxy_cyte_collision
         self.all_sprites = []
         self.proxies = []
         self.cytes = []
         self.cancers = []
         self.score = 0
+        self.last_update = pg.time.get_ticks()
         self.spawn_from_map()
         self.spawn_randomly(Cyte, NUM_RANDOM_CYTES)
         self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS)
@@ -115,11 +118,12 @@ class Game(object):
         """Game loop - updates"""
         for sprite in self.all_sprites:
             sprite.update()
+        self.time_penalty(3000)
         # Camera tracking
         # self.camera.update(self.proxy)
         # End the current game if all cancers have been eliminated
-        # if len(self.cancers) < 1:
-        #     self.playing = False
+        if len(self.cancers) < 1:
+            self.playing = False
 
     def draw(self):
         """Game loop - render"""
@@ -160,6 +164,40 @@ class Game(object):
     def to_pygame(self, x, y):
         """Convert pymunk to pygame coordinates"""
         return int(x), int(-y + HEIGHT)
+
+    def proxy_cancer_collision(self, arbiter, space, _):
+        """Collision between bird and pig"""
+        a, b = arbiter.shapes
+        proxy_body = a.body
+        cancer_body = b.body
+        for cancer in self.cancers:
+            if cancer_body == cancer.body:
+                self.score += 15
+                self.space.remove(cancer.shape, cancer.shape.body)
+                self.cancers.remove(cancer)
+                self.all_sprites.remove(cancer)
+
+    def proxy_cyte_collision(self, arbiter, space, _):
+        """Collision between bird and pig"""
+        a, b = arbiter.shapes
+        proxy_body = a.body
+        cyte_body = b.body
+        for cyte in self.cytes:
+            if cyte_body == cyte.body and not cyte.shield:
+                cyte.life -= 1
+                if cyte.life <= 0:
+                    self.space.remove(cyte.shape, cyte.shape.body)
+                    self.cytes.remove(cyte)
+                    self.all_sprites.remove(cyte)
+                    self.score -= 5
+                else:
+                    cyte.shield = 8
+
+    def time_penalty(self, duration):
+        now = pg.time.get_ticks()
+        if now - self.last_update > duration:
+            self.last_update = now
+            self.score -= 1
 
     def show_start_screen(self):
         """Game start screen"""

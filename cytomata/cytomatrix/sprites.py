@@ -16,6 +16,7 @@ class Proxy():
         self.shape.collision_type = 0
         self.body.velocity = pm.Vec2d(0, 0)
         self.life = 20
+        self.last_update = pg.time.get_ticks()
         self.game = game
         self.game.space.add(self.body, self.shape)
         self.game.all_sprites.append(self)
@@ -42,6 +43,14 @@ class Proxy():
             self.body.velocity = self.body.velocity * factor
         else:
             self.body.velocity = (0.0, 0.0)
+
+    def out_of_arena(self, duration):
+        now = pg.time.get_ticks()
+        x, y = self.body.position
+        in_view = x > 0 and x < WIDTH and y > 0 and y < HEIGHT
+        if now - self.last_update > duration and not in_view:
+            self.last_update = now
+            self.game.playing = False
 
     # def check_selected(self):
     #     clicks = pg.mouse.get_pressed()
@@ -90,24 +99,11 @@ class Proxy():
         else:
             raise ValueError('Valid options for control_scheme: joystick, pointer, rts, mask')
 
-
-    # def collide_cancer(self):
-    #     hits = pg.sprite.spritecollide(self, self.game.cancers, True)
-    #     if hits:
-    #         self.game.eat_snd.play()
-    #         for hit in hits:
-    #             self.game.score += 15
-
-    # def time_penalty(self):
-    #     now = pg.time.get_ticks()
-    #     if now - self.last_update > 3000:
-    #         self.last_update = now
-    #         self.game.score -= 1
-
     def update(self):
         self.check_inputs()
         self.cap_speed(PROXY_SPEED)
         self.bkg_friction(0.9)
+        self.out_of_arena(12000)
         # self.check_selected()
         # if self.is_selected:
         #     self.check_inputs()
@@ -117,7 +113,7 @@ class Proxy():
 
 class Cyte():
     def __init__(self, game, x, y):
-        self.mass = 50.0
+        self.mass = 200.0
         self.radius = TILESIZE / 2.0
         self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
         self.body = pm.Body(self.mass, self.inertia)
@@ -125,8 +121,10 @@ class Cyte():
         self.shape = pm.Circle(self.body, self.radius, (0, 0))
         self.shape.elasticity = 0.2
         self.shape.friction = 2.0
-        self.shape.collision_type = 0
-        self.life = 20
+        self.shape.collision_type = 1
+        self.life = 4
+        self.shield = 0
+        self.last_update = pg.time.get_ticks()
         self.game = game
         self.game.space.add(self.body, self.shape)
         self.game.all_sprites.append(self)
@@ -139,8 +137,15 @@ class Cyte():
         else:
             self.body.velocity = (0.0, 0.0)
 
+    def shield_timer(self, duration):
+        now = pg.time.get_ticks()
+        if self.shield and now - self.last_update > duration:
+            self.last_update = now
+            self.shield -= 1
+
     def update(self):
         self.bkg_friction(0.9)
+        self.shield_timer(100)
 
 
 class Cancer():
@@ -153,9 +158,10 @@ class Cancer():
         self.shape = pm.Circle(self.body, self.radius, (0, 0))
         self.shape.elasticity = 0.2
         self.shape.friction = 1.5
-        self.shape.collision_type = 0
+        self.shape.collision_type = 2
         self.life = 20
         self.game = game
+        self.last_update = pg.time.get_ticks()
         self.game.space.add(self.body, self.shape)
         self.game.all_sprites.append(self)
         self.game.cancers.append(self)
@@ -166,6 +172,15 @@ class Cancer():
             self.body.velocity = self.body.velocity * factor
         else:
             self.body.velocity = (0.0, 0.0)
+
+    def out_of_arena(self, duration):
+        now = pg.time.get_ticks()
+        x, y = self.body.position
+        in_view = x > 0 and x < WIDTH and y > 0 and y < HEIGHT
+        if now - self.last_update > duration and not in_view:
+            self.last_update = now
+            self.game.cancers.remove(self)
+            self.game.all_sprites.remove(self)
 
     def update(self):
         self.bkg_friction(0.9)
