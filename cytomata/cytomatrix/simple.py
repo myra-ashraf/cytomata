@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 import random as rnd
 import pygame as pg
 import pymunk as pm
@@ -29,8 +30,9 @@ class Game(object):
         snd_dir = os.path.join(game_dir, 'snd')
         music_dir = os.path.join(game_dir, 'music')
         self.map = Map(os.path.join(game_dir, 'maps', MAP_FILE))
-        # self.bkg_img = pg.image.load(os.path.join(img_dir, 'bkgd', GRND_IMG)).convert()
-        # self.bkg_rect = self.bkg_img.get_rect()
+        self.bkg_img = pg.image.load(os.path.join(img_dir, 'bkgd', BKG_IMG)).convert()
+        self.bkg_img = pg.transform.scale(self.bkg_img, (WIDTH, HEIGHT))
+        self.bkg_rect = self.bkg_img.get_rect()
         self.proxy_img = pg.image.load(os.path.join(img_dir, 'chars', PROXY_IMG)).convert_alpha()
         self.proxy_img = pg.transform.scale(self.proxy_img, (TILESIZE, TILESIZE))
         self.cyte_img = pg.image.load(os.path.join(img_dir, 'chars', CYTE_IMG)).convert_alpha()
@@ -53,6 +55,8 @@ class Game(object):
         self.cancers = []
         self.map.occupied_tiles = []
         self.score = 0
+        self.timer = 0
+        self.timer_start = time.time()
         self.last_update = pg.time.get_ticks()
         self.spawn_from_map()
         self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS, 'center')
@@ -120,9 +124,10 @@ class Game(object):
 
     def update(self):
         """Game loop - updates"""
+        self.timer = time.time() - self.timer_start
         for sprite in self.all_sprites:
             sprite.update()
-        self.time_penalty(2400)
+        self.time_penalty(2000)
         # Camera tracking
         # self.camera.update(self.proxy)
         # End the current game if all cancers have been eliminated
@@ -134,12 +139,14 @@ class Game(object):
         if DEBUG:
             pg.display.set_caption('{:.2f}'.format(self.clock.get_fps()))
         self.screen.fill(BGCOLOR)
-        # self.screen.blit(self.bkg_img, self.bkg_rect)
+        self.screen.blit(self.bkg_img, self.bkg_rect)
         # self.draw_grid()
         for sprite in self.all_sprites:
             self.draw_sprite(self.screen, sprite, sprite.image)
-        self.draw_text(self.screen, str(self.score), 18, WIDTH/2, 10)
+        self.draw_text(self.screen, 'Score: ' + str(self.score), 18, WIDTH * 0.9, 8)
+        self.draw_text(self.screen, 'Time: ' + str('{:.2f}'.format(self.timer)), 18, WIDTH * 0.1, 8)
         self.space.step(1.0/FPS)
+        self.raw_img = pg.surfarray.array3d(pg.display.get_surface())
         pg.display.flip()
 
     def draw_sprite(self, screen, Entity, image):
@@ -203,6 +210,10 @@ class Game(object):
         if now - self.last_update > duration:
             self.last_update = now
             self.score -= 1
+
+    def get_rl_input(self):
+        """API for deep reinforcement learning"""
+        return self.raw_img, self.proxies, self.score
 
     def show_start_screen(self):
         """Game start screen"""

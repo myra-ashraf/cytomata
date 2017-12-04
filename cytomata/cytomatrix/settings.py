@@ -8,7 +8,7 @@ TILESIZE = 40
 GRIDWIDTH = WIDTH / TILESIZE
 GRIDHEIGHT = HEIGHT / TILESIZE
 MAP_FILE = 'm0.txt'
-GRND_IMG = 'mic_bkg0.png'
+BKG_IMG = 'white_plaster.png'
 MUSIC = 'TheRush.mp3'
 
 # Colors
