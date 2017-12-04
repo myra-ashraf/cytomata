@@ -1,3 +1,4 @@
+import random as rnd
 import pygame as pg
 import pymunk as pm
 from .settings import *
@@ -125,6 +126,7 @@ class Cyte():
         self.life = 5
         self.shield = 0
         self.last_update = pg.time.get_ticks()
+        self.rand_walk_t0 = pg.time.get_ticks()
         self.game = game
         self.game.space.add(self.body, self.shape)
         self.game.all_sprites.append(self)
@@ -143,9 +145,21 @@ class Cyte():
             self.last_update = now
             self.shield -= 1
 
+    def random_walk(self, delay, magnitude):
+        now = pg.time.get_ticks()
+        delay += rnd.randint(-300, 300)
+        magnitude += rnd.randint(-20, 20)
+        if now - self.rand_walk_t0 > delay:
+            self.rand_walk_t0 = now
+            vel = pm.Vec2d(magnitude, 0)
+            rand_angle = rnd.randint(0, 359)
+            rand_vel = vel.rotated_degrees(rand_angle)
+            self.body.velocity = rand_vel
+
     def update(self):
         self.bkg_friction(0.9)
         self.shield_timer(100)
+        self.random_walk(2200, 20)
 
 
 class Cancer():
@@ -162,6 +176,7 @@ class Cancer():
         self.life = 20
         self.game = game
         self.last_update = pg.time.get_ticks()
+        self.rand_walk_t0 = pg.time.get_ticks()
         self.game.space.add(self.body, self.shape)
         self.game.all_sprites.append(self)
         self.game.cancers.append(self)
@@ -182,5 +197,17 @@ class Cancer():
             self.game.cancers.remove(self)
             self.game.all_sprites.remove(self)
 
+    def random_walk(self, delay, magnitude):
+        now = pg.time.get_ticks()
+        delay += rnd.randint(-500, 500)
+        magnitude += rnd.randint(-20, 20)
+        if now - self.rand_walk_t0 > delay:
+            self.rand_walk_t0 = now
+            vel = pm.Vec2d(magnitude, 0)
+            rand_angle = rnd.randint(0, 359)
+            rand_vel = vel.rotated_degrees(rand_angle)
+            self.body.velocity = rand_vel
+
     def update(self):
         self.bkg_friction(0.9)
+        self.random_walk(1200, 30)
