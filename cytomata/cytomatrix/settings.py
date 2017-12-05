@@ -31,7 +31,7 @@ CYTE_IMG = 'epi1.png'
 
 # Proxy Settings
 NUM_RANDOM_PROXIES = 1
-PROXY_SPEED = 80.0
+PROXY_SPEED = 60.0
 CONTROL_SCHEME = 'joystick'
 PROXY_IMG = 'macrophage2.png'
 EAT_SND = 'eat.wav'

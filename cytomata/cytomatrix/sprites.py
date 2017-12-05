@@ -6,7 +6,7 @@ from .settings import *
 
 class Proxy():
     def __init__(self, game, x, y):
-        self.mass = 20.0
+        self.mass = 30.0
         self.radius = TILESIZE / 2.0
         self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
         self.body = pm.Body(self.mass, self.inertia)
@@ -27,13 +27,13 @@ class Proxy():
     def move(self, direction):
         """ Moves the proxy in a direction: UP, DOWN, LEFT, RIGHT"""
         if direction == 'UP':
-            self.body.velocity += (0, 50)
+            self.body.velocity += (0, 10)
         if direction == 'DOWN':
-            self.body.velocity += (0, -50)
+            self.body.velocity += (0, -10)
         if direction == 'LEFT':
-            self.body.velocity += (-50, 0)
+            self.body.velocity += (-10, 0)
         if direction == 'RIGHT':
-            self.body.velocity += (50, 0)
+            self.body.velocity += (10, 0)
 
     def cap_speed(self, max_speed):
         if self.body.velocity.length > max_speed:
@@ -147,7 +147,7 @@ class Cyte():
 
     def random_walk(self, delay, magnitude):
         now = pg.time.get_ticks()
-        delay += rnd.randint(-300, 300)
+        delay += rnd.randint(-800, 800)
         magnitude += rnd.randint(-20, 20)
         if now - self.rand_walk_t0 > delay:
             self.rand_walk_t0 = now

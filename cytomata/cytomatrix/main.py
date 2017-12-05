@@ -11,7 +11,7 @@ from .tilemap import *
 
 class Game(object):
     """Game manager"""
-    def __init__(self):
+    def __init__(self, run_mode=0):
         """Initialize game, window, etc."""
         pg.mixer.pre_init(44100, -16, 1, 512)
         pg.init()
@@ -22,6 +22,7 @@ class Game(object):
         # Time before key hold detected + frequency of key press
         pg.key.set_repeat(100, 100)
         self.load_data()
+        self.run_mode = run_mode
 
     def load_data(self):
         """Load maps, sprites, and other game resources"""
@@ -45,6 +46,7 @@ class Game(object):
 
     def new(self):
         """Set up objects (sprites, camera, etc.) for new game"""
+        # self.director = cytomagic.Director()
         self.space = pm.Space()
         self.space.gravity = (0.0, 0.0)
         self.space.add_collision_handler(0, 2).post_solve=self.proxy_cancer_collision
@@ -64,6 +66,7 @@ class Game(object):
         self.spawn_randomly(Proxy, NUM_RANDOM_PROXIES)
         # self.camera = Camera(self.map.width, self.map.height)
         pg.mixer.music.play(-1)
+        self.playing = True
 
     def spawn_from_map(self):
         """Spawn objects based on locations specified in the map file"""
@@ -104,13 +107,11 @@ class Game(object):
 
     def run(self):
         """Game loop"""
-        self.playing = True
-        while self.playing:
-            self.dt = self.clock.tick(FPS) / 1000
-            self.events()
-            self.update()
-            self.draw()
-            self.clock.tick(FPS)
+        self.events()
+        self.update()
+        self.draw()
+        self.clock.tick(FPS)
+        return self.raw_img, self.proxies, self.score, self.playing
 
 
     def events(self):
@@ -211,10 +212,6 @@ class Game(object):
             self.last_update = now
             self.score -= 1
 
-    def get_rl_input(self):
-        """API for deep reinforcement learning"""
-        return self.raw_img, self.proxies, self.score
-
     def show_start_screen(self):
         """Game start screen"""
         pass
@@ -234,5 +231,6 @@ def run():
     g.show_start_screen()
     while True:
         g.new()
-        g.run()
+        while g.playing:
+            g.run()
         g.show_go_screen()
