@@ -1,1 +1,1 @@
-from .main import run
+from cytomagic.main import Director, run

@@ -25,7 +25,7 @@ YELLOW = (253, 215, 40)
 
 
 # Cyte Settings
-NUM_RANDOM_CYTES = 96
+NUM_RANDOM_CYTES = 0
 CYTE_IMG = 'epi1.png'
 
 
@@ -38,5 +38,5 @@ EAT_SND = 'eat.wav'
 
 
 # Cancer Settings
-NUM_RANDOM_CANCERS = 8
+NUM_RANDOM_CANCERS = 50
 CANCER_IMG = 'nalm0.png'

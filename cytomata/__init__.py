@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-    cytomatra
+    cytomata
     -----
     Microenvironment simulation and control via deep reinforcement learning.
     :copyright: (c) 2017 Phuong T. Ho
@@ -17,6 +17,3 @@ __copyright__ = 'Copyright 2017 Phuong T. Ho'
 __email__ = 'phuongho43@gmail.com'
 __keywords__ = 'cytomata deep-learning reinforcement-learning research cells engineering'
 __website__ = 'https://github.com/phuongho43/cytomata'
-
-
-from cytomata import utils

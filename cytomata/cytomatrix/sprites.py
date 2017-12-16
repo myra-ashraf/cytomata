@@ -1,4 +1,5 @@
 import random as rnd
+import numpy as np
 import pygame as pg
 import pymunk as pm
 from .settings import *
@@ -100,8 +101,16 @@ class Proxy():
         else:
             raise ValueError('Valid options for control_scheme: joystick, pointer, rts, mask')
 
-    def update(self):
+    def direct_actions(self, actions):
+        actions_ref = ['NO_OP', 'UP', 'DOWN', 'LEFT', 'RIGHT']
+        acts = [a for a in np.where(actions)[0]]
+        for act in acts:
+            self.move(actions_ref[act])
+
+
+    def update(self, actions):
         self.check_inputs()
+        self.direct_actions(actions)
         self.cap_speed(PROXY_SPEED)
         self.bkg_friction(0.9)
         self.out_of_arena(12000)

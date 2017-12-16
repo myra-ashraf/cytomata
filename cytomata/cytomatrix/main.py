@@ -11,7 +11,7 @@ from .tilemap import *
 
 class Game(object):
     """Game manager"""
-    def __init__(self, run_mode=0):
+    def __init__(self):
         """Initialize game, window, etc."""
         pg.mixer.pre_init(44100, -16, 1, 512)
         pg.init()
@@ -22,7 +22,6 @@ class Game(object):
         # Time before key hold detected + frequency of key press
         pg.key.set_repeat(100, 100)
         self.load_data()
-        self.run_mode = run_mode
 
     def load_data(self):
         """Load maps, sprites, and other game resources"""
@@ -105,10 +104,10 @@ class Game(object):
             open_spots.remove((rand_x, rand_y))
             self.map.occupied_tiles.append((rand_x, rand_y))
 
-    def run(self):
+    def run(self, actions):
         """Game loop"""
         self.events()
-        self.update()
+        self.update(actions)
         self.draw()
         self.clock.tick(FPS)
         return self.raw_img, self.proxies, self.score, self.playing
@@ -123,11 +122,14 @@ class Game(object):
                 if event.key == pg.K_ESCAPE:
                     self.quit()
 
-    def update(self):
+    def update(self, actions):
         """Game loop - updates"""
         self.timer = time.time() - self.timer_start
         for sprite in self.all_sprites:
-            sprite.update()
+            if sprite in self.proxies:
+                sprite.update(actions)
+            else:
+                sprite.update()
         self.time_penalty(2000)
         # Camera tracking
         # self.camera.update(self.proxy)

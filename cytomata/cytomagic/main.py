@@ -3,8 +3,7 @@ import numpy as np
 import random as rnd
 import tensorflow as tf
 import cv2
-from ..cytomatrix import main
-
+import cytomatrix
 
 # HYPERPARAMETERS--------------------
 # UP, DOWN, LEFT, RIGHT, NO_OP
@@ -25,7 +24,7 @@ class Director(object):
     def __init__(self):
         pass
 
-    def create_dqn_graph(self):
+    def create_dqn(self):
         # Overall network structure
         W_conv1 = tf.Variable(tf.zeros([8, 8, 4, 32]))
         b_conv1 = tf.Variable(tf.zeros([32]))
@@ -33,33 +32,49 @@ class Director(object):
         b_conv2 = tf.Variable(tf.zeros([64]))
         W_conv3 = tf.Variable(tf.zeros([3, 3, 64, 64]))
         b_conv3 = tf.Variable(tf.zeros([64]))
-        W_fc4 = tf.Variable(tf.zeros([3136, 784]))
-        b_fc4 = tf.Variable(tf.zeros([784]))
-        W_fc5 = tf.Variable(tf.zeros([784, ACTIONS]))
+        W_fc4 = tf.Variable(tf.zeros([1600, 512]))
+        b_fc4 = tf.Variable(tf.zeros([512]))
+        W_fc5 = tf.Variable(tf.zeros([512, ACTIONS]))
         b_fc5 = tf.Variable(tf.zeros([ACTIONS]))
         # Input: preprocessed game pixel data
         s = tf.placeholder("float", [None, 80, 80, 4])
         # Forward propagation calculations
-        conv1 = tf.nn.relu(tf.nn.conv2d(s, W_conv1, strides = [1, 4, 4, 1], padding = "VALID") + b_conv1)
-        conv2 = tf.nn.relu(tf.nn.conv2d(conv1, W_conv2, strides = [1, 2, 2, 1], padding = "VALID") + b_conv2)
-        conv3 = tf.nn.relu(tf.nn.conv2d(conv2, W_conv3, strides = [1, 1, 1, 1], padding = "VALID") + b_conv3)
-        conv3_flat = tf.reshape(conv3, [-1, 3136])
+        conv1 = tf.nn.relu(tf.nn.conv2d(s, W_conv1, strides = [1, 4, 4, 1], padding = "SAME") + b_conv1)
+        conv2 = tf.nn.relu(tf.nn.conv2d(conv1, W_conv2, strides = [1, 2, 2, 1], padding = "SAME") + b_conv2)
+        conv3 = tf.nn.relu(tf.nn.conv2d(conv2, W_conv3, strides = [1, 1, 1, 1], padding = "SAME") + b_conv3)
+        conv3_flat = tf.reshape(conv3, [-1, 1600])
         fc4 = tf.nn.relu(tf.matmul(conv3_flat, W_fc4) + b_fc4)
         # Output: vector of Q-values for each action
         fc5 = tf.matmul(fc4, W_fc5) + b_fc5
         return s, fc5
 
-    def process(self, input_layer, output_layer, session, raw_pixels, reward):
+    def train_dqn(self, input_layer, output_layer, session):
         # Init recommended actions vector
         q_vals = tf.placeholder("float", [None, ACTIONS])
         # Ground truth value
         gt = tf.placeholder("float", [None])
         # Reduce to single action from q_vals
-        action = tf.reduce_sum(tf.mul(output_layer, q_vals), reduction_indices=1)
+        action = tf.reduce_sum(tf.multiply(output_layer, q_vals), reduction_indices=1)
         # Cost function for backprop
         cost = tf.reduce_mean(tf.square(action - gt))
         # Minimize cost function
         train_step = tf.train.AdamOptimizer(1e-6).minimize(cost)
+
+        # Open up a new game state
+        game = cytomatrix.Game()
+        game.new()
+
+        # get the first state by doing nothing and preprocess the image to 80x80x4
+        do_nothing = np.zeros(ACTIONS)
+        do_nothing[0] = 1
+        frame, _, reward, terminal = game.run(do_nothing)
+        # Preprocess raw pixel inputs
+        # RGB to grayscale
+        frame = cv2.cvtColor(cv2.resize(frame, (80, 80)), cv2.COLOR_BGR2GRAY)
+        # Binarize image
+        ret, frame = cv2.threshold(frame, 1, 255, cv2.THRESH_BINARY)
+        # Form a stack of 4 images as input
+        input_tensor = np.stack((frame, frame, frame, frame), axis=2)
 
         # Init relevant objects
         # Experience replay buffer
@@ -67,17 +82,9 @@ class Director(object):
         # For saving training progress
         saver = tf.train.Saver()
         # Init session vars
-        session.run(tf.initialize_all_variables())
-        t = 0
+        session.run(tf.global_variables_initializer())
         epsilon = INITIAL_EPSILON
-
-        # Preprocess raw pixel inputs
-        # RGB to grayscale
-        frame = cv2.cvtColor(cv2.resize(raw_pixels, (80, 80)), cv2.COLOR_BGR2GRAY)
-        # Binarize image
-        _, frame = cv2.threshold(frame, 1, 255, cv2.THRESH_BINARY)
-        # Form a stack of 4 images as input
-        input_tensor = np.stack((frame, frame, frame, frame), axis=2)
+        t = 0
 
         # Exploration and training loop
         while True:
@@ -96,7 +103,8 @@ class Director(object):
                 epsilon -= (INITIAL_EPSILON - FINAL_EPSILON) / EXPLORE
 
             # Preprocess the next frame
-            frame = cv2.cvtColor(cv2.resize(raw_pixels, (80, 80)), cv2.COLOR_BGR2GRAY)
+            frame, _, reward, terminal = game.run(argmax_tensor)
+            frame = cv2.cvtColor(cv2.resize(frame, (80, 80)), cv2.COLOR_BGR2GRAY)
             _, frame = cv2.threshold(frame, 1, 255, cv2.THRESH_BINARY)
             frame = np.reshape(frame, (80, 80, 1))
             input_tensor1 = np.append(frame, input_tensor[:, :, 0:3], axis=2)
@@ -133,11 +141,13 @@ class Director(object):
             if t % 10000 == 0:
                 saver.save(session, './cytomatrix-dqn', global_step=t)
             print("TIMESTEP", t, "/ EPSILON", epsilon, "/ ACTION", action_index, "/ REWARD", reward, "/ Q_MAX %e" % np.max(output_tensor))
+        game.quit()
 
 
 def run():
     # Create session
     sess = tf.InteractiveSession()
     # Input and output layer
-    inp, out = create_graph()
-    train_graph(inp, out, sess)
+    director = Director()
+    inp, out = director.create_dqn()
+    director.train_dqn(inp, out, sess)

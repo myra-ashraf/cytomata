@@ -1,1 +1,1 @@
-from .main import run
+from cytomatrix.main import Game, run
