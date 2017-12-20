@@ -48,6 +48,6 @@ setup(
     license=cytomata.__license__,
     packages=find_packages(exclude=['tests']),
     install_requires=[
-        'pygame',
+        'pygame', 'pymunk', 'gym', 'numpy', 'tensorflow'
     ]
 )

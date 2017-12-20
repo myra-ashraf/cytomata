@@ -26,17 +26,17 @@ YELLOW = (253, 215, 40)
 
 # Cyte Settings
 NUM_RANDOM_CYTES = 0
-CYTE_IMG = 'epi1.png'
+CYTE_IMG = 'epi0.png'
 
 
 # Proxy Settings
 NUM_RANDOM_PROXIES = 1
 PROXY_SPEED = 60.0
 CONTROL_SCHEME = 'joystick'
-PROXY_IMG = 'macrophage2.png'
+PROXY_IMG = 'mac0.png'
 EAT_SND = 'eat.wav'
 
 
 # Cancer Settings
-NUM_RANDOM_CANCERS = 50
-CANCER_IMG = 'nalm0.png'
+NUM_RANDOM_CANCERS = 40
+CANCER_IMG = 'cancer0.png'

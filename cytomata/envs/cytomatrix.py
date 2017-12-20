@@ -4,16 +4,23 @@ import time
 import random as rnd
 import pygame as pg
 import pymunk as pm
+import numpy as np
+import gym
+from gym import error, spaces, utils
+from gym.utils import seeding
 from .settings import *
 from .sprites import *
 from .tilemap import *
 
 
-class Game(object):
-    """Game manager"""
+class CytomatrixEnv(gym.Env):
+    """Main Class"""
+    metadata = {'render.modes': ['human', 'rgb_array']}
+
     def __init__(self):
         """Initialize game, window, etc."""
-        pg.mixer.pre_init(44100, -16, 1, 512)
+        pg.mixer.pre_init(44100, -16, 2, 2048)
+        pg.mixer.init()
         pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
         pg.display.set_caption(TITLE)
@@ -22,14 +29,20 @@ class Game(object):
         # Time before key hold detected + frequency of key press
         pg.key.set_repeat(100, 100)
         self.load_data()
+        self._action_set = ['NO_OP', 'UP', 'DOWN', 'LEFT', 'RIGHT']
+        self.action_space = spaces.Discrete(len(self._action_set))
+        self.observation_space = spaces.Box(low=0, high=255, shape=(HEIGHT, WIDTH, 3))
+        self.reward_range = (-np.inf, np.inf)
+        self.viewer = None
 
     def load_data(self):
         """Load maps, sprites, and other game resources"""
-        game_dir = os.path.dirname(__file__)
-        img_dir = os.path.join(game_dir, 'img')
-        snd_dir = os.path.join(game_dir, 'snd')
-        music_dir = os.path.join(game_dir, 'music')
-        self.map = Map(os.path.join(game_dir, 'maps', MAP_FILE))
+        self.game_dir = os.path.dirname(__file__)
+        assets_dir = os.path.join(self.game_dir, 'assets')
+        img_dir = os.path.join(assets_dir, 'images')
+        snd_dir = os.path.join(assets_dir, 'sounds')
+        music_dir = os.path.join(assets_dir, 'music')
+        self.map = Map(os.path.join(assets_dir, 'maps', MAP_FILE))
         self.bkg_img = pg.image.load(os.path.join(img_dir, 'bkgd', BKG_IMG)).convert()
         self.bkg_img = pg.transform.scale(self.bkg_img, (WIDTH, HEIGHT))
         self.bkg_rect = self.bkg_img.get_rect()
@@ -40,32 +53,31 @@ class Game(object):
         self.cancer_img = pg.image.load(os.path.join(img_dir, 'chars', CANCER_IMG)).convert_alpha()
         self.cancer_img = pg.transform.scale(self.cancer_img, (TILESIZE, TILESIZE))
         self.eat_snd = pg.mixer.Sound(os.path.join(snd_dir, EAT_SND))
-        pg.mixer.music.load(os.path.join(music_dir, MUSIC))
-        pg.mixer.music.set_volume(1.0)
+        # pg.mixer.music.load(os.path.join(music_dir, MUSIC))
+        # pg.mixer.music.set_volume(1.0)
 
     def new(self):
         """Set up objects (sprites, camera, etc.) for new game"""
-        # self.director = cytomagic.Director()
+        self.terminal = False
         self.space = pm.Space()
         self.space.gravity = (0.0, 0.0)
-        self.space.add_collision_handler(0, 2).post_solve=self.proxy_cancer_collision
-        self.space.add_collision_handler(0, 1).post_solve=self.proxy_cyte_collision
+        self.space.add_collision_handler(0, 2).post_solve = self.proxy_cancer_collision
+        self.space.add_collision_handler(0, 1).post_solve = self.proxy_cyte_collision
         self.all_sprites = []
         self.proxies = []
         self.cytes = []
         self.cancers = []
         self.map.occupied_tiles = []
-        self.score = 0
-        self.timer = 0
+        self.score = 0.0
+        self.timer = 0.0
         self.timer_start = time.time()
         self.last_update = pg.time.get_ticks()
         self.spawn_from_map()
-        self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS, 'center')
+        self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS, 'center0', 16)
         self.spawn_randomly(Cyte, NUM_RANDOM_CYTES)
-        self.spawn_randomly(Proxy, NUM_RANDOM_PROXIES)
+        self.spawn_randomly(Proxy, NUM_RANDOM_PROXIES, 'center1')
         # self.camera = Camera(self.map.width, self.map.height)
-        pg.mixer.music.play(-1)
-        self.playing = True
+        # pg.mixer.music.play(-1)
 
     def spawn_from_map(self):
         """Spawn objects based on locations specified in the map file"""
@@ -92,41 +104,45 @@ class Game(object):
         ]
         return open_spots
 
-    def spawn_randomly(self, Entity, number, bias=None):
+    def spawn_randomly(self, Entity, number, bias=None, rand_buffer=0):
         """Creates a proxy/cyte/cancer in a random spot on the map"""
-        if bias == 'center':
-            open_spots = self.get_open_spots(2, int(self.map.tile_width - 1), 2, int(self.map.tile_height - 1))
+        if bias == 'center0':
+            open_spots = self.get_open_spots(1, int(self.map.tile_width - 1), 1, int(self.map.tile_height - 1))
+        elif bias == 'center1':
+            open_spots = self.get_open_spots(7, int(self.map.tile_width - 7), 5, int(self.map.tile_height - 5))
         else:
             open_spots = self.get_open_spots(0, int(self.map.tile_width), 0, int(self.map.tile_height))
+        number += rnd.randint(-rand_buffer, rand_buffer)
         for i in range(number):
             rand_x, rand_y = rnd.choice(open_spots)
             Entity(self, rand_x, rand_y)
             open_spots.remove((rand_x, rand_y))
             self.map.occupied_tiles.append((rand_x, rand_y))
 
-    def run(self, actions):
+    def step(self, actions=None):
         """Game loop"""
         self.events()
-        self.update(actions)
+        if actions is not None:
+            self.update(actions)
+        else:
+            self.update()
         self.draw()
         self.clock.tick(FPS)
-        return self.raw_img, self.proxies, self.score, self.playing
-
+        return self.raw_img, self.score, self.terminal
 
     def events(self):
         """Game loop - process inputs/events"""
         for event in pg.event.get():
-            if event.type == pg.QUIT:
+            if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                 self.quit()
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_ESCAPE:
-                    self.quit()
 
-    def update(self, actions):
+    def update(self, actions=None):
         """Game loop - updates"""
         self.timer = time.time() - self.timer_start
+        if self.timer > 300.0:
+            self.terminal = True
         for sprite in self.all_sprites:
-            if sprite in self.proxies:
+            if sprite in self.proxies and actions is not None:
                 sprite.update(actions)
             else:
                 sprite.update()
@@ -135,7 +151,7 @@ class Game(object):
         # self.camera.update(self.proxy)
         # End the current game if all cancers have been eliminated
         if len(self.cancers) < 1:
-            self.playing = False
+            self.terminal = True
 
     def draw(self):
         """Game loop - render"""
@@ -146,9 +162,9 @@ class Game(object):
         # self.draw_grid()
         for sprite in self.all_sprites:
             self.draw_sprite(self.screen, sprite, sprite.image)
-        self.draw_text(self.screen, 'Score: ' + str(self.score), 18, WIDTH * 0.9, 8)
+        self.draw_text(self.screen, 'Score: {:.2f}'.format(self.score), 18, WIDTH * 0.9, 8)
         self.draw_text(self.screen, 'Time: ' + str('{:.2f}'.format(self.timer)), 18, WIDTH * 0.1, 8)
-        self.space.step(1.0/FPS)
+        self.space.step(1.0 / FPS)
         self.raw_img = pg.surfarray.array3d(pg.display.get_surface())
         pg.display.flip()
 
@@ -182,11 +198,10 @@ class Game(object):
     def proxy_cancer_collision(self, arbiter, space, _):
         """Collision between bird and pig"""
         a, b = arbiter.shapes
-        proxy_body = a.body
         cancer_body = b.body
         for cancer in self.cancers:
             if cancer_body == cancer.body:
-                self.score += 15
+                self.score += 1.0
                 self.space.remove(cancer.shape, cancer.shape.body)
                 self.cancers.remove(cancer)
                 self.all_sprites.remove(cancer)
@@ -195,7 +210,6 @@ class Game(object):
     def proxy_cyte_collision(self, arbiter, space, _):
         """Collision between bird and pig"""
         a, b = arbiter.shapes
-        proxy_body = a.body
         cyte_body = b.body
         for cyte in self.cytes:
             if cyte_body == cyte.body and not cyte.shield:
@@ -204,7 +218,7 @@ class Game(object):
                     self.space.remove(cyte.shape, cyte.shape.body)
                     self.cytes.remove(cyte)
                     self.all_sprites.remove(cyte)
-                    self.score -= 10
+                    self.score -= 0.1
                 else:
                     cyte.shield = 12
 
@@ -212,7 +226,7 @@ class Game(object):
         now = pg.time.get_ticks()
         if now - self.last_update > duration:
             self.last_update = now
-            self.score -= 1
+            self.score -= 0.05
 
     def show_start_screen(self):
         """Game start screen"""
@@ -222,17 +236,15 @@ class Game(object):
         """Game over screen"""
         pass
 
+    def reset(self):
+        self.new()
+        for i in range(4):
+            self.step()
+        self.score = 0.0
+        first_img, _, _ = self.step()
+        return first_img
+
     def quit(self):
         """Quit to desktop"""
         pg.quit()
         sys.exit()
-
-# Executed code
-def run():
-    g = Game()
-    g.show_start_screen()
-    while True:
-        g.new()
-        while g.playing:
-            g.run()
-        g.show_go_screen()

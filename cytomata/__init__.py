@@ -2,15 +2,22 @@
 """
     cytomata
     -----
-    Microenvironment simulation and control via deep reinforcement learning.
+    Controlling biology with deep reinforcement learning!
     :copyright: (c) 2017 Phuong T. Ho
     :license: MIT, see LICENSE for more details.
 """
+from gym.envs.registration import register
+
+
+register(
+    id='cytomatrix-v0',
+    entry_point='cytomata.envs:CytomatrixEnv',
+)
 
 
 __name__ = 'cytomata'
-__description__ = 'Microenvironment simulation and control via deep reinforcement learning.'
-__version__ = '0.1'
+__description__ = 'Controlling biology with deep reinforcement learning!'
+__version__ = '0.0.1'
 __author__ = 'Phuong T. Ho'
 __license__ = 'MIT'
 __copyright__ = 'Copyright 2017 Phuong T. Ho'

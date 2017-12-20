@@ -18,7 +18,8 @@ class Proxy():
         self.shape.collision_type = 0
         self.body.velocity = pm.Vec2d(0, 0)
         self.life = 20
-        self.last_update = pg.time.get_ticks()
+        self.last_update0 = pg.time.get_ticks()
+        self.last_update1 = pg.time.get_ticks()
         self.game = game
         self.game.space.add(self.body, self.shape)
         self.game.all_sprites.append(self)
@@ -28,13 +29,13 @@ class Proxy():
     def move(self, direction):
         """ Moves the proxy in a direction: UP, DOWN, LEFT, RIGHT"""
         if direction == 'UP':
-            self.body.velocity += (0, 10)
+            self.body.velocity += (0, 20)
         if direction == 'DOWN':
-            self.body.velocity += (0, -10)
+            self.body.velocity += (0, -20)
         if direction == 'LEFT':
-            self.body.velocity += (-10, 0)
+            self.body.velocity += (-20, 0)
         if direction == 'RIGHT':
-            self.body.velocity += (10, 0)
+            self.body.velocity += (20, 0)
 
     def cap_speed(self, max_speed):
         if self.body.velocity.length > max_speed:
@@ -46,21 +47,31 @@ class Proxy():
         else:
             self.body.velocity = (0.0, 0.0)
 
+    def close_to_edge(self, duration):
+        now = pg.time.get_ticks()
+        x, y = self.body.position
+        edging = x < TILESIZE or x > WIDTH - TILESIZE or y < TILESIZE or y > HEIGHT - TILESIZE
+        if now - self.last_update0 > duration and edging:
+            self.last_update0 = now
+            self.game.score -= 0.8
+
+
     def out_of_arena(self, duration):
         now = pg.time.get_ticks()
         x, y = self.body.position
-        in_view = x > 0 and x < WIDTH and y > 0 and y < HEIGHT
-        if now - self.last_update > duration and not in_view:
-            self.last_update = now
-            self.game.playing = False
+        out_of_view = x < 0 or x > WIDTH or y < 0 or y > HEIGHT
+        if now - self.last_update1 > duration and out_of_view:
+            self.last_update1 = now
+            self.game.score -= 1.0
+            self.game.terminal = True
 
     # def check_selected(self):
     #     clicks = pg.mouse.get_pressed()
     #     if clicks[0]:
     #         mouse_x, mouse_y = pg.mouse.get_pos()
     #         mouse_pos = vec(mouse_x, mouse_y)
-    #         # proxy_camera_rect = self.game.camera.apply(self)
-    #         # if proxy_camera_rect.collidepoint(mouse_x, mouse_y):
+    #         proxy_camera_rect = self.game.camera.apply(self)
+    #         if proxy_camera_rect.collidepoint(mouse_x, mouse_y):
     #         if self.rect.collidepoint(mouse_x, mouse_y):
     #             for proxy in self.game.proxies:
     #                 proxy.is_selected = False
@@ -103,17 +114,22 @@ class Proxy():
 
     def direct_actions(self, actions):
         actions_ref = ['NO_OP', 'UP', 'DOWN', 'LEFT', 'RIGHT']
-        acts = [a for a in np.where(actions)[0]]
-        for act in acts:
-            self.move(actions_ref[act])
+        if type(actions) == list:
+            acts = [a for a in np.where(actions)[0]]
+            for act in acts:
+                self.move(actions_ref[act])
+        else:
+            self.move(actions_ref[actions])
 
 
-    def update(self, actions):
+    def update(self, actions=None):
         self.check_inputs()
-        self.direct_actions(actions)
+        if actions is not None:
+            self.direct_actions(actions)
         self.cap_speed(PROXY_SPEED)
         self.bkg_friction(0.9)
-        self.out_of_arena(12000)
+        self.close_to_edge(1000)
+        self.out_of_arena(20000)
         # self.check_selected()
         # if self.is_selected:
         #     self.check_inputs()
@@ -200,8 +216,8 @@ class Cancer():
     def out_of_arena(self, duration):
         now = pg.time.get_ticks()
         x, y = self.body.position
-        in_view = x > 0 and x < WIDTH and y > 0 and y < HEIGHT
-        if now - self.last_update > duration and not in_view:
+        out_of_view = x < 0 or x > WIDTH or y < 0 or y > HEIGHT
+        if now - self.last_update > duration and out_of_view:
             self.last_update = now
             self.game.cancers.remove(self)
             self.game.all_sprites.remove(self)
@@ -220,3 +236,4 @@ class Cancer():
     def update(self):
         self.bkg_friction(0.9)
         self.random_walk(1200, 30)
+        self.out_of_arena(20000)

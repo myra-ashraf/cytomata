@@ -1,1 +1,0 @@
-from cytomagic.main import Director, run
