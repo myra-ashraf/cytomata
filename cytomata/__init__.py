@@ -10,7 +10,7 @@ from gym.envs.registration import register
 
 
 register(
-    id='cytomatrix-v0',
+    id='Cytomatrix-v0',
     entry_point='cytomata.envs:CytomatrixEnv',
 )
 

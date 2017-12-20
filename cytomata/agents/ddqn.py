@@ -1,20 +1,21 @@
-import plotting
+import os
+import sys
+import itertools
+import random
 from collections import deque, namedtuple
+
 import gym
 # from gym.wrappers import Monitor
-import itertools
 import numpy as np
-import os
-import random
-import sys
 import tensorflow as tf
-import cytomatrix as cym
 
-if "../" not in sys.path:
-    sys.path.append("../")
+import plotting
 
 
-env = cym.Game()
+# if "../" not in sys.path:
+#     sys.path.append("../")
+
+
 # Atari Actions: 0 (noop), 1 (up), 2 (down), 3 (left) and 4 (right) valid actions
 VALID_ACTIONS = [0, 1, 2, 3, 4]
 
@@ -194,22 +195,10 @@ def make_epsilon_greedy_policy(estimator, nA):
     return policy_fn
 
 
-def deep_q_learning(sess,
-                    env,
-                    q_estimator,
-                    target_estimator,
-                    state_processor,
-                    num_episodes,
-                    experiment_dir,
-                    replay_memory_size=500000,
-                    replay_memory_init_size=50000,
-                    update_target_estimator_every=10000,
-                    discount_factor=0.99,
-                    epsilon_start=1.0,
-                    epsilon_end=0.1,
-                    epsilon_decay_steps=500000,
-                    batch_size=32,
-                    record_video_every=50):
+def D3QNAgent(sess, env, q_estimator, target_estimator, state_processor, num_episodes,
+        experiment_dir, replay_memory_size=500000, replay_memory_init_size=50000,
+        update_target_estimator_every=10000, discount_factor=0.99, epsilon_start=1.0,
+        epsilon_end=0.1, epsilon_decay_steps=500000, batch_size=32, record_video_every=50):
     """
     Q-Learning algorithm for fff-policy TD control using Function Approximation.
     Finds the optimal greedy policy while following an epsilon-greedy policy.
@@ -388,39 +377,3 @@ def deep_q_learning(sess,
 
     # env.monitor.close()
     return stats
-
-def run():
-    tf.reset_default_graph()
-
-    # Where we save our checkpoints and graphs
-    experiment_dir = os.path.abspath("./experiments/{}".format('cytomata'))
-
-    # Create a glboal step variable
-    global_step = tf.Variable(0, name='global_step', trainable=False)
-
-    # Create estimators
-    q_estimator = Estimator(scope="q", summaries_dir=experiment_dir)
-    target_estimator = Estimator(scope="target_q")
-
-    # State processor
-    state_processor = StateProcessor()
-
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
-        for t, stats in deep_q_learning(sess,
-                                        env,
-                                        q_estimator=q_estimator,
-                                        target_estimator=target_estimator,
-                                        state_processor=state_processor,
-                                        experiment_dir=experiment_dir,
-                                        num_episodes=1000,
-                                        replay_memory_size=500000,
-                                        replay_memory_init_size=10000,
-                                        update_target_estimator_every=10000,
-                                        epsilon_start=1.0,
-                                        epsilon_end=0.1,
-                                        epsilon_decay_steps=500000,
-                                        discount_factor=0.99,
-                                        batch_size=32):
-
-            print("\nEpisode Reward: {}".format(stats.episode_rewards[-1]))

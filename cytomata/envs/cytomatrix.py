@@ -79,6 +79,65 @@ class CytomatrixEnv(gym.Env):
         # self.camera = Camera(self.map.width, self.map.height)
         # pg.mixer.music.play(-1)
 
+    def events(self):
+        """Game loop - process inputs/events"""
+        for event in pg.event.get():
+            if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
+                self.quit()
+
+    def update(self, action):
+        """Game loop - updates"""
+        self.timer = time.time() - self.timer_start
+        if self.timer > 300.0:
+            self.terminal = True
+        for sprite in self.all_sprites:
+            if sprite in self.proxies:
+                sprite.update(action)
+            else:
+                sprite.update()
+        self.time_penalty(2000)
+        # Camera tracking
+        # self.camera.update(self.proxy)
+        # End the current game if all cancers have been eliminated
+        if len(self.cancers) < 1:
+            self.terminal = True
+
+    def draw(self):
+        """Game loop - render"""
+        if DEBUG:
+            pg.display.set_caption('{:.2f}'.format(self.clock.get_fps()))
+        self.screen.fill(BGCOLOR)
+        self.screen.blit(self.bkg_img, self.bkg_rect)
+        # self.draw_grid()
+        for sprite in self.all_sprites:
+            self.draw_sprite(self.screen, sprite, sprite.image)
+        self.draw_text(self.screen, 'Score: {:.2f}'.format(self.score), 18, WIDTH * 0.9, 8)
+        self.draw_text(self.screen, 'Time: ' + str('{:.2f}'.format(self.timer)), 18, WIDTH * 0.1, 8)
+        self.space.step(1.0 / FPS)
+        self.raw_img = pg.surfarray.array3d(pg.display.get_surface())
+        pg.display.flip()
+
+    def _reset(self):
+        self.new()
+        for i in range(4):
+            self.step(None)
+        self.score = 0.0
+        first_img, _, _, _ = self.step(None)
+        return first_img
+
+    def _step(self, action):
+        """Game loop"""
+        self.events()
+        self.update(action)
+        self.draw()
+        self.clock.tick(FPS)
+        return self.raw_img, self.score, self.terminal, {}
+
+    def quit(self):
+        """Quit to desktop"""
+        pg.quit()
+        sys.exit()
+
     def spawn_from_map(self):
         """Spawn objects based on locations specified in the map file"""
         for row, tiles in enumerate(self.map.data):
@@ -118,55 +177,6 @@ class CytomatrixEnv(gym.Env):
             Entity(self, rand_x, rand_y)
             open_spots.remove((rand_x, rand_y))
             self.map.occupied_tiles.append((rand_x, rand_y))
-
-    def step(self, actions=None):
-        """Game loop"""
-        self.events()
-        if actions is not None:
-            self.update(actions)
-        else:
-            self.update()
-        self.draw()
-        self.clock.tick(FPS)
-        return self.raw_img, self.score, self.terminal
-
-    def events(self):
-        """Game loop - process inputs/events"""
-        for event in pg.event.get():
-            if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
-                self.quit()
-
-    def update(self, actions=None):
-        """Game loop - updates"""
-        self.timer = time.time() - self.timer_start
-        if self.timer > 300.0:
-            self.terminal = True
-        for sprite in self.all_sprites:
-            if sprite in self.proxies and actions is not None:
-                sprite.update(actions)
-            else:
-                sprite.update()
-        self.time_penalty(2000)
-        # Camera tracking
-        # self.camera.update(self.proxy)
-        # End the current game if all cancers have been eliminated
-        if len(self.cancers) < 1:
-            self.terminal = True
-
-    def draw(self):
-        """Game loop - render"""
-        if DEBUG:
-            pg.display.set_caption('{:.2f}'.format(self.clock.get_fps()))
-        self.screen.fill(BGCOLOR)
-        self.screen.blit(self.bkg_img, self.bkg_rect)
-        # self.draw_grid()
-        for sprite in self.all_sprites:
-            self.draw_sprite(self.screen, sprite, sprite.image)
-        self.draw_text(self.screen, 'Score: {:.2f}'.format(self.score), 18, WIDTH * 0.9, 8)
-        self.draw_text(self.screen, 'Time: ' + str('{:.2f}'.format(self.timer)), 18, WIDTH * 0.1, 8)
-        self.space.step(1.0 / FPS)
-        self.raw_img = pg.surfarray.array3d(pg.display.get_surface())
-        pg.display.flip()
 
     def draw_sprite(self, screen, Entity, image):
         p = pm.Vec2d(self.to_pygame(*Entity.body.position))
@@ -227,24 +237,3 @@ class CytomatrixEnv(gym.Env):
         if now - self.last_update > duration:
             self.last_update = now
             self.score -= 0.05
-
-    def show_start_screen(self):
-        """Game start screen"""
-        pass
-
-    def show_go_screen(self):
-        """Game over screen"""
-        pass
-
-    def reset(self):
-        self.new()
-        for i in range(4):
-            self.step()
-        self.score = 0.0
-        first_img, _, _ = self.step()
-        return first_img
-
-    def quit(self):
-        """Quit to desktop"""
-        pg.quit()
-        sys.exit()

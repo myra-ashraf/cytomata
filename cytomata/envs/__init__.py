@@ -1,1 +1,1 @@
-from envs.cytomatrix import CytomatrixEnv
+from cytomata.envs.cytomatrix import CytomatrixEnv

@@ -122,9 +122,9 @@ class Proxy():
             self.move(actions_ref[actions])
 
 
-    def update(self, actions=None):
+    def update(self, action):
         self.check_inputs()
-        if actions is not None:
+        if action is not None:
             self.direct_actions(actions)
         self.cap_speed(PROXY_SPEED)
         self.bkg_friction(0.9)

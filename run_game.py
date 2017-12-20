@@ -1,8 +1,8 @@
-from envs.cytomatrix import CytomatrixEnv
+from cytomata.envs import CytomatrixEnv
 
 if __name__ == '__main__':
     env = CytomatrixEnv()
     while True:
-        env.new()
+        env.reset()
         while not env.terminal:
-            env.step()
+            env.step(None)
