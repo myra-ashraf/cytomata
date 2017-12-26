@@ -1,10 +1,10 @@
 import sys
 import os
-import time
 import random as rnd
 import pygame as pg
 import pymunk as pm
 import numpy as np
+import matplotlib.pyplot as plt
 import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
@@ -19,8 +19,8 @@ class CytomatrixEnv(gym.Env):
 
     def __init__(self):
         """Initialize game, window, etc."""
-        pg.mixer.pre_init(44100, -16, 2, 2048)
-        pg.mixer.init()
+        # pg.mixer.pre_init(44100, -16, 2, 512)
+        # pg.mixer.init()
         pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
         pg.display.set_caption(TITLE)
@@ -29,7 +29,7 @@ class CytomatrixEnv(gym.Env):
         # Time before key hold detected + frequency of key press
         pg.key.set_repeat(100, 100)
         self.load_data()
-        self._action_set = ['NO_OP', 'UP', 'DOWN', 'LEFT', 'RIGHT']
+        self._action_set = range(0, 5)
         self.action_space = spaces.Discrete(len(self._action_set))
         self.observation_space = spaces.Box(low=0, high=255, shape=(HEIGHT, WIDTH, 3))
         self.reward_range = (-np.inf, np.inf)
@@ -70,12 +70,12 @@ class CytomatrixEnv(gym.Env):
         self.map.occupied_tiles = []
         self.score = 0.0
         self.timer = 0.0
-        self.timer_start = time.time()
         self.last_update = pg.time.get_ticks()
+        self.boundary_box(self.space)
         self.spawn_from_map()
-        self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS, 'center0', 16)
+        self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS, 'center0')
         self.spawn_randomly(Cyte, NUM_RANDOM_CYTES)
-        self.spawn_randomly(Proxy, NUM_RANDOM_PROXIES, 'center1')
+        self.spawn_randomly(Proxy, NUM_RANDOM_PROXIES, 'center0')
         # self.camera = Camera(self.map.width, self.map.height)
         # pg.mixer.music.play(-1)
 
@@ -87,15 +87,15 @@ class CytomatrixEnv(gym.Env):
 
     def update(self, action):
         """Game loop - updates"""
-        self.timer = time.time() - self.timer_start
-        if self.timer > 300.0:
+        self.timer += self.clock.get_time() / 1000.0
+        if self.timer > 30.0:
             self.terminal = True
         for sprite in self.all_sprites:
             if sprite in self.proxies:
                 sprite.update(action)
             else:
                 sprite.update()
-        self.time_penalty(2000)
+        # self.time_penalty(2000)
         # Camera tracking
         # self.camera.update(self.proxy)
         # End the current game if all cancers have been eliminated
@@ -105,38 +105,89 @@ class CytomatrixEnv(gym.Env):
     def draw(self):
         """Game loop - render"""
         if DEBUG:
-            pg.display.set_caption('{:.2f}'.format(self.clock.get_fps()))
-        self.screen.fill(BGCOLOR)
-        self.screen.blit(self.bkg_img, self.bkg_rect)
+            fps_str = 'FPS: {:.2f}'.format(self.clock.get_fps())
+            score_str = ' | Score: {:.2f}'.format(self.score)
+            time_str = ' | Time: {:.2f}'.format(self.timer)
+            pg.display.set_caption(fps_str + score_str + time_str)
+        self.screen.fill(WHITE)
+        # self.screen.blit(self.bkg_img, self.bkg_rect)
         # self.draw_grid()
         for sprite in self.all_sprites:
             self.draw_sprite(self.screen, sprite, sprite.image)
-        self.draw_text(self.screen, 'Score: {:.2f}'.format(self.score), 18, WIDTH * 0.9, 8)
-        self.draw_text(self.screen, 'Time: ' + str('{:.2f}'.format(self.timer)), 18, WIDTH * 0.1, 8)
-        self.space.step(1.0 / FPS)
-        self.raw_img = pg.surfarray.array3d(pg.display.get_surface())
+        # self.draw_text(self.screen, 'Score: {:.2f}'.format(self.score), 18, WIDTH * 0.9, 8)
+        # self.draw_text(self.screen, 'Time: ' + str('{:.2f}'.format(self.timer)), 18, WIDTH * 0.1, 8)
+        self.space.step(1.0/FPS)
+        raw_display_surf = pg.transform.flip(pg.transform.rotate(pg.display.get_surface(), 90), False, True)
+        self.raw_img = pg.surfarray.array3d(raw_display_surf)
         pg.display.flip()
 
     def _reset(self):
         self.new()
-        for i in range(4):
+        for i in range(8):
             self.step(None)
         self.score = 0.0
+        self.reward = 0.0
         first_img, _, _, _ = self.step(None)
         return first_img
 
     def _step(self, action):
         """Game loop"""
+        self.score0 = self.score
+        self.reward = 0.0
         self.events()
         self.update(action)
         self.draw()
         self.clock.tick(FPS)
-        return self.raw_img, self.score, self.terminal, {}
+        self.reward += self.score - self.score0
+        return self.raw_img, np.around(self.reward, 2), self.terminal, {}
+
+    def get_keys_to_action(self):
+        KEYWORD_TO_KEY = {
+            'UP': ord('w'),
+            'DOWN': ord('s'),
+            'LEFT': ord('a'),
+            'RIGHT': ord('d')
+        }
+
+        keys_to_action = {}
+        for action_id, action_meaning in enumerate(self.get_action_meanings()):
+            keys = []
+            for keyword, key in KEYWORD_TO_KEY.items():
+                if keyword in action_meaning:
+                    keys.append(key)
+            keys = tuple(sorted(keys))
+            assert keys not in keys_to_action
+            keys_to_action[keys] = action_id
+        return keys_to_action
+
+    def get_action_meanings(self):
+        return [ACTION_MEANING[i] for i in self._action_set]
 
     def quit(self):
         """Quit to desktop"""
         pg.quit()
         sys.exit()
+
+    def boundary_box(self, space):
+        """Create physical borders around the display edges"""
+        static_lines = [
+            # LEFT
+            pm.Segment(space.static_body, (-0.25 * TILESIZE, 0.25 * TILESIZE),
+            (-0.25 * TILESIZE, HEIGHT + 0.25 * TILESIZE), 1),
+            # TOP
+            pm.Segment(space.static_body, (-0.25 * TILESIZE, HEIGHT + 0.25 * TILESIZE),
+                (WIDTH - 0.25 * TILESIZE, HEIGHT + 0.25 * TILESIZE), 1),
+            # RIGHT
+            pm.Segment(space.static_body, (WIDTH - 0.25 * TILESIZE, HEIGHT + 0.25 * TILESIZE),
+                (WIDTH - 0.25 * TILESIZE, 0.25 * TILESIZE), 1),
+            # BOTTOM
+            pm.Segment(space.static_body, (WIDTH - 0.25 * TILESIZE, 0.25 * TILESIZE),
+                (-0.25 * TILESIZE, 0.25 * TILESIZE), 1)
+        ]
+        for line in static_lines:
+            line.elasticity = 0.1
+            line.collision_type = 3
+        space.add(static_lines)
 
     def spawn_from_map(self):
         """Spawn objects based on locations specified in the map file"""
@@ -206,7 +257,6 @@ class CytomatrixEnv(gym.Env):
         return int(x), int(-y + HEIGHT)
 
     def proxy_cancer_collision(self, arbiter, space, _):
-        """Collision between bird and pig"""
         a, b = arbiter.shapes
         cancer_body = b.body
         for cancer in self.cancers:
@@ -215,10 +265,9 @@ class CytomatrixEnv(gym.Env):
                 self.space.remove(cancer.shape, cancer.shape.body)
                 self.cancers.remove(cancer)
                 self.all_sprites.remove(cancer)
-                self.eat_snd.play()
+                # self.eat_snd.play()
 
     def proxy_cyte_collision(self, arbiter, space, _):
-        """Collision between bird and pig"""
         a, b = arbiter.shapes
         cyte_body = b.body
         for cyte in self.cytes:
@@ -236,4 +285,4 @@ class CytomatrixEnv(gym.Env):
         now = pg.time.get_ticks()
         if now - self.last_update > duration:
             self.last_update = now
-            self.score -= 0.05
+            self.score -= 0.01

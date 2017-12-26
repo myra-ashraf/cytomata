@@ -29,13 +29,13 @@ class Proxy():
     def move(self, direction):
         """ Moves the proxy in a direction: UP, DOWN, LEFT, RIGHT"""
         if direction == 'UP':
-            self.body.velocity += (0, 20)
+            self.body.velocity += (0, 30)
         if direction == 'DOWN':
-            self.body.velocity += (0, -20)
+            self.body.velocity += (0, -30)
         if direction == 'LEFT':
-            self.body.velocity += (-20, 0)
+            self.body.velocity += (-30, 0)
         if direction == 'RIGHT':
-            self.body.velocity += (20, 0)
+            self.body.velocity += (30, 0)
 
     def cap_speed(self, max_speed):
         if self.body.velocity.length > max_speed:
@@ -53,8 +53,7 @@ class Proxy():
         edging = x < TILESIZE or x > WIDTH - TILESIZE or y < TILESIZE or y > HEIGHT - TILESIZE
         if now - self.last_update0 > duration and edging:
             self.last_update0 = now
-            self.game.score -= 0.8
-
+            self.game.score -= 0.2
 
     def out_of_arena(self, duration):
         now = pg.time.get_ticks()
@@ -112,24 +111,18 @@ class Proxy():
         else:
             raise ValueError('Valid options for control_scheme: joystick, pointer, rts, mask')
 
-    def direct_actions(self, actions):
+    def agent_act(self, action):
         actions_ref = ['NO_OP', 'UP', 'DOWN', 'LEFT', 'RIGHT']
-        if type(actions) == list:
-            acts = [a for a in np.where(actions)[0]]
-            for act in acts:
-                self.move(actions_ref[act])
-        else:
-            self.move(actions_ref[actions])
-
+        self.move(actions_ref[action])
 
     def update(self, action):
         self.check_inputs()
         if action is not None:
-            self.direct_actions(actions)
+            self.agent_act(action)
         self.cap_speed(PROXY_SPEED)
         self.bkg_friction(0.9)
-        self.close_to_edge(1000)
-        self.out_of_arena(20000)
+        # self.close_to_edge(1000)
+        # self.out_of_arena(20000)
         # self.check_selected()
         # if self.is_selected:
         #     self.check_inputs()
@@ -189,7 +182,7 @@ class Cyte():
 
 class Cancer():
     def __init__(self, game, x, y):
-        self.mass = 20.0
+        self.mass = 40.0
         self.radius = TILESIZE / 2.0
         self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
         self.body = pm.Body(self.mass, self.inertia)
@@ -236,4 +229,4 @@ class Cancer():
     def update(self):
         self.bkg_friction(0.9)
         self.random_walk(1200, 30)
-        self.out_of_arena(20000)
+        # self.out_of_arena(20000)

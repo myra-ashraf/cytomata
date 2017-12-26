@@ -1,24 +1,21 @@
-import os
-import sys
-import itertools
-import random
-from collections import deque, namedtuple
-
 import gym
-# from gym.wrappers import Monitor
+from gym.wrappers import Monitor
+import itertools
 import numpy as np
+import os
+import random
+import sys
 import tensorflow as tf
 
+if "../" not in sys.path:
+  sys.path.append("../")
+
 import plotting
+from collections import deque, namedtuple
 
 
-# if "../" not in sys.path:
-#     sys.path.append("../")
-
-
-# Atari Actions: 0 (noop), 1 (up), 2 (down), 3 (left) and 4 (right) valid actions
-VALID_ACTIONS = [0, 1, 2, 3, 4]
-
+# Atari Actions: 0 (noop), 1 (fire), 2 (left) and 3 (right) are valid actions
+VALID_ACTIONS = [0, 1, 2, 3]
 
 class StateProcessor():
     """
@@ -27,9 +24,9 @@ class StateProcessor():
     def __init__(self):
         # Build the Tensorflow graph
         with tf.variable_scope("state_processor"):
-            self.input_state = tf.placeholder(shape=[800, 600, 3], dtype=tf.uint8)
+            self.input_state = tf.placeholder(shape=[210, 160, 3], dtype=tf.uint8)
             self.output = tf.image.rgb_to_grayscale(self.input_state)
-            self.output = tf.image.crop_to_bounding_box(self.output, 100, 0, 600, 600)
+            self.output = tf.image.crop_to_bounding_box(self.output, 34, 0, 160, 160)
             self.output = tf.image.resize_images(
                 self.output, [84, 84], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
             self.output = tf.squeeze(self.output)
@@ -42,8 +39,7 @@ class StateProcessor():
         Returns:
             A processed [84, 84, 1] state representing grayscale values.
         """
-        return sess.run(self.output, {self.input_state: state})
-
+        return sess.run(self.output, { self.input_state: state })
 
 class Estimator():
     """Q-Value Estimator neural network.
@@ -69,7 +65,7 @@ class Estimator():
         """
 
         # Placeholders for our input
-        # Our input are 4 RGB frames of shape 84, 84 each
+        # Our input are 4 RGB frames of shape 160, 160 each
         self.X_pl = tf.placeholder(shape=[None, 84, 84, 4], dtype=tf.uint8, name="X")
         # The TD target value
         self.y_pl = tf.placeholder(shape=[None], dtype=tf.float32, name="y")
@@ -88,32 +84,21 @@ class Estimator():
             conv2, 64, 3, 1, activation_fn=tf.nn.relu)
 
         # Fully connected layers
-        conv_out = tf.contrib.layers.flatten(conv3)
-        # fc1 = tf.contrib.layers.fully_connected(flattened, 512)
-        # Dueling DQN
-        state_hidden = tf.contrib.layers.fully_connected(conv_out, num_outputs=512, activation_fn=None)
-        state_hidden = tf.nn.relu(state_hidden)
-        state_score = tf.contrib.layers.fully_connected(state_hidden, num_outputs=1, activation_fn=None)
-        actions_hidden = tf.contrib.layers.fully_connected(conv_out, num_outputs=512, activation_fn=None)
-        actions_hidden = tf.nn.relu(actions_hidden)
-        action_scores = tf.contrib.layers.fully_connected(
-            actions_hidden, num_outputs=len(VALID_ACTIONS), activation_fn=None)
-        action_scores_mean = tf.reduce_mean(action_scores, 1)
-        action_scores = action_scores - tf.expand_dims(action_scores_mean, 1)
-        self.predictions = state_score + action_scores
-        # self.predictions = tf.contrib.layers.fully_connected(fc1, len(VALID_ACTIONS))
+        flattened = tf.contrib.layers.flatten(conv3)
+        fc1 = tf.contrib.layers.fully_connected(flattened, 512)
+        self.predictions = tf.contrib.layers.fully_connected(fc1, len(VALID_ACTIONS))
 
         # Get the predictions for the chosen actions only
         gather_indices = tf.range(batch_size) * tf.shape(self.predictions)[1] + self.actions_pl
         self.action_predictions = tf.gather(tf.reshape(self.predictions, [-1]), gather_indices)
 
-        # Calculate the loss
+        # Calcualte the loss
         self.losses = tf.squared_difference(self.y_pl, self.action_predictions)
         self.loss = tf.reduce_mean(self.losses)
 
         # Optimizer Parameters from original paper
         self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
-        self.train_op = self.optimizer.minimize(self.loss, global_step=tf.train.get_global_step())
+        self.train_op = self.optimizer.minimize(self.loss, global_step=tf.contrib.framework.get_global_step())
 
         # Summaries for Tensorboard
         self.summaries = tf.summary.merge([
@@ -122,6 +107,7 @@ class Estimator():
             tf.summary.histogram("q_values_hist", self.predictions),
             tf.summary.scalar("max_q_value", tf.reduce_max(self.predictions))
         ])
+
 
     def predict(self, sess, s):
         """
@@ -133,7 +119,7 @@ class Estimator():
           Tensor of shape [batch_size, NUM_VALID_ACTIONS] containing the estimated
           action values.
         """
-        return sess.run(self.predictions, {self.X_pl: s})
+        return sess.run(self.predictions, { self.X_pl: s })
 
     def update(self, sess, s, a, y):
         """
@@ -146,14 +132,13 @@ class Estimator():
         Returns:
           The calculated loss on the batch.
         """
-        feed_dict = {self.X_pl: s, self.y_pl: y, self.actions_pl: a}
+        feed_dict = { self.X_pl: s, self.y_pl: y, self.actions_pl: a }
         summaries, global_step, _, loss = sess.run(
-            [self.summaries, tf.train.get_global_step(), self.train_op, self.loss],
+            [self.summaries, tf.contrib.framework.get_global_step(), self.train_op, self.loss],
             feed_dict)
         if self.summary_writer:
             self.summary_writer.add_summary(summaries, global_step)
         return loss
-
 
 def copy_model_parameters(sess, estimator1, estimator2):
     """
@@ -195,10 +180,22 @@ def make_epsilon_greedy_policy(estimator, nA):
     return policy_fn
 
 
-def D3QNAgent(sess, env, q_estimator, target_estimator, state_processor, num_episodes,
-        experiment_dir, replay_memory_size=500000, replay_memory_init_size=50000,
-        update_target_estimator_every=10000, discount_factor=0.99, epsilon_start=1.0,
-        epsilon_end=0.1, epsilon_decay_steps=500000, batch_size=32, record_video_every=50):
+def deep_q_learning(sess,
+                    env,
+                    q_estimator,
+                    target_estimator,
+                    state_processor,
+                    num_episodes,
+                    experiment_dir,
+                    replay_memory_size=500000,
+                    replay_memory_init_size=50000,
+                    update_target_estimator_every=10000,
+                    discount_factor=0.99,
+                    epsilon_start=1.0,
+                    epsilon_end=0.1,
+                    epsilon_decay_steps=500000,
+                    batch_size=32,
+                    record_video_every=50):
     """
     Q-Learning algorithm for fff-policy TD control using Function Approximation.
     Finds the optimal greedy policy while following an epsilon-greedy policy.
@@ -253,7 +250,7 @@ def D3QNAgent(sess, env, q_estimator, target_estimator, state_processor, num_epi
         print("Loading model checkpoint {}...\n".format(latest_checkpoint))
         saver.restore(sess, latest_checkpoint)
 
-    total_t = sess.run(tf.train.get_global_step())
+    total_t = sess.run(tf.contrib.framework.get_global_step())
 
     # The epsilon decay schedule
     epsilons = np.linspace(epsilon_start, epsilon_end, epsilon_decay_steps)
@@ -269,11 +266,11 @@ def D3QNAgent(sess, env, q_estimator, target_estimator, state_processor, num_epi
     state = state_processor.process(sess, state)
     state = np.stack([state] * 4, axis=2)
     for i in range(replay_memory_init_size):
-        action_probs = policy(sess, state, epsilons[min(total_t, epsilon_decay_steps - 1)])
+        action_probs = policy(sess, state, epsilons[min(total_t, epsilon_decay_steps-1)])
         action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
-        next_state, reward, done = env.step(VALID_ACTIONS[action])
+        next_state, reward, done, _ = env.step(VALID_ACTIONS[action])
         next_state = state_processor.process(sess, next_state)
-        next_state = np.append(state[:, :, 1:], np.expand_dims(next_state, 2), axis=2)
+        next_state = np.append(state[:,:,1:], np.expand_dims(next_state, 2), axis=2)
         replay_memory.append(Transition(state, action, reward, next_state, done))
         if done:
             state = env.reset()
@@ -284,10 +281,10 @@ def D3QNAgent(sess, env, q_estimator, target_estimator, state_processor, num_epi
 
     # Record videos
     # Use the gym env Monitor wrapper
-    # env = Monitor(env,
-    #               directory=monitor_path,
-    #               resume=True,
-    #               video_callable=lambda count: count % record_video_every == 0)
+    env = Monitor(env,
+                  directory=monitor_path,
+                  resume=True,
+                  video_callable=lambda count: count % record_video_every ==0)
 
     for i_episode in range(num_episodes):
 
@@ -304,7 +301,7 @@ def D3QNAgent(sess, env, q_estimator, target_estimator, state_processor, num_epi
         for t in itertools.count():
 
             # Epsilon for this time step
-            epsilon = epsilons[min(total_t, epsilon_decay_steps - 1)]
+            epsilon = epsilons[min(total_t, epsilon_decay_steps-1)]
 
             # Add epsilon to Tensorboard
             episode_summary = tf.Summary()
@@ -318,15 +315,15 @@ def D3QNAgent(sess, env, q_estimator, target_estimator, state_processor, num_epi
 
             # Print out which step we're on, useful for debugging.
             print("\rStep {} ({}) @ Episode {}/{}, loss: {}".format(
-                t, total_t, i_episode + 1, num_episodes, loss), end="")
+                    t, total_t, i_episode + 1, num_episodes, loss), end="")
             sys.stdout.flush()
 
             # Take a step
             action_probs = policy(sess, state, epsilon)
             action = np.random.choice(np.arange(len(action_probs)), p=action_probs)
-            next_state, reward, done = env.step(VALID_ACTIONS[action])
+            next_state, reward, done, _ = env.step(VALID_ACTIONS[action])
             next_state = state_processor.process(sess, next_state)
-            next_state = np.append(state[:, :, 1:], np.expand_dims(next_state, 2), axis=2)
+            next_state = np.append(state[:,:,1:], np.expand_dims(next_state, 2), axis=2)
 
             # If our replay memory is full, pop the first element
             if len(replay_memory) == replay_memory_size:
@@ -336,7 +333,7 @@ def D3QNAgent(sess, env, q_estimator, target_estimator, state_processor, num_epi
             replay_memory.append(Transition(state, action, reward, next_state, done))
 
             # Update statistics
-            stats.episode_rewards[i_episode] = reward
+            stats.episode_rewards[i_episode] += reward
             stats.episode_lengths[i_episode] = t
 
             # Sample a minibatch from the replay memory
@@ -362,18 +359,14 @@ def D3QNAgent(sess, env, q_estimator, target_estimator, state_processor, num_epi
 
         # Add summaries to tensorboard
         episode_summary = tf.Summary()
-        episode_summary.value.add(
-            simple_value=stats.episode_rewards[i_episode],
-            node_name="episode_reward", tag="episode_reward")
-        episode_summary.value.add(
-            simple_value=stats.episode_lengths[i_episode],
-            node_name="episode_length", tag="episode_length")
+        episode_summary.value.add(simple_value=stats.episode_rewards[i_episode], node_name="episode_reward", tag="episode_reward")
+        episode_summary.value.add(simple_value=stats.episode_lengths[i_episode], node_name="episode_length", tag="episode_length")
         q_estimator.summary_writer.add_summary(episode_summary, total_t)
         q_estimator.summary_writer.flush()
 
         yield total_t, plotting.EpisodeStats(
-            episode_lengths=stats.episode_lengths[:i_episode + 1],
-            episode_rewards=stats.episode_rewards[:i_episode + 1])
+            episode_lengths=stats.episode_lengths[:i_episode+1],
+            episode_rewards=stats.episode_rewards[:i_episode+1])
 
-    # env.monitor.close()
+    env.monitor.close()
     return stats

@@ -1,13 +1,13 @@
 # Game Settings
-DEBUG = False
+DEBUG = True
 TITLE = "Cytomata"
 WIDTH = 800
 HEIGHT = 600
 FPS = 60.0
-TILESIZE = 40
+TILESIZE = 100
 GRIDWIDTH = WIDTH / TILESIZE
 GRIDHEIGHT = HEIGHT / TILESIZE
-MAP_FILE = 'm0.txt'
+MAP_FILE = 'm1.txt'
 BKG_IMG = 'white_plaster.png'
 MUSIC = 'greySector.mp3'
 
@@ -23,20 +23,29 @@ RED = (194, 40, 40)
 GREEN = (54,143,59)
 YELLOW = (253, 215, 40)
 
-
 # Cyte Settings
 NUM_RANDOM_CYTES = 0
-CYTE_IMG = 'epi0.png'
+CYTE_IMG = 'epi1.png'
 
 
 # Proxy Settings
 NUM_RANDOM_PROXIES = 1
 PROXY_SPEED = 60.0
 CONTROL_SCHEME = 'joystick'
-PROXY_IMG = 'mac0.png'
+PROXY_IMG = 'mac1.png'
 EAT_SND = 'eat.wav'
 
 
 # Cancer Settings
-NUM_RANDOM_CANCERS = 40
-CANCER_IMG = 'cancer0.png'
+NUM_RANDOM_CANCERS = 6
+CANCER_IMG = 'cancer1.png'
+
+
+# Actions
+ACTION_MEANING = {
+    0 : "NOOP",
+    1 : "UP",
+    2 : "DOWN",
+    3 : "LEFT",
+    4 : "RIGHT"
+}

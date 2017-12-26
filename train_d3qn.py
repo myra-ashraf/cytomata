@@ -1,6 +1,6 @@
 import os
 import tensorflow as tf
-from cytomata.envs import CytomatrixEnv
+import gym
 from cytomata.agents import StateProcessor, Estimator, D3QNAgent
 
 
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     # State processor
     state_processor = StateProcessor()
     # Environment
-    env = CytomatrixEnv()
+    env = gym.envs.make("Breakout-v0")
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
