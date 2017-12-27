@@ -1,17 +1,19 @@
 import gym
+import numpy as np
 import matplotlib.pyplot as plt
 import cytomata
+from cytomata import envs
 from cytomata.wrappers import wrap_cytomatrix
-plt.gray()
 
 if __name__ == '__main__':
     env = gym.make("Cytomatrix-v0")
     env = wrap_cytomatrix(env)
-    obs = env.reset()
+    obs1 = env.reset()
     plt.figure(1)
-    plt.imshow(obs)
-    for i in range(16):
-        obs, _, _, _ = env.step(1)
+    plt.imshow(obs1)
+    for i in range(2):
+        obs2, _, _, _ = env.step(1)
+    print(np.array_equal(np.array(obs2), np.array(obs1)))
     plt.figure(2)
-    plt.imshow(obs)
+    plt.imshow(obs2)
     plt.show()

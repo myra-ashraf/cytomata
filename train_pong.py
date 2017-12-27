@@ -13,7 +13,7 @@ def callback(lcl, glb):
 
 def main():
     env = make_atari("PongNoFrameskip-v4")
-    # env = bench.Monitor(env, logger.get_dir())
+    env = bench.Monitor(env, logger.get_dir())
     env = deepq.wrap_atari_dqn(env)
     model = deepq.models.cnn_to_mlp(
         convs=[(32, 8, 4), (64, 4, 2), (64, 3, 1)],

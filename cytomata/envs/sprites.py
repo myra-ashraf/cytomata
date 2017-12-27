@@ -7,7 +7,7 @@ from .settings import *
 
 class Proxy():
     def __init__(self, game, x, y):
-        self.mass = 30.0
+        self.mass = 20.0
         self.radius = TILESIZE / 2.0
         self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
         self.body = pm.Body(self.mass, self.inertia)
@@ -15,7 +15,7 @@ class Proxy():
         self.shape = pm.Circle(self.body, self.radius, (0, 0))
         self.shape.elasticity = 0.2
         self.shape.friction = 1.0
-        self.shape.collision_type = 0
+        self.shape.collision_type = 1
         self.body.velocity = pm.Vec2d(0, 0)
         self.life = 20
         self.last_update0 = pg.time.get_ticks()
@@ -29,13 +29,13 @@ class Proxy():
     def move(self, direction):
         """ Moves the proxy in a direction: UP, DOWN, LEFT, RIGHT"""
         if direction == 'UP':
-            self.body.velocity += (0, 30)
+            self.body.velocity += (0, 40)
         if direction == 'DOWN':
-            self.body.velocity += (0, -30)
+            self.body.velocity += (0, -40)
         if direction == 'LEFT':
-            self.body.velocity += (-30, 0)
+            self.body.velocity += (-40, 0)
         if direction == 'RIGHT':
-            self.body.velocity += (30, 0)
+            self.body.velocity += (40, 0)
 
     def cap_speed(self, max_speed):
         if self.body.velocity.length > max_speed:
@@ -112,15 +112,14 @@ class Proxy():
             raise ValueError('Valid options for control_scheme: joystick, pointer, rts, mask')
 
     def agent_act(self, action):
-        actions_ref = ['NO_OP', 'UP', 'DOWN', 'LEFT', 'RIGHT']
-        self.move(actions_ref[action])
+        self.move(ACTION_MEANING[action])
 
     def update(self, action):
         self.check_inputs()
         if action is not None:
             self.agent_act(action)
         self.cap_speed(PROXY_SPEED)
-        self.bkg_friction(0.9)
+        self.bkg_friction(PROXY_FRICTION)
         # self.close_to_edge(1000)
         # self.out_of_arena(20000)
         # self.check_selected()
@@ -140,7 +139,7 @@ class Cyte():
         self.shape = pm.Circle(self.body, self.radius, (0, 0))
         self.shape.elasticity = 0.2
         self.shape.friction = 10.0
-        self.shape.collision_type = 1
+        self.shape.collision_type = 2
         self.life = 5
         self.shield = 0
         self.last_update = pg.time.get_ticks()
@@ -190,7 +189,7 @@ class Cancer():
         self.shape = pm.Circle(self.body, self.radius, (0, 0))
         self.shape.elasticity = 0.2
         self.shape.friction = 1.5
-        self.shape.collision_type = 2
+        self.shape.collision_type = 3
         self.life = 20
         self.game = game
         self.last_update = pg.time.get_ticks()
@@ -228,5 +227,5 @@ class Cancer():
 
     def update(self):
         self.bkg_friction(0.9)
-        self.random_walk(1200, 30)
+        # self.random_walk(1200, 30)
         # self.out_of_arena(20000)
