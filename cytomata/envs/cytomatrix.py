@@ -63,15 +63,14 @@ class CytomatrixEnv(gym.Env):
         self.proxies = []
         self.cytes = []
         self.cancers = []
-        self.map.occupied_tiles = []
         self.score = 0.0
         self.reward = 0.0
         self.timer = 0.0
         self.last_update = pg.time.get_ticks()
         self.boundary_box()
         self.spawn_from_map()
-        self.spawn_randomly(Proxy, NUM_RANDOM_PROXIES, spacing=True)
-        self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS)
+        self.spawn_randomly(Proxy, NUM_RANDOM_PROXIES)
+        self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS, spaced=True)
         self.spawn_randomly(Cyte, NUM_RANDOM_CYTES)
         # self.camera = Camera(self.map.width, self.map.height)
         # pg.mixer.music.play(-1)
@@ -100,41 +99,54 @@ class CytomatrixEnv(gym.Env):
                 # Convert coords to match y-axis position as seen on map
                 map_row = int(GRIDHEIGHT - row - 1.0)
                 if tile == '0':
-                    self.map.occupied_tiles.append((col, map_row))
                     Cyte(self, col, map_row)
                 if tile == '1':
-                    self.map.occupied_tiles.append((col, map_row))
                     Proxy(self, col, map_row)
                 if tile == '2':
-                    self.map.occupied_tiles.append((col, map_row))
                     Cancer(self, col, map_row)
 
-    def get_open_spots(self, min_x, max_x, min_y, max_y):
-        """Return grid coordinates of locations on the map not occupied by some object"""
-        open_spots = [
-            (x, y) for x in range(min_x, max_x)
-            for y in range(min_y, max_y)
-            if (x, y) not in self.map.occupied_tiles]
-        return open_spots
-
-    def spawn_randomly(self, Entity, number, bias=None, rand_num=0, spacing=False):
+    def spawn_randomly(self, Entity, number, rand_num=0, bias=None, spaced=False):
         """Creates a proxy/cyte/cancer in a random spot on the map"""
         if bias == 'center':
-            open_spots = self.get_open_spots(1, int(self.map.tile_width - 1), 1, int(self.map.tile_height - 1))
+            open_spots = self.get_open_spots(
+                1, int(self.map.tile_width - 1),
+                1, int(self.map.tile_height - 1),
+                spaced=spaced)
         else:
-            open_spots = self.get_open_spots(0, int(self.map.tile_width), 0, int(self.map.tile_height))
+            open_spots = self.get_open_spots(
+                0, int(self.map.tile_width),
+                0, int(self.map.tile_height),
+                spaced=spaced)
         number += rnd.randint(-rand_num, rand_num)
         for i in range(number):
             rand_x, rand_y = rnd.choice(open_spots)
             Entity(self, rand_x, rand_y)
             open_spots.remove((rand_x, rand_y))
-            if spacing:
-                x_coords = [rand_x - 1, rand_x, rand_x + 1]
-                y_coords = [rand_y - 1, rand_y, rand_y + 1]
-                occupied = [(x, y) for x in x_coords for y in y_coords]
-                self.map.occupied_tiles += occupied
+
+    def get_open_spots(self, min_x, max_x, min_y, max_y, spaced=False):
+        """Return grid coordinates of locations on the map not occupied by some object"""
+        occupied_tiles = self.get_occupied_tiles(spaced=spaced)
+        open_spots = [
+            (x, y) for x in range(min_x, max_x)
+            for y in range(min_y, max_y)
+            if (x, y) not in occupied_tiles]
+        return open_spots
+
+    def get_occupied_tiles(self, spaced=False):
+        occupied_tiles = []
+        for sprite in self.all_sprites:
+            tile_position = sprite.get_tile_position()
+            # Spawn this cell at least 1 spot away from a proxy
+            if spaced and sprite in self.proxies:
+                x, y = tile_position
+                x_coords = [x - 1, x, x + 1]
+                y_coords = [y - 1, y, y + 1]
+                invalidated = [(x, y) for x in x_coords for y in y_coords]
+                occupied_tiles += invalidated
+                print(occupied_tiles)
             else:
-                self.map.occupied_tiles.append((rand_x, rand_y))
+                occupied_tiles.append(tile_position)
+        return occupied_tiles
 
     def events(self):
         """Game loop - process inputs/events"""
@@ -145,7 +157,7 @@ class CytomatrixEnv(gym.Env):
     def update(self, action):
         """Game loop - updates"""
         self.timer += self.clock.get_time() / 1000.0
-        if self.timer > 30.0:
+        if self.timer > MAX_TIME:
             self.terminal = True
         for sprite in self.all_sprites:
             if sprite in self.proxies:
@@ -156,7 +168,8 @@ class CytomatrixEnv(gym.Env):
         # Camera tracking
         # self.camera.update(self.proxy)
         if len(self.cancers) < 1:
-            self.terminal = True
+            # self.terminal = True
+            self.spawn_randomly(Cancer, 1)
 
     def _reset(self):
         self.new()
@@ -191,7 +204,8 @@ class CytomatrixEnv(gym.Env):
         # self.draw_grid()
         # self.draw_text(self.screen, 'Score: {:.2f}'.format(self.score), 18, WIDTH * 0.9, 8)
         # self.draw_text(self.screen, 'Time: ' + str('{:.2f}'.format(self.timer)), 18, WIDTH * 0.1, 8)
-        self.space.step(1.0/FPS)
+        for i in range(10):
+            self.space.step(GAME_SPEED/FPS/10.0)
         pg.display.flip()
 
     def get_raw_img(self):

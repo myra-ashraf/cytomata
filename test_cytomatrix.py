@@ -13,7 +13,11 @@ if __name__ == '__main__':
     plt.imshow(obs1)
     for i in range(2):
         obs2, _, _, _ = env.step(1)
+    for i in range(2):
+        obs3, _, _, _ = env.step(3)
     print(np.array_equal(np.array(obs2), np.array(obs1)))
     plt.figure(2)
     plt.imshow(obs2)
+    plt.figure(3)
+    plt.imshow(obs3)
     plt.show()

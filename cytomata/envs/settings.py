@@ -3,10 +3,12 @@ DEBUG = True
 TITLE = "Cytomata"
 WIDTH = 800
 HEIGHT = 800
-FPS = 60
+FPS = 50.0
+GAME_SPEED = 4.0
 TILESIZE = 100
 GRIDWIDTH = WIDTH // TILESIZE
 GRIDHEIGHT = HEIGHT // TILESIZE
+MAX_TIME = 15.0
 MAP_FILE = 'm1.txt'
 BKG_IMG = 'white_plaster.png'
 MUSIC = 'greySector.mp3'
@@ -36,7 +38,7 @@ PROXY_IMG = 'mac1.png'
 EAT_SND = 'eat.wav'
 
 # Cancer Settings
-NUM_RANDOM_CANCERS = 10
+NUM_RANDOM_CANCERS = 1
 CANCER_IMG = 'cancer2.png'
 
 # Keymap

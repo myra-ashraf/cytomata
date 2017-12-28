@@ -64,6 +64,11 @@ class Proxy():
             self.game.score -= 1.0
             self.game.terminal = True
 
+    def get_tile_position(self):
+        x, y = self.body.position
+        x, y = int(np.around((x / TILESIZE) - 0.5)) , int(np.around((y / TILESIZE) - 0.5))
+        return x, y
+
     # def check_selected(self):
     #     clicks = pg.mouse.get_pressed()
     #     if clicks[0]:
@@ -173,6 +178,11 @@ class Cyte():
             rand_vel = vel.rotated_degrees(rand_angle)
             self.body.velocity = rand_vel
 
+    def get_tile_position(self):
+        x, y = self.body.position
+        x, y = int(np.around((x / TILESIZE) - 0.5)) , int(np.around((y / TILESIZE) - 0.5))
+        return x, y
+
     def update(self):
         self.bkg_friction(0.9)
         self.shield_timer(100)
@@ -224,6 +234,11 @@ class Cancer():
             rand_angle = rnd.randint(0, 359)
             rand_vel = vel.rotated_degrees(rand_angle)
             self.body.velocity = rand_vel
+
+    def get_tile_position(self):
+        x, y = self.body.position
+        x, y = int(np.around((x / TILESIZE) - 0.5)) , int(np.around((y / TILESIZE) - 0.5))
+        return x, y
 
     def update(self):
         self.bkg_friction(0.9)
