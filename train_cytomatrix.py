@@ -1,3 +1,4 @@
+import re
 import os
 import glob
 import gym
@@ -12,11 +13,16 @@ from cytomata.wrappers import wrap_cytomatrix
 from cytomata.agents import dqn
 
 
-PROJ_DIR = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(PROJ_DIR, 'models', 'deepq', 'cytomatrix_*.pkl')
-last_model = sorted(glob.glob(model_path))[-1]
 max_mean_reward = -100
 last_filename = ''
+PROJ_DIR = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(PROJ_DIR, 'models', 'deepq', 'cytomatrix_*.pkl')
+try:
+    last_model = sorted(glob.glob(model_path))[-1]
+    last_filename = last_model
+    max_mean_reward = float(re.findall(r"[-+]?\d*\.\d+|\d+", last_model)[-1])
+except IndexError:
+    last_model = None
 
 
 def callback(locals, globals):
@@ -59,7 +65,7 @@ def main():
         hiddens=[256],
         dueling=bool(args.dueling))
 
-    act = deepq.learn(
+    act = dqn.learn(
         env,
         q_func=model,
         lr=1e-4,

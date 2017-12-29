@@ -8,9 +8,9 @@ import sys
 import tensorflow as tf
 
 if "../" not in sys.path:
-  sys.path.append("../")
+    sys.path.append("../")
 
-import plotting
+from cytomata import plotting
 from collections import deque, namedtuple
 
 
@@ -180,22 +180,22 @@ def make_epsilon_greedy_policy(estimator, nA):
     return policy_fn
 
 
-def deep_q_learning(sess,
-                    env,
-                    q_estimator,
-                    target_estimator,
-                    state_processor,
-                    num_episodes,
-                    experiment_dir,
-                    replay_memory_size=500000,
-                    replay_memory_init_size=50000,
-                    update_target_estimator_every=10000,
-                    discount_factor=0.99,
-                    epsilon_start=1.0,
-                    epsilon_end=0.1,
-                    epsilon_decay_steps=500000,
-                    batch_size=32,
-                    record_video_every=50):
+def DQN(sess,
+        env,
+        q_estimator,
+        target_estimator,
+        state_processor,
+        num_episodes,
+        experiment_dir,
+        replay_memory_size=500000,
+        replay_memory_init_size=50000,
+        update_target_estimator_every=10000,
+        discount_factor=0.99,
+        epsilon_start=1.0,
+        epsilon_end=0.1,
+        epsilon_decay_steps=500000,
+        batch_size=32,
+        record_video_every=50):
     """
     Q-Learning algorithm for fff-policy TD control using Function Approximation.
     Finds the optimal greedy policy while following an epsilon-greedy policy.
