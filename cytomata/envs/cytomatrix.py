@@ -17,7 +17,7 @@ class CytomatrixEnv(gym.Env):
 
     def __init__(self):
         """Initialize game, window, etc."""
-        pg.mixer.pre_init(22050, -16, 2, 512)
+        # pg.mixer.pre_init(22050, -16, 2, 512)
         pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
         pg.display.set_caption(TITLE)
@@ -143,7 +143,6 @@ class CytomatrixEnv(gym.Env):
                 y_coords = [y - 1, y, y + 1]
                 invalidated = [(x, y) for x in x_coords for y in y_coords]
                 occupied_tiles += invalidated
-                print(occupied_tiles)
             else:
                 occupied_tiles.append(tile_position)
         return occupied_tiles
@@ -204,8 +203,8 @@ class CytomatrixEnv(gym.Env):
         # self.draw_grid()
         # self.draw_text(self.screen, 'Score: {:.2f}'.format(self.score), 18, WIDTH * 0.9, 8)
         # self.draw_text(self.screen, 'Time: ' + str('{:.2f}'.format(self.timer)), 18, WIDTH * 0.1, 8)
-        for i in range(10):
-            self.space.step(GAME_SPEED/FPS/10.0)
+        for i in range(GAME_SPEED * 10):
+            self.space.step(GAME_SPEED/FPS/(GAME_SPEED * 10))
         pg.display.flip()
 
     def get_raw_img(self):
