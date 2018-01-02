@@ -1,16 +1,14 @@
 import os
 import tempfile
-
-import tensorflow as tf
 import zipfile
-import dill
-import numpy as np
 
+import numpy as np
+import tensorflow as tf
+import dill
 import gym
 import baselines.common.tf_util as U
-from baselines import logger
+from baselines import logger, deepq
 from baselines.common.schedules import LinearSchedule
-from baselines import deepq
 from baselines.deepq.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer
 
 
@@ -203,6 +201,7 @@ def learn(env,
     else:
         replay_buffer = ReplayBuffer(buffer_size)
         beta_schedule = None
+
     # Create the schedule for exploration starting from 1.
     exploration = LinearSchedule(schedule_timesteps=int(exploration_fraction * max_timesteps),
                                  initial_p=1.0,
@@ -222,9 +221,12 @@ def learn(env,
                     f.write(model_data)
                 zipfile.ZipFile(arc_path, 'r', zipfile.ZIP_DEFLATED).extractall(td)
                 U.load_state(os.path.join(td, "model"))
+                print('-' * 50)
+                logger.log("Loading pretrained model: ", load_state)
+                print('-' * 50)
         except FileNotFoundError as e:
             pass
-    
+
     update_target()
 
     episode_rewards = [0.0]

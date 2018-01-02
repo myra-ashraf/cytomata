@@ -1,11 +1,13 @@
 import sys
 import os
 import random as rnd
+import numpy as np
 import pygame as pg
 import pymunk as pm
-import numpy as np
+
 import gym
 from gym import spaces
+
 from .settings import *
 from .sprites import *
 from .tilemap import *
@@ -15,7 +17,7 @@ class CytomatrixEnv(gym.Env):
     """Main Class"""
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self):
+    def __init__(self, display_screen=True):
         """Initialize game, window, etc."""
         # pg.mixer.pre_init(22050, -16, 2, 512)
         pg.init()
@@ -28,7 +30,7 @@ class CytomatrixEnv(gym.Env):
         # Required for gym env
         self._action_set = range(0, len(ACTION_MEANING))
         self.action_space = spaces.Discrete(len(self._action_set))
-        self.observation_space = spaces.Box(low=0, high=255, shape=(HEIGHT, WIDTH, 3))
+        self.observation_space = spaces.Box(low=0, high=255, shape=(WIDTH, HEIGHT, 3))
         self.reward_range = (-np.inf, np.inf)
         self.viewer = None
 
@@ -39,7 +41,7 @@ class CytomatrixEnv(gym.Env):
         img_dir = os.path.join(self.game_dir, 'assets', 'images')
         snd_dir = os.path.join(self.game_dir, 'assets', 'sounds')
         music_dir = os.path.join(self.game_dir, 'assets', 'music')
-        self.map = Map(os.path.join(self.game_dir, 'assets', 'maps', MAP_FILE))
+        # self.map = Map(os.path.join(self.game_dir, 'assets', 'maps', MAP_FILE))
         self.bkg_img = pg.image.load(os.path.join(img_dir, 'bkgd', BKG_IMG)).convert()
         self.bkg_img = pg.transform.scale(self.bkg_img, (WIDTH, HEIGHT))
         self.proxy_img = pg.image.load(os.path.join(img_dir, 'chars', PROXY_IMG)).convert_alpha()
@@ -68,7 +70,7 @@ class CytomatrixEnv(gym.Env):
         self.timer = 0.0
         self.last_update = pg.time.get_ticks()
         self.boundary_box()
-        self.spawn_from_map()
+        # self.spawn_from_map()
         self.spawn_randomly(Proxy, NUM_RANDOM_PROXIES)
         self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS, spaced=True)
         self.spawn_randomly(Cyte, NUM_RANDOM_CYTES)
@@ -92,30 +94,30 @@ class CytomatrixEnv(gym.Env):
             line.collision_type = 0
         self.space.add(self.static_lines)
 
-    def spawn_from_map(self):
-        """Spawn objects based on locations specified in the map file"""
-        for row, tiles in enumerate(self.map.data):
-            for col, tile in enumerate(tiles):
-                # Convert coords to match y-axis position as seen on map
-                map_row = int(GRIDHEIGHT - row - 1.0)
-                if tile == '0':
-                    Cyte(self, col, map_row)
-                if tile == '1':
-                    Proxy(self, col, map_row)
-                if tile == '2':
-                    Cancer(self, col, map_row)
+    # def spawn_from_map(self):
+    #     """Spawn objects based on locations specified in the map file"""
+    #     for row, tiles in enumerate(self.map.data):
+    #         for col, tile in enumerate(tiles):
+    #             # Convert coords to match y-axis position as seen on map
+    #             map_row = int(GRIDHEIGHT - row - 1.0)
+    #             if tile == '0':
+    #                 Cyte(self, col, map_row)
+    #             if tile == '1':
+    #                 Proxy(self, col, map_row)
+    #             if tile == '2':
+    #                 Cancer(self, col, map_row)
 
     def spawn_randomly(self, Entity, number, rand_num=0, bias=None, spaced=False):
         """Creates a proxy/cyte/cancer in a random spot on the map"""
         if bias == 'center':
             open_spots = self.get_open_spots(
-                1, int(self.map.tile_width - 1),
-                1, int(self.map.tile_height - 1),
+                1, int(GRIDWIDTH - 1),
+                1, int(GRIDHEIGHT - 1),
                 spaced=spaced)
         else:
             open_spots = self.get_open_spots(
-                0, int(self.map.tile_width),
-                0, int(self.map.tile_height),
+                0, int(GRIDWIDTH),
+                0, int(GRIDHEIGHT),
                 spaced=spaced)
         number += rnd.randint(-rand_num, rand_num)
         for i in range(number):
@@ -182,6 +184,8 @@ class CytomatrixEnv(gym.Env):
         self.events()
         self.update(action)
         self.draw()
+        for i in range(10):
+            self.space.step(GAME_SPEED/FPS/10)
         self.clock.tick(FPS)
         self.reward += self.score - self.score0
         return self.get_raw_img(), np.around(self.reward, 2), self.terminal, {}
@@ -203,9 +207,7 @@ class CytomatrixEnv(gym.Env):
         # self.draw_grid()
         # self.draw_text(self.screen, 'Score: {:.2f}'.format(self.score), 18, WIDTH * 0.9, 8)
         # self.draw_text(self.screen, 'Time: ' + str('{:.2f}'.format(self.timer)), 18, WIDTH * 0.1, 8)
-        for i in range(GAME_SPEED * 10):
-            self.space.step(GAME_SPEED/FPS/(GAME_SPEED * 10))
-        pg.display.flip()
+        pg.display.update()
 
     def get_raw_img(self):
         raw_display_surf = pg.transform.flip(pg.transform.rotate(pg.display.get_surface(), 90), False, True)

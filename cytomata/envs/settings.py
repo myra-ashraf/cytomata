@@ -3,13 +3,13 @@ DEBUG = True
 TITLE = "Cytomata"
 WIDTH = 400
 HEIGHT = 400
-FPS = 50
-GAME_SPEED = 4
+FPS = 60
+GAME_SPEED = 2
 TILESIZE = 80
 GRIDWIDTH = WIDTH // TILESIZE
 GRIDHEIGHT = HEIGHT // TILESIZE
 MAX_TIME = 15.0
-MAP_FILE = 'm0.txt'
+# MAP_FILE = 'm0.txt'
 BKG_IMG = 'white_plaster.png'
 MUSIC = 'greySector.mp3'
 
