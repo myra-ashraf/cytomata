@@ -17,14 +17,13 @@ class CytomatrixEnv(gym.Env):
     """Main Class"""
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, display_screen=True):
+    def __init__(self):
         """Initialize game, window, etc."""
         # pg.mixer.pre_init(22050, -16, 2, 512)
         pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
-        # Time before key hold detected + frequency of key press
         pg.key.set_repeat(100, 100)
         self.load_data()
         # Required for gym env
@@ -165,21 +164,20 @@ class CytomatrixEnv(gym.Env):
                 sprite.update(action)
             else:
                 sprite.update()
-        # self.time_penalty(2000)
+        self.time_penalty()
         # Camera tracking
         # self.camera.update(self.proxy)
         if len(self.cancers) < 1:
             # self.terminal = True
-            self.spawn_randomly(Cancer, 1)
+            self.spawn_randomly(Cancer, 1, spaced=True)
 
     def _reset(self):
         self.new()
-        first_img, _, _, _ = self.step(0)
-        return first_img
+        self.draw()
+        return self.get_raw_img()
 
     def _step(self, action):
         """Game loop"""
-        self.score0 = self.score
         self.reward = 0.0
         self.events()
         self.update(action)
@@ -187,7 +185,6 @@ class CytomatrixEnv(gym.Env):
         for i in range(10):
             self.space.step(GAME_SPEED/FPS/10)
         self.clock.tick(FPS)
-        self.reward += self.score - self.score0
         return self.get_raw_img(), np.around(self.reward, 2), self.terminal, {}
 
     def draw(self):
@@ -245,6 +242,7 @@ class CytomatrixEnv(gym.Env):
         cancer_body = b.body
         for cancer in self.cancers:
             if cancer_body == cancer.body:
+                self.reward += 1.0
                 self.score += 1.0
                 self.space.remove(cancer.shape, cancer.shape.body)
                 self.cancers.remove(cancer)
@@ -261,6 +259,7 @@ class CytomatrixEnv(gym.Env):
                     self.space.remove(cyte.shape, cyte.shape.body)
                     self.cytes.remove(cyte)
                     self.all_sprites.remove(cyte)
+                    self.reward -= 0.1
                     self.score -= 0.1
                 else:
                     cyte.shield = 12
@@ -285,11 +284,9 @@ class CytomatrixEnv(gym.Env):
     def get_action_meanings(self):
         return [ACTION_MEANING[i] for i in self._action_set]
 
-    def time_penalty(self, duration):
-        now = pg.time.get_ticks()
-        if now - self.last_update > duration:
-            self.last_update = now
-            self.score -= 0.01
+    def time_penalty(self):
+        self.reward -= 0.01
+        # self.score -= 0.01
 
     def quit(self):
         """Quit to desktop"""

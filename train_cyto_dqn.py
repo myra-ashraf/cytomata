@@ -12,6 +12,23 @@ from cytomata.wrappers import wrap_cytomatrix
 from cytomata.agents import dqn
 
 
+max_mean_reward = -100
+last_filename = ''
+game = 'Cytomatrix'
+proj_dir = os.path.dirname(os.path.abspath(__file__))
+model_dir = os.path.join(proj_dir, 'models/deepq/')
+log_dir = os.path.join(proj_dir, 'models/deepq/logs/', game)
+os.makedirs(model_dir, exist_ok=True)
+os.makedirs(log_dir, exist_ok=True)
+model_path = os.path.join(proj_dir, 'models', 'deepq', game + '_*.pkl')
+try:
+    last_model = sorted(glob.glob(model_path))[-1]
+    last_filename = last_model
+    max_mean_reward = float(re.findall(r"[-+]?\d*\.\d+|\d+", last_model)[-1])
+except IndexError:
+    last_model = None
+
+
 def callback(locals, globals):
     global max_mean_reward, last_filename
     if ('done' in locals and locals['done'] == True):
@@ -32,23 +49,7 @@ def callback(locals, globals):
             max_mean_reward = locals['mean_100ep_reward']
 
 
-def main():
-    game = 'Cytomatrix'
-    max_mean_reward = -100
-    last_filename = ''
-    proj_dir = os.path.dirname(os.path.abspath(__file__))
-    model_dir = os.path.join(proj_dir, 'models/deepq/')
-    log_dir = os.path.join(proj_dir, 'models/deepq/logs/', game)
-    os.makedirs(model_dir, exist_ok=True)
-    os.makedirs(log_dir, exist_ok=True)
-    model_path = os.path.join(proj_dir, 'models', 'deepq', game + '_*.pkl')
-    try:
-        last_model = sorted(glob.glob(model_path))[-1]
-        last_filename = last_model
-        max_mean_reward = float(re.findall(r"[-+]?\d*\.\d+|\d+", last_model)[-1])
-    except IndexError:
-        last_model = None
-
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--prioritized', type=int, default=1)
@@ -73,9 +74,9 @@ def main():
         q_func=model,
         lr=1e-4,
         max_timesteps=args.num_timesteps,
-        buffer_size=10000,
+        buffer_size=50000,
         exploration_fraction=0.1,
-        exploration_final_eps=0.01,
+        exploration_final_eps=0.0001,
         train_freq=4,
         learning_starts=10000,
         target_network_update_freq=1000,
@@ -85,7 +86,3 @@ def main():
         callback=callback,
         load_state=last_model)
     act.save(os.path.join(proj_dir, 'models', 'deepq', game + '_model.pkl'))
-
-
-if __name__ == '__main__':
-    main()

@@ -8,7 +8,7 @@ from .settings import *
 class Proxy():
     def __init__(self, game, x, y):
         self.mass = 20.0
-        self.radius = TILESIZE / 2.0
+        self.radius = TILESIZE / 2.1
         self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
         self.body = pm.Body(self.mass, self.inertia)
         self.body.position = (x + 0.5) * TILESIZE, (y + 0.5) * TILESIZE
@@ -66,7 +66,7 @@ class Proxy():
 
     def get_tile_position(self):
         x, y = self.body.position
-        x, y = int(np.around((x / TILESIZE) - 0.5)) , int(np.around((y / TILESIZE) - 0.5))
+        x, y = int(np.around((x / TILESIZE) - 0.5)), int(np.around((y / TILESIZE) - 0.5))
         return x, y
 
     # def check_selected(self):
@@ -137,7 +137,7 @@ class Proxy():
 class Cyte():
     def __init__(self, game, x, y):
         self.mass = 300.0
-        self.radius = TILESIZE / 2.0
+        self.radius = TILESIZE / 2.1
         self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
         self.body = pm.Body(self.mass, self.inertia)
         self.body.position = (x + 0.5) * TILESIZE, (y + 0.5) * TILESIZE
@@ -192,7 +192,7 @@ class Cyte():
 class Cancer():
     def __init__(self, game, x, y):
         self.mass = 40.0
-        self.radius = TILESIZE / 2.0
+        self.radius = TILESIZE / 2.1
         self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
         self.body = pm.Body(self.mass, self.inertia)
         self.body.position = (x + 0.5) * TILESIZE, (y + 0.5) * TILESIZE

@@ -1,0 +1,2 @@
+Logging to /home/phuong/cytomata/models/deepq/logs/Cytomatrix
+Loading pretrained model: /home/phuong/cytomata/models/deepq/Cytomatrix_7.7.pkl
