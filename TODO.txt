@@ -1,0 +1,26 @@
+To Do List
+============================
+1. Run Cartpole with openai DQN --> Simplest case
+    a. Simple observation and action space
+    b. Not image based
+    Result: Works well! Only took ~20 min
+    Status: DONE
+    Warning: apparently set_global_seeds causes the unstable training?!?
+2. Run Pong with openai DQN --> More complex example
+    a. Still simple action space
+    b. Image based --> Requires CNN and atari wrappers
+    Result: Works well. Took ~7 hours
+    Status: Still need to test with different wrappers enabled
+    = How does changing the FC layers from 256 --> 512 affect training?
+3. Run Breakout with openai DQN --> More difficult example
+    a. Known to converge slower
+    Status: WIP
+4. Run Bank Heist or Star Gunner on openai DQN --> larger action space
+    a. Similar action and observation space to cytomatrix
+    Status: WIP
+5. Run flappybird with yenchen DQN --> is it a pygame issue?
+    Status: WIP
+6. Run flappybird with with openai DQN --> is it an openai DQN issue?
+    Status: WIP
+7. Run WaterWorld with openai DQN
+    a Most similar case to cytomatrix

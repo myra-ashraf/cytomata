@@ -2,7 +2,7 @@ import gym
 import numpy as np
 import matplotlib.pyplot as plt
 import cytomata
-from cytomata.wrappers import wrap_cytomatrix
+from cytomata.wrappers import wrap_atari
 
 if __name__ == '__main__':
     env = gym.make("PongNoFrameskip-v4")

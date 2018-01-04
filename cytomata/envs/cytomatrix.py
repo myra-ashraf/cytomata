@@ -1,10 +1,10 @@
 import sys
 import os
 import random as rnd
+
 import numpy as np
 import pygame as pg
 import pymunk as pm
-
 import gym
 from gym import spaces
 
@@ -15,16 +15,19 @@ from .tilemap import *
 
 class CytomatrixEnv(gym.Env):
     """Main Class"""
-    metadata = {'render.modes': ['human', 'rgb_array']}
+    metadata = {'render.modes': ['human']}
 
     def __init__(self):
         """Initialize game, window, etc."""
+        if NO_DISPLAY:
+            os.putenv('SDL_VIDEODRIVER', 'fbcon')
+            os.environ["SDL_VIDEODRIVER"] = "dummy"
         # pg.mixer.pre_init(22050, -16, 2, 512)
         pg.init()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT))
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
-        pg.key.set_repeat(100, 100)
+        # pg.key.set_repeat(100, 100)
         self.load_data()
         # Required for gym env
         self._action_set = range(0, len(ACTION_MEANING))
@@ -35,20 +38,20 @@ class CytomatrixEnv(gym.Env):
 
     def load_data(self):
         """Load maps, sprites, and other game resources"""
-        self.game_dir = os.path.dirname(__file__)
-        assets_dir = os.path.join(self.game_dir, 'assets')
-        img_dir = os.path.join(self.game_dir, 'assets', 'images')
-        snd_dir = os.path.join(self.game_dir, 'assets', 'sounds')
-        music_dir = os.path.join(self.game_dir, 'assets', 'music')
+        game_dir = os.path.dirname(__file__)
+        assets_dir = os.path.join(game_dir, 'assets')
+        img_dir = os.path.join(game_dir, 'assets', 'images')
+        snd_dir = os.path.join(game_dir, 'assets', 'sounds')
+        music_dir = os.path.join(game_dir, 'assets', 'music')
         # self.map = Map(os.path.join(self.game_dir, 'assets', 'maps', MAP_FILE))
-        self.bkg_img = pg.image.load(os.path.join(img_dir, 'bkgd', BKG_IMG)).convert()
-        self.bkg_img = pg.transform.scale(self.bkg_img, (WIDTH, HEIGHT))
-        self.proxy_img = pg.image.load(os.path.join(img_dir, 'chars', PROXY_IMG)).convert_alpha()
-        self.proxy_img = pg.transform.scale(self.proxy_img, (TILESIZE, TILESIZE))
-        self.cyte_img = pg.image.load(os.path.join(img_dir, 'chars', CYTE_IMG)).convert_alpha()
-        self.cyte_img = pg.transform.scale(self.cyte_img, (TILESIZE, TILESIZE))
-        self.cancer_img = pg.image.load(os.path.join(img_dir, 'chars', CANCER_IMG)).convert_alpha()
-        self.cancer_img = pg.transform.scale(self.cancer_img, (TILESIZE, TILESIZE))
+        bkg_img = pg.image.load(os.path.join(img_dir, 'bkgd', BKG_IMG)).convert()
+        self.bkg_img = pg.transform.scale(bkg_img, (WIDTH, HEIGHT))
+        proxy_img = pg.image.load(os.path.join(img_dir, 'chars', PROXY_IMG)).convert_alpha()
+        self.proxy_img = pg.transform.scale(proxy_img, (TILESIZE, TILESIZE))
+        cyte_img = pg.image.load(os.path.join(img_dir, 'chars', CYTE_IMG)).convert_alpha()
+        self.cyte_img = pg.transform.scale(cyte_img, (TILESIZE, TILESIZE))
+        cancer_img = pg.image.load(os.path.join(img_dir, 'chars', CANCER_IMG)).convert_alpha()
+        self.cancer_img = pg.transform.scale(cancer_img, (TILESIZE, TILESIZE))
         # self.eat_snd = pg.mixer.Sound(os.path.join(snd_dir, EAT_SND))
         # pg.mixer.music.load(os.path.join(music_dir, MUSIC))
         # pg.mixer.music.set_volume(1.0)
@@ -185,7 +188,7 @@ class CytomatrixEnv(gym.Env):
         for i in range(10):
             self.space.step(GAME_SPEED/FPS/10)
         self.clock.tick(FPS)
-        return self.get_raw_img(), np.around(self.reward, 2), self.terminal, {}
+        return self.get_raw_img(), np.around(self.reward, 3), self.terminal, {}
 
     def draw(self):
         """Game loop - render"""

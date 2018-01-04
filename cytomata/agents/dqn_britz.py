@@ -14,8 +14,7 @@ from cytomata import plotting
 from collections import deque, namedtuple
 
 
-# Atari Actions: 0 (noop), 1 (fire), 2 (left) and 3 (right) are valid actions
-VALID_ACTIONS = [0, 1, 2, 3]
+VALID_ACTIONS = [0, 1, 2, 3, 4]
 
 class StateProcessor():
     """
@@ -24,9 +23,8 @@ class StateProcessor():
     def __init__(self):
         # Build the Tensorflow graph
         with tf.variable_scope("state_processor"):
-            self.input_state = tf.placeholder(shape=[210, 160, 3], dtype=tf.uint8)
+            self.input_state = tf.placeholder(shape=[400, 400, 3], dtype=tf.uint8)
             self.output = tf.image.rgb_to_grayscale(self.input_state)
-            self.output = tf.image.crop_to_bounding_box(self.output, 34, 0, 160, 160)
             self.output = tf.image.resize_images(
                 self.output, [84, 84], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
             self.output = tf.squeeze(self.output)
@@ -314,8 +312,8 @@ def DQN(sess,
                 print("\nCopied model parameters to target network.")
 
             # Print out which step we're on, useful for debugging.
-            print("\rStep {} ({}) @ Episode {}/{}, loss: {}".format(
-                    t, total_t, i_episode + 1, num_episodes, loss), end="")
+            print("\rStep {} ({}) @ Episode {}/{}, loss: {}, eps: {}".format(
+                    t, total_t, i_episode + 1, num_episodes, loss, epsilon), end="")
             sys.stdout.flush()
 
             # Take a step
