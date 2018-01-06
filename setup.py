@@ -36,7 +36,6 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
-        "Topic :: Scientific/Engineering :: Human Machine Interfaces",
         "Topic :: Scientific/Engineering :: Medical Science Apps",
     ],
     keywords=cytomata.__keywords__,
@@ -48,6 +47,6 @@ setup(
     license=cytomata.__license__,
     packages=find_packages(exclude=['tests']),
     install_requires=[
-        'pygame', 'pymunk', 'gym', 'numpy', 'tensorflow'
+        'numpy', 'tensorflow', 'pygame', 'pymunk', 'gym', 'baselines', 'dill'
     ]
 )

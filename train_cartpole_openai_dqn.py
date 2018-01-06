@@ -4,17 +4,21 @@ import time
 import gym
 
 from baselines import deepq, bench, logger
-from baselines.common import set_global_seeds
+# from baselines.common import set_global_seeds
+
+
+game = 'CartPole-v0'
+target_score = 199.9
 
 
 def callback(lcl, glb):
-    # stop training if reward exceeds 199
-    is_solved = lcl['t'] > 100 and sum(lcl['episode_rewards'][-101:-1]) / 100 >= 199
+    # stop training if ave reward exceeds target_score
+    is_solved = (lcl['t'] > 100
+        and sum(lcl['episode_rewards'][-100:]) / 100 >= target_score)
     return is_solved
 
 
 def main():
-    game = 'CartPole-v0'
     now = time.strftime('_%Y-%m-%d-%H-%M-%S')
     proj_dir = os.path.dirname(os.path.abspath(__file__))
     model_dir = os.path.join(proj_dir, 'models/deepq/')

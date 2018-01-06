@@ -20,11 +20,10 @@ class CytomatrixEnv(gym.Env):
     def __init__(self):
         """Initialize game, window, etc."""
         if NO_DISPLAY:
-            os.putenv('SDL_VIDEODRIVER', 'fbcon')
             os.environ["SDL_VIDEODRIVER"] = "dummy"
         # pg.mixer.pre_init(22050, -16, 2, 512)
         pg.init()
-        self.screen = pg.display.set_mode((WIDTH, HEIGHT))
+        self.screen = pg.display.set_mode((WIDTH, HEIGHT), 0, 32)
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
         # pg.key.set_repeat(100, 100)
@@ -192,7 +191,10 @@ class CytomatrixEnv(gym.Env):
 
     def draw(self):
         """Game loop - render"""
-        self.screen.fill(WHITE)
+        if NO_DISPLAY:
+            self.screen = pg.Surface((WIDTH, HEIGHT), pg.SRCALPHA, 32)
+            # pg.draw.rect(self.screen, WHITE, (0, 0, WIDTH, HEIGHT), 0)
+        self.screen.fill(BLACK)
         for sprite in self.all_sprites:
             self.draw_sprite(self.screen, sprite, sprite.image)
         fps_str = 'FPS: {:.2f}'.format(self.clock.get_fps())
@@ -210,7 +212,7 @@ class CytomatrixEnv(gym.Env):
         pg.display.update()
 
     def get_raw_img(self):
-        raw_display_surf = pg.transform.flip(pg.transform.rotate(pg.display.get_surface(), 90), False, True)
+        raw_display_surf = pg.transform.flip(pg.transform.rotate(self.screen, 90), False, True)
         return pg.surfarray.array3d(raw_display_surf)
 
     def draw_sprite(self, screen, Entity, image):
