@@ -13,7 +13,7 @@ from .sprites import *
 from .tilemap import *
 
 
-class CytomatrixEnv(gym.Env):
+class Cytomatrix(gym.Env):
     """Main Class"""
     metadata = {'render.modes': ['human']}
 

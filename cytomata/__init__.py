@@ -11,7 +11,11 @@ from gym.envs.registration import register
 
 register(
     id='Cytomatrix-v0',
-    entry_point='cytomata.envs:CytomatrixEnv',
+    entry_point='cytomata.envs:Cytomatrix',
+)
+register(
+    id='PygamePong-v0',
+    entry_point='cytomata.envs:PygamePong',
 )
 
 
