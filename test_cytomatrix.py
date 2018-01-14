@@ -14,7 +14,7 @@ if __name__ == '__main__':
     for i in range(1):
         obs2, _, _, _ = env.step(1)
     for i in range(1):
-        obs3, _, _, _ = env.step(2)
+        obs3, _, _, _ = env.step(3)
     print(np.array_equal(np.array(obs2), np.array(obs1)))
     plt.figure(2)
     plt.imshow(obs2)

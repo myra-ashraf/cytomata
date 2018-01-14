@@ -166,7 +166,7 @@ class Cytomatrix(gym.Env):
                 sprite.update(action)
             else:
                 sprite.update()
-        self.time_penalty()
+        # self.time_penalty()
         # Camera tracking
         # self.camera.update(self.proxy)
         if len(self.cancers) < 1:
@@ -187,7 +187,7 @@ class Cytomatrix(gym.Env):
         for i in range(10):
             self.space.step(GAME_SPEED/FPS/10)
         self.clock.tick(FPS)
-        return self.get_raw_img(), np.around(self.reward, 3), self.terminal, {}
+        return self.get_raw_img(), self.reward, self.terminal, {}
 
     def draw(self):
         """Game loop - render"""

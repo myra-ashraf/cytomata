@@ -30,13 +30,13 @@ class Proxy():
     def move(self, direction):
         """ Moves the proxy in a direction: UP, DOWN, LEFT, RIGHT"""
         if direction == 'UP':
-            self.body.velocity += (0, 40)
+            self.body.velocity += (0, 50)
         if direction == 'DOWN':
-            self.body.velocity += (0, -40)
+            self.body.velocity += (0, -50)
         if direction == 'LEFT':
-            self.body.velocity += (-40, 0)
+            self.body.velocity += (-50, 0)
         if direction == 'RIGHT':
-            self.body.velocity += (40, 0)
+            self.body.velocity += (50, 0)
 
     def cap_speed(self, max_speed):
         if self.body.velocity.length > max_speed:

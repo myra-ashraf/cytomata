@@ -3,12 +3,12 @@ To Do List
 1. Run Cartpole with openai DQN --> DONE
     - Simple observation and action space
     - Not image based
-    - Result: Works well! Only took ~20 min
+    - Result: It works! Only took ~20 min
     * Warning: apparently set_global_seeds causes the unstable training?
 2. Run Pong with openai DQN --> Stage B
     - Still simple action space
     - Image based --> Requires CNN and atari wrappers
-    - Result: Works well! Took ~6 hours (only got ~19.8 reward though?)
+    - Result: It works! Took ~6 hours (only got ~19.8 reward though?)
     = Look into train.py script inside atari folder
     = Still need to test with different wrappers enabled
     = How does changing the FC layers from 256 --> 512 affect training?
@@ -22,24 +22,13 @@ To Do List
     - Are there are issues with pygame implementations?
     = It works! Not issue with pygame
 4b. Run pygame pong with OpenAI DQN
-    = Note: I am using ple + gym-ple version of pong
-        - add "PygamePong" to __init__.py in gym_ple library
-        - change the pong.py file to pygamepong.py in ple.games
-        - add from ple.games.pygamepong import PygamePong in ple.games.__init__.py
-        - change class Pong to PygamePong
-        - include these code in ple_env.py
-            get_action_meanings function
-            get_keys_to_action function
-            ACTION_MEANING dict
-    - Are there issues with integrating pygame with OpenAI DQN
-5. Run Star Gunner on openai DQN --> Stage A
-    - Similar action and observation space to cytomatrix
-    - Larger action space
+    - Made pygame version of pong based on PLE
+    - Are there issues with integrating pygame with OpenAI DQN?
+    = It works! But it seems to train slower than the gym pong?
 
 
 Create the Final Training Script
 ================================
 1. Run custom_cartpole.py
-2. Compare custom_model.py and models.py
-3. Compare custom_cartpole.py and custom_pong.py
-4. Modify dqn.py based on #3
+2. Compare custom_cartpole.py and custom_pong.py
+3. Modify dqn.py based on #2
