@@ -47,7 +47,6 @@ class PygamePong(gym.Env):
         self.screen = pg.display.set_mode((WIDTH, HEIGHT), 0, 32)
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
-        self.episode_framesteps = []
         self._action_set = range(0, len(ACTION_MEANING))
         self.action_space = spaces.Discrete(len(self._action_set))
         self.observation_space = spaces.Box(low=0, high=255, shape=(WIDTH, HEIGHT, 3))
@@ -62,7 +61,6 @@ class PygamePong(gym.Env):
         self.terminal = False
         self.scoreboard = {'agent': 0, 'opp': 0}
         self.reward = 0.0
-        self.framestep = 0
         self.spawn_sprites()
 
     def spawn_sprites(self):
@@ -74,13 +72,10 @@ class PygamePong(gym.Env):
 
     def _step(self, action):
         self.reward = 0.0
-        self.framestep += 1
         self.dt = self.clock.tick(FPS) / 1000.0
         self.events()
         self.update(action)
         self.draw()
-        if self.terminal:
-            self.episode_framesteps.append(self.framestep)
         return self.get_raw_img(), self.reward, self.terminal, self.get_nonvis_state()
 
     def events(self):
@@ -132,8 +127,6 @@ class PygamePong(gym.Env):
     def get_nonvis_state(self):
         # For training on non-visual info instead of raw pixels
         return {
-            'framestep': self.framestep,
-            'episode_framesteps': self.episode_framesteps,
             'player_y': self.agent.pos.y,
             'player_velocity': self.agent.vel.y,
             'opp_y': self.opp.pos.y,

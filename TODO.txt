@@ -25,6 +25,10 @@ To Do List
     - Made pygame version of pong based on PLE
     - Are there issues with integrating pygame with OpenAI DQN?
     = It works! But it seems to train slower than the gym pong?
+5. Run cytomatrix with OpenAI DQN
+    = It works!
+    = The problem was due mainly to exploration; increase final eps to 0.1
+    = Need to find an optimal epsilon schedule
 
 
 Create the Final Training Script
