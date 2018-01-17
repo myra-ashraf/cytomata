@@ -1,8 +1,8 @@
 from baselines.common import atari_wrappers as wrap
 
 
-def wrap_atari(env_id, noop_reset=True, max_skip=True, episodic_life=True,
-    scale=False, clip_rewards=True, frame_stack=False):
+def wrap_atari(env_id, noop_reset=True, max_skip=True, episodic_life=False,
+    scale=False, clip_rewards=True, frame_stack=True):
     env = env_id
     if noop_reset:
         env = wrap.NoopResetEnv(env, noop_max=30)
@@ -20,7 +20,6 @@ def wrap_atari(env_id, noop_reset=True, max_skip=True, episodic_life=True,
     if frame_stack:
         env = wrap.FrameStack(env, 4)
     return env
-
 
 def wrap_cytomatrix(env):
     env = wrap.MaxAndSkipEnv(env, skip=4)

@@ -10,23 +10,26 @@ from pygame.math import Vector2
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
+DIRT = (144, 72, 17)
+PEACH = (213, 130, 74)
+MINT = (92, 186, 92)
 
 DISPLAY_SCREEN = True
 SHOW_STATS = True
 TITLE = 'Pong'
-WIDTH = 400
-HEIGHT = 400
-FPS = 60
+WIDTH = 200
+HEIGHT = 200
+FPS = 999
 
 MAX_SCORE = 21  # Max points by either agent or opp that results in terminal state
-AGENT_SPEED_RATIO = 1.5  # Speed of player contingent on HEIGHT
-OPP_SPEED_RATIO = 1.4  # Speed of opponent contingent on HEIGHT
-BALL_SPEED_RATIO = 1.4  # Speed of ball contingent on HEIGHT
+AGENT_SPEED_RATIO = 3.0  # Speed of player contingent on HEIGHT
+OPP_SPEED_RATIO = 2.8  # Speed of opponent contingent on HEIGHT
+BALL_SPEED_RATIO = 2.8  # Speed of ball contingent on HEIGHT
 PADDLE_WIDTH_RATIO = 0.05  # Paddle width contingent on WIDTH
 PADDLE_HEIGHT_RATIO = 0.1  # Paddle height contingent on HEIGHT
 PADDLE_SPACING_RATIO = 0.04  # Width of space btw paddle & wall contingent on WIDTH
 BALL_RADIUS_RATIO = 0.02  # Width of ball contingent on HEIGHT
-REWARD_MINOR = 0.1  # Reward for hitting the ball
+REWARD_MINOR = 0.0  # Reward for hitting the ball
 REWARD_MAJOR = 1.0  # Reward for getting ball past opponent
 ACTION_MEANING = {0: "NOOP", 1: "UP", 2: "DOWN"}  # External input to game action
 
@@ -66,8 +69,8 @@ class PygamePong(gym.Env):
     def spawn_sprites(self):
         self.all_sprites = pg.sprite.Group()
         self.paddles = pg.sprite.Group()
-        self.agent = Paddle(self, 'agent')
-        self.opp = Paddle(self, 'opp')
+        self.agent = Paddle(self, 'agent', color=PEACH)
+        self.opp = Paddle(self, 'opp', color=MINT)
         self.ball = Ball(self)
 
     def _step(self, action):
@@ -76,7 +79,9 @@ class PygamePong(gym.Env):
         self.events()
         self.update(action)
         self.draw()
-        return self.get_raw_img(), self.reward, self.terminal, self.get_nonvis_state()
+        raw_img = self.get_raw_img()
+        nonvis_state = self.get_nonvis_state()
+        return raw_img, self.reward, self.terminal, nonvis_state
 
     def events(self):
         for event in pg.event.get():
@@ -104,7 +109,7 @@ class PygamePong(gym.Env):
     def draw(self):
         if not DISPLAY_SCREEN:
             self.screen = pg.Surface((WIDTH, HEIGHT), pg.SRCALPHA, 32)
-        self.screen.fill(BLACK)
+        self.screen.fill(DIRT)
         for sprite in self.all_sprites:
             self.screen.blit(sprite.image, sprite.rect.topleft)
         if SHOW_STATS:
@@ -142,7 +147,7 @@ class PygamePong(gym.Env):
 
 class Paddle(pg.sprite.Sprite):
 
-    def __init__(self, game, ptype, posit_y=HEIGHT/2):
+    def __init__(self, game, ptype, posit_y=HEIGHT/2, color=WHITE):
         pg.sprite.Sprite.__init__(self)
         self.game = game
         self.ptype = ptype
@@ -160,7 +165,7 @@ class Paddle(pg.sprite.Sprite):
         self.rect_width = int(np.round(WIDTH * PADDLE_WIDTH_RATIO))
         self.rect_height = int(np.round(HEIGHT * PADDLE_HEIGHT_RATIO))
         self.image = pg.Surface((self.rect_width, self.rect_height))
-        self.image.fill(WHITE)
+        self.image.fill(color)
         self.image.set_colorkey((0, 0, 0))
         self.rect = self.image.get_rect()
         self.rect.center = self.pos
@@ -230,7 +235,7 @@ class Paddle(pg.sprite.Sprite):
 
 class Ball(pg.sprite.Sprite):
 
-    def __init__(self, game):
+    def __init__(self, game, color=WHITE):
         pg.sprite.Sprite.__init__(self)
         self.game = game
         self.radius = int(np.round(HEIGHT * BALL_RADIUS_RATIO))
@@ -238,12 +243,12 @@ class Ball(pg.sprite.Sprite):
         self.pos = Vector2(WIDTH / 2, HEIGHT / 2)
         # vel_x = int(np.round(np.random.choice([-1.0, 1.0]) * self.speed))
         vel_x = int(np.round(self.speed))
-        vel_y = int(np.round(np.random.uniform(-0.2, 0.2) * self.speed))
+        vel_y = int(np.round(np.random.uniform(-0.4, 0.4) * self.speed))
         self.vel = Vector2(vel_x, vel_y)
         self.image = pg.Surface((self.radius * 2, self.radius * 2))
         self.image.fill((0, 0, 0, 0))
         self.image.set_colorkey((0, 0, 0))
-        pg.draw.circle(self.image, WHITE, (self.radius, self.radius), self.radius, 0)
+        pg.draw.circle(self.image, color, (self.radius, self.radius), self.radius, 0)
         self.rect = self.image.get_rect()
         self.rect.center = self.pos
         self.game.all_sprites.add(self)

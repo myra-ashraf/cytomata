@@ -1,4 +1,5 @@
 import os
+import time
 import tempfile
 import zipfile
 
@@ -258,7 +259,10 @@ def learn(env,
             action = act(np.array(obs)[None], update_eps=update_eps, **kwargs)[0]
             env_action = action
             reset = False
+            env_t0 = time.time()
             new_obs, rew, done, _ = env.step(env_action)
+            env_t1 = time.time()
+            env_dt = env_t1 - env_t0
             # Store transition in the replay buffer.
             replay_buffer.add(obs, action, rew, new_obs, float(done))
             obs = new_obs
