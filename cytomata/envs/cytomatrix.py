@@ -1,6 +1,5 @@
 import os
 import sys
-import random as rnd
 
 import gym
 from gym import spaces
@@ -17,6 +16,8 @@ class Cytomatrix(gym.Env):
     An agent can be trained using this environment before being applied to
     the real setting.
     """
+    metadata = {'render.modes': ['human', 'rgb_array']}
+
     def __init__(self):
         if not DISPLAY_SCREEN:
             os.environ["SDL_VIDEODRIVER"] = "dummy"
@@ -24,11 +25,13 @@ class Cytomatrix(gym.Env):
         self.screen = pg.display.set_mode((WIDTH, HEIGHT), 0, 32)
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
+        self.rng = np.random.RandomState()
         self.load_data()
         self._action_set = range(0, len(ACTION_MEANING))
         self.action_space = spaces.Discrete(len(self._action_set))
         self.observation_space = spaces.Box(low=0, high=255, shape=(WIDTH, HEIGHT, 3))
         self.reward_range = (-np.inf, np.inf)
+        self.viewer = None
 
     def load_data(self):
         """Load game resources"""
@@ -115,9 +118,10 @@ class Cytomatrix(gym.Env):
             0, int(WIDTH // TILESIZE),
             0, int(HEIGHT // TILESIZE),
             spaced=spaced)
-        number += rnd.randint(-rand_num, rand_num)
+        number += self.rng.randint(-rand_num, rand_num + 1)
         for i in range(number):
-            rand_x, rand_y = rnd.choice(open_spots)
+            choice_ind = self.rng.choice(range(len(open_spots)))
+            rand_x, rand_y = open_spots[choice_ind]
             Entity(self, rand_x, rand_y)
             open_spots.remove((rand_x, rand_y))
 
@@ -225,3 +229,21 @@ class Cytomatrix(gym.Env):
 
     def get_action_meanings(self):
         return [ACTION_MEANING[i] for i in self._action_set]
+
+    def _seed(self, seed):
+        self.rng = np.random.RandomState(seed)
+
+    def _render(self, mode='rgb_array', close=False):
+        if close:
+            if self.viewer is not None:
+                self.viewer.close()
+                self.viewer = None
+            return
+        img = self.get_raw_img()
+        if mode == 'rgb_array':
+            return img
+        elif mode == 'human':
+            from gym.envs.classic_control import rendering
+            if self.viewer is None:
+                self.viewer = rendering.SimpleImageViewer()
+            self.viewer.imshow(img)

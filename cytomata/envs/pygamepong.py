@@ -43,6 +43,8 @@ class PygamePong(gym.Env):
     which is derived from marti1125's pong game:
     https://github.com/marti1125/pong/
     """
+    metadata = {'render.modes': ['human', 'rgb_array']}
+
     def __init__(self):
         if not DISPLAY_SCREEN:
             os.environ["SDL_VIDEODRIVER"] = "dummy"
@@ -50,10 +52,12 @@ class PygamePong(gym.Env):
         self.screen = pg.display.set_mode((WIDTH, HEIGHT), 0, 32)
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
+        self.rng = np.random.RandomState()
         self._action_set = range(0, len(ACTION_MEANING))
         self.action_space = spaces.Discrete(len(self._action_set))
         self.observation_space = spaces.Box(low=0, high=255, shape=(WIDTH, HEIGHT, 3))
         self.reward_range = (-np.inf, np.inf)
+        self.viewer = None
 
     def _reset(self):
         self.new()
@@ -143,6 +147,24 @@ class PygamePong(gym.Env):
 
     def get_action_meanings(self):
         return [ACTION_MEANING[i] for i in self._action_set]
+
+    def _seed(self, seed):
+        self.rng = np.random.RandomState(seed)
+
+    def _render(self, mode='rgb_array', close=False):
+        if close:
+            if self.viewer is not None:
+                self.viewer.close()
+                self.viewer = None
+            return
+        img = self.get_raw_img()
+        if mode == 'rgb_array':
+            return img
+        elif mode == 'human':
+            from gym.envs.classic_control import rendering
+            if self.viewer is None:
+                self.viewer = rendering.SimpleImageViewer()
+            self.viewer.imshow(img)
 
 
 class Paddle(pg.sprite.Sprite):
@@ -241,9 +263,9 @@ class Ball(pg.sprite.Sprite):
         self.radius = int(np.round(HEIGHT * BALL_RADIUS_RATIO))
         self.speed = HEIGHT * BALL_SPEED_RATIO
         self.pos = Vector2(WIDTH / 2, HEIGHT / 2)
-        # vel_x = int(np.round(np.random.choice([-1.0, 1.0]) * self.speed))
+        # vel_x = int(np.round(self.game.rng.choice([-1.0, 1.0]) * self.speed))
         vel_x = int(np.round(self.speed))
-        vel_y = int(np.round(np.random.uniform(-0.4, 0.4) * self.speed))
+        vel_y = int(np.round(self.game.rng.uniform(-0.4, 0.4) * self.speed))
         self.vel = Vector2(vel_x, vel_y)
         self.image = pg.Surface((self.radius * 2, self.radius * 2))
         self.image.fill((0, 0, 0, 0))

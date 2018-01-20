@@ -22,10 +22,9 @@ from baselines.common.misc_util import (
 )
 from baselines.common.schedules import LinearSchedule, PiecewiseSchedule
 from baselines import bench
-# from baselines.common.atari_wrappers_deprecated import wrap_dqn
+from cytomata.wrappers import wrap_atari
 from baselines.common.azure_utils import Container
 from model import model, dueling_model
-from cytomata.wrappers import wrap_atari
 
 
 def parse_args():
@@ -34,18 +33,18 @@ def parse_args():
     parser.add_argument("--env", type=str, default="Pong", help="name of the game")
     parser.add_argument("--seed", type=int, default=42, help="which seed to use")
     # Core DQN parameters
-    parser.add_argument("--replay-buffer-size", type=int, default=int(1e4), help="replay buffer size")
+    parser.add_argument("--replay-buffer-size", type=int, default=int(1e6), help="replay buffer size")
     parser.add_argument("--lr", type=float, default=1e-4, help="learning rate for Adam optimizer")
-    parser.add_argument("--num-steps", type=int, default=int(2e6), help="total number of steps to run the environment for")
+    parser.add_argument("--num-steps", type=int, default=int(2e8), help="total number of steps to run the environment for")
     parser.add_argument("--batch-size", type=int, default=32, help="number of transitions to optimize at the same time")
     parser.add_argument("--learning-freq", type=int, default=4, help="number of iterations between every optimization step")
-    parser.add_argument("--target-update-freq", type=int, default=1000, help="number of iterations between every target network update")
+    parser.add_argument("--target-update-freq", type=int, default=40000, help="number of iterations between every target network update")
     parser.add_argument("--param-noise-update-freq", type=int, default=50, help="number of iterations between every re-scaling of the parameter noise")
     parser.add_argument("--param-noise-reset-freq", type=int, default=10000, help="maximum number of steps to take per episode before re-perturbing the exploration policy")
     # Bells and whistles
     boolean_flag(parser, "double-q", default=True, help="whether or not to use double q learning")
-    boolean_flag(parser, "dueling", default=True, help="whether or not to use dueling model")
-    boolean_flag(parser, "prioritized", default=True, help="whether or not to use prioritized replay buffer")
+    boolean_flag(parser, "dueling", default=False, help="whether or not to use dueling model")
+    boolean_flag(parser, "prioritized", default=False, help="whether or not to use prioritized replay buffer")
     boolean_flag(parser, "param-noise", default=False, help="whether or not to use parameter space noise for exploration")
     boolean_flag(parser, "layer-norm", default=False, help="whether or not to use layer norm (should be True if param_noise is used)")
     boolean_flag(parser, "gym-monitor", default=False, help="whether or not to use a OpenAI Gym monitor (results in slower training due to video recording)")
@@ -183,10 +182,9 @@ if __name__ == '__main__':
         obs = env.reset()
         num_iters_since_reset = 0
         reset = True
-        episode_rewards = [0.0]
 
         # Main trianing loop
-        for t in range(args.num_steps + 1):
+        while True:
             num_iters += 1
             num_iters_since_reset += 1
 
@@ -215,11 +213,9 @@ if __name__ == '__main__':
             new_obs, rew, done, info = env.step(action)
             replay_buffer.add(obs, action, rew, new_obs, float(done))
             obs = new_obs
-            episode_rewards[-1] += rew
             if done:
                 num_iters_since_reset = 0
                 obs = env.reset()
-                episode_rewards.append(0.0)
                 reset = True
 
             if (num_iters > max(5 * args.batch_size, args.replay_buffer_size // 20) and
@@ -242,30 +238,30 @@ if __name__ == '__main__':
                 update_target()
 
             if start_time is not None:
-                steps_per_iter.update(t - start_steps)
+                steps_per_iter.update(info['steps'] - start_steps)
                 iteration_time_est.update(time.time() - start_time)
-            start_time, start_steps = time.time(), t
+            start_time, start_steps = time.time(), info["steps"]
 
             # Save the model and training state.
-            if num_iters > 0 and (num_iters % args.save_freq == 0 or t > args.num_steps):
+            if num_iters > 0 and (num_iters % args.save_freq == 0 or info["steps"] > args.num_steps):
                 maybe_save_model(savedir, container, {
                     'replay_buffer': replay_buffer,
                     'num_iters': num_iters,
                     'monitor_state': monitored_env.get_state(),
                 })
 
-            if t > args.num_steps:
+            if info["steps"] > args.num_steps:
                 break
 
             if done:
-                steps_left = args.num_steps - t
-                completion = np.round(t / args.num_steps, 1)
+                steps_left = args.num_steps - info["steps"]
+                completion = np.round(info["steps"] / args.num_steps, 1)
 
                 logger.record_tabular("% completion", completion)
-                logger.record_tabular("steps", t)
+                logger.record_tabular("steps", info["steps"])
                 logger.record_tabular("iters", num_iters)
-                logger.record_tabular("episodes", len(episode_rewards))
-                logger.record_tabular("reward (100 epi mean)", np.mean(episode_rewards[-100:]))
+                logger.record_tabular("episodes", len(info["rewards"]))
+                logger.record_tabular("reward (100 epi mean)", np.mean(info["rewards"][-100:]))
                 logger.record_tabular("exploration", exploration.value(num_iters))
                 if args.prioritized:
                     logger.record_tabular("max priority", replay_buffer._max_priority)
