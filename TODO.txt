@@ -39,11 +39,7 @@ To Do List
 
 Create the Final Training Script
 ================================
-1. Run custom_cartpole.py
-2. Compare custom_cartpole.py and custom_pong.py
-3. Modify dqn.py based on #2
+*
 
-
-* Figure out why MaxAndSkip is slowing down env_step
-* Figure out how set_global_seeds works
-* Incorporate random seeding into cytomatrix and pygamepong
+Other Tweaks
+==============

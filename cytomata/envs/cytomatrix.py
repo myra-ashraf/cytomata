@@ -153,8 +153,9 @@ class Cytomatrix(gym.Env):
         self.events()
         self.update(action)
         self.draw()
-        self.space.step(GAME_SPEED/FPS)
-        self.clock.tick(FPS)
+        for _ in range(10):
+            self.space.step(GAME_SPEED/10)
+        self.clock.tick()
         return self.get_raw_img(), self.reward, self.terminal, {}
 
     def events(self):

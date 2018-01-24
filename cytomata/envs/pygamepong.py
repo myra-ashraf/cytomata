@@ -19,7 +19,6 @@ SHOW_STATS = True
 TITLE = 'Pong'
 WIDTH = 200
 HEIGHT = 200
-FPS = 999
 
 MAX_SCORE = 21  # Max points by either agent or opp that results in terminal state
 AGENT_SPEED_RATIO = 3.0  # Speed of player contingent on HEIGHT
@@ -79,7 +78,7 @@ class PygamePong(gym.Env):
 
     def _step(self, action):
         self.reward = 0.0
-        self.dt = self.clock.tick(FPS) / 1000.0
+        self.dt = self.clock.tick() / 1000.0
         self.events()
         self.update(action)
         self.draw()

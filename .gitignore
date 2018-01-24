@@ -5,3 +5,4 @@ __pycache__/
 sandbox.ipynb
 extras/
 models/
+experiments/

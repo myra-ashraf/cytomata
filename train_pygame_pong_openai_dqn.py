@@ -55,7 +55,7 @@ def main():
         env,
         q_func=model,
         lr=1e-4,
-        max_timesteps=2000000,
+        max_timesteps=200000,
         buffer_size=200000,
         exploration_fraction=1.0,
         exploration_final_eps=1.0,
