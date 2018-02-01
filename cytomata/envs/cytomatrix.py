@@ -22,6 +22,7 @@ class Cytomatrix(gym.Env):
         if not DISPLAY_SCREEN:
             os.environ["SDL_VIDEODRIVER"] = "dummy"
         pg.init()
+        pg.mixer.quit()
         self.screen = pg.display.set_mode((WIDTH, HEIGHT), 0, 32)
         pg.display.set_caption(TITLE)
         self.clock = pg.time.Clock()
@@ -29,7 +30,7 @@ class Cytomatrix(gym.Env):
         self.load_data()
         self._action_set = range(0, len(ACTION_MEANING))
         self.action_space = spaces.Discrete(len(self._action_set))
-        self.observation_space = spaces.Box(low=0, high=255, shape=(WIDTH, HEIGHT, 3))
+        self.observation_space = spaces.Box(low=0, high=255, shape=(WIDTH, HEIGHT, 3), dtype=np.uint8)
         self.reward_range = (-np.inf, np.inf)
         self.viewer = None
 
@@ -49,6 +50,7 @@ class Cytomatrix(gym.Env):
 
     def _reset(self):
         self.terminal = False
+        self.ep_step = 0
         self.score = 0.0
         self.reward = 0.0
         self.timer = 0.0
@@ -61,7 +63,7 @@ class Cytomatrix(gym.Env):
         self.space = pm.Space()
         self.space.gravity = (0.0, 0.0)
         self.space.add_collision_handler(1, 3).post_solve = self.proxy_cancer_collision
-        self.space.add_collision_handler(1, 2).post_solve = self.proxy_cyte_collision
+        # self.space.add_collision_handler(1, 2).post_solve = self.proxy_cyte_collision
 
     def reset_sprites(self):
         self.all_sprites = []
@@ -69,6 +71,14 @@ class Cytomatrix(gym.Env):
         self.cytes = []
         self.cancers = []
         self.boundary_box()
+        # cyte_static_pos = [
+        #     (2, 4), (2, 5), (2, 6), (2, 7), (3, 7),
+        #     (4, 7), (5, 7), (6, 7), (6, 6), (6, 5),
+        #     (7, 5), (8, 5), (9, 5), (2, 3), (2, 2),
+        #     (3, 2), (4, 2), (5, 2), (6, 2), (7, 2)
+        # ]
+        # for x, y in cyte_static_pos:
+        #     Cyte(self, x, y)
         self.spawn_randomly(Proxy, NUM_RANDOM_PROXIES)
         self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS, spaced=True)
         self.spawn_randomly(Cyte, NUM_RANDOM_CYTES)
@@ -85,19 +95,20 @@ class Cytomatrix(gym.Env):
                 self.all_sprites.remove(cancer)
 
     def proxy_cyte_collision(self, arbiter, space, _):
-        a, b = arbiter.shapes
-        cyte_body = b.body
-        for cyte in self.cytes:
-            if cyte_body == cyte.body and not cyte.shield:
-                cyte.life -= 1
-                if cyte.life <= 0:
-                    self.space.remove(cyte.shape, cyte.shape.body)
-                    self.cytes.remove(cyte)
-                    self.all_sprites.remove(cyte)
-                    self.reward -= 0.1
-                    self.score -= 0.1
-                else:
-                    cyte.shield = 12
+        pass
+        # a, b = arbiter.shapes
+        # cyte_body = b.body
+        # for cyte in self.cytes:
+        #     if cyte_body == cyte.body and not cyte.shield:
+        #         cyte.life -= 1
+        #         if cyte.life <= 0:
+        #             self.space.remove(cyte.shape, cyte.shape.body)
+        #             self.cytes.remove(cyte)
+        #             self.all_sprites.remove(cyte)
+        #             self.reward -= 0.1
+        #             self.score -= 0.1
+        #         else:
+        #             cyte.shield = 12
 
     def boundary_box(self):
         """Create physical borders around the display edges"""
@@ -150,6 +161,7 @@ class Cytomatrix(gym.Env):
 
     def _step(self, action):
         self.reward = 0.0
+        self.ep_step += 1
         self.events()
         self.update(action)
         self.draw()
@@ -167,11 +179,12 @@ class Cytomatrix(gym.Env):
 
     def update(self, action):
         self.timer += self.clock.get_time() / 1000.0
-        self.terminal = self.timer > MAX_TIME
+        # self.terminal = self.timer > MAX_TIME
+        self.terminal = self.ep_step > TERMINAL_STEP
         for sprite in self.all_sprites:
             sprite.update(action)
         if len(self.cancers) < 1:
-            self.spawn_randomly(Cancer, 1, spaced=True)
+            self.spawn_randomly(Cancer, NUM_RANDOM_CANCERS, spaced=True)
 
     def draw(self):
         if not DISPLAY_SCREEN:

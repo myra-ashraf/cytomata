@@ -10,6 +10,7 @@ import baselines.common.tf_util as U
 from baselines import bench, deepq, logger
 from baselines.common.schedules import LinearSchedule, PiecewiseSchedule
 from baselines.deepq.replay_buffer import ReplayBuffer, PrioritizedReplayBuffer
+from baselines.deepq.utils import Uint8Input, load_state, save_state
 from baselines.common.misc_util import pickle_load, relatively_safe_pickle_dump, set_global_seeds
 
 import cytomata
@@ -20,7 +21,7 @@ def save_model(save_dir, state):
     try:
         model_dir = 'model-{}'.format(state['steps'])
         state_path = os.path.join(save_dir, 'training_state.pkl.zip')
-        U.save_state(os.path.join(save_dir, model_dir, 'saved'))
+        save_state(os.path.join(save_dir, model_dir, 'saved'))
         relatively_safe_pickle_dump(state, state_path, compression=True)
         logger.log('\nSaved model to {}\n'.format(model_dir))
     except Exception as err:
@@ -33,12 +34,14 @@ def load_model(save_dir):
         if os.path.exists(state_path):
             state = pickle_load(state_path, compression=True)
             model_dir = 'model-{}'.format(state['steps'])
-            U.load_state(os.path.join(save_dir, model_dir, 'saved'))
-            logger.log('Loaded model at {} steps'.format(state['steps']))
+            load_state(os.path.join(save_dir, model_dir, 'saved'))
+            logger.log('Loaded model {} at {} steps'.format(save_dir, state['steps']))
             return state
+        else:
+            logger.log('\nFailed to load model: path not found\n')
     except Exception as err:
         logger.log('\nFailed to load model\n')
-        logger.log(str(err) + '\n')
+        logger.log('Error: ' + str(err) + '\n')
 
 
 if __name__ == '__main__':
@@ -49,21 +52,30 @@ if __name__ == '__main__':
     log_dir = os.path.join(save_dir, 'logs')
     os.makedirs(log_dir, exist_ok=True)
     logger.configure(log_dir)
+    load_dir = os.path.join(current_dir, 'experiments', 'deepq', 'Cytomatrix-v0_2018-01-31-08-32-44')
 
     args = {
         'env': env_name,  # name of gym environment
+        'other labels': ['10x10 grid', '5 cancer random_walk', '10 cytes'],
         'save_dir': save_dir,
         'timestamp': timestamp,
-        'save_freq': 100000,  # how often (steps) to save
+        'save_freq': 200000,  # how often (steps) to save
         'load_model': False,  # load existing model and continue training
+        'load_dir': load_dir,
+        'reset_state': True,
         'seed': 23,  # random seed for increased reproducibility
-        'monitor': False,  # Record video and stats of training; slightly slows down training
-        'total_steps': 2000000,  # At least 1M steps for decent results
+        'total_steps': 5000000,  # At least 1M steps for decent results
+        'pw_eps': True,  # Use a piecewise epsilon schedule otherwise use linear
+        'pw_eps_sched': [(0, 1.0), (2000000, 0.8), (3000000, 0.5), (4000000, 0.01)],
+        'linear_eps_steps': 4000,
+        'linear_eps_init': 1.0,
+        'linear_eps_final': 0.01,
         'buffer_size': 200000,  # replay buffer size; not too high or run out of RAM
-        'learning_rate': 1e-4,  # lower = more stable training but slower
+        'learning_rate': 5e-4,  # lower = more stable training but slower
         'batch_size': 32,  # num of transitions to optimize at same time
         'train_freq': 4,  # number of steps between optimizations; stability
         'target_update_freq': 1000,  # number of steps between updating target network; stability
+        'hiddens': [512, 512],
         'double_q': True,  # double Q learning (https://arxiv.org/abs/1509.06461)
         'dueling': True,  # dueling model (https://arxiv.org/abs/1511.06581)
         'prioritized_replay': True,  # prioritized replay buffer (https://arxiv.org/abs/1511.05952)
@@ -86,18 +98,15 @@ if __name__ == '__main__':
         set_global_seeds(args['seed'])
         env.unwrapped.seed(args['seed'])
 
-    if args['monitor']:
-        env = gym.wrappers.Monitor(env, log_dir, force=True)
-
-    with U.make_session(4) as sess:
+    with U.make_session(8) as sess:
         model = deepq.models.cnn_to_mlp(
             convs=[(32, 8, 4), (64, 4, 2), (64, 3, 1)],
-            hiddens=[512, 256],
-            dueling=True
+            hiddens=args['hiddens'],
+            dueling=args['dueling']
         )
 
         act, train, update_target, debug = deepq.build_train(
-            make_obs_ph=lambda name: U.BatchInput(env.observation_space.shape, name=name),
+            make_obs_ph=lambda name: Uint8Input(env.observation_space.shape, name=name),
             q_func=model,
             num_actions=env.action_space.n,
             optimizer=tf.train.AdamOptimizer(learning_rate=args['learning_rate']),
@@ -107,16 +116,13 @@ if __name__ == '__main__':
             param_noise=args['param_noise']
         )
 
-        exploration = PiecewiseSchedule([
-            (0, 1.0),
-            (200000, 0.2),
-            (1000000, 0.1),
-            (1600000, 0.01)
-        ], outside_value=0.01)
-
-        # exploration = LinearSchedule(schedule_timesteps=400000,
-        #                              initial_p=1.0,
-        #                              final_p=0.01)
+        if args['pw_eps']:
+            exploration = PiecewiseSchedule(args['pw_eps_sched'], outside_value=0.01)
+        else:
+            exploration = LinearSchedule(
+                schedule_timesteps=args['linear_eps_steps'],
+                initial_p=args['linear_eps_init'], final_p=args['linear_eps_final']
+            )
 
         if args['prioritized_replay']:
             replay_buffer = PrioritizedReplayBuffer(args['buffer_size'], args['prioritized_alpha'])
@@ -130,11 +136,12 @@ if __name__ == '__main__':
         epsilon_step = 0
 
         # Load the model
-        state = load_model(args['save_dir'])
-        if state is not None:
-            steps, replay_buffer = state['steps'], state['replay_buffer']
-            epsilon_step = steps
-            # monitored_env.set_state(state['monitor_state'])
+        if args['load_model']:
+            state = load_model(args['load_dir'])
+            if state is not None and not args['reset_state']:
+                steps, replay_buffer = state['steps'], state['replay_buffer']
+                epsilon_step = steps
+                # monitored_env.set_state(state['monitor_state'])
 
         episode_rewards = [0.0]
         obs = env.reset()
@@ -153,10 +160,9 @@ if __name__ == '__main__':
             kwargs = {}
             if not args['param_noise']:
                 # Increase/backtrack epsilon if ave reward hasn't improved for awhile
-                bad_progress = np.mean(np.ediff1d(episode_rewards[-100:])) <= 0.1
-                if (bad_progress and steps % 100000 == 0
-                    and exploration.value(epsilon_step) < 0.1):
-                    epsilon_step = 200000
+                # bad_progress = np.mean(np.ediff1d(episode_rewards[-100:])) <= 0
+                # if (bad_progress and exploration.value(epsilon_step) < 0.02):
+                #     epsilon_step = 800000
                 update_eps = exploration.value(epsilon_step)
                 update_param_noise_threshold = 0.
             else:

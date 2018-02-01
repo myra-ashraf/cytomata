@@ -35,6 +35,9 @@ To Do List
     = It works!
     = The problem was due mainly to exploration; increase final eps to 0.1
     = Need to find an optimal epsilon schedule
+    = MaxAndSkip and game speed are important
+        - Better training if you see a big difference from frame to frame
+        - Check using test_cytomatrix
 
 
 Create the Final Training Script

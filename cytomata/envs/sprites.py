@@ -41,10 +41,10 @@ class Cell(object):
         else:
             self.body.velocity = (0.0, 0.0)
 
-    def random_walk(self, time_interval, magnitude):
-        time_interval += rnd.randint(-0.8, 0.8)
+    def random_walk(self, interval, magnitude):
+        interval = max(interval + rnd.randint(-4, 4), 1)
         magnitude += rnd.randint(-20, 20)
-        if self.game.timer % time_interval == 0:
+        if self.game.ep_step % interval == 0:
             vel = pm.Vec2d(magnitude, 0)
             rand_vel = vel.rotated_degrees(rnd.randint(0, 359))
             self.body.velocity = rand_vel
@@ -76,8 +76,20 @@ class Cell(object):
 class Proxy(Cell):
     """A cell controllable by the agent"""
     def __init__(self, game, x, y):
-        super().__init__(game, x, y)
+        self.life = 1
+        self.mass = 20.0
+        self.radius = TILESIZE / 2.1
+        self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
+        self.body = pm.Body(self.mass, self.inertia)
+        self.body.position = (x + 0.5) * TILESIZE, (y + 0.5) * TILESIZE
+        self.body.velocity = pm.Vec2d(0, 0)
+        self.shape = pm.Circle(self.body, self.radius, (0, 0))
+        self.shape.elasticity = 0.2
+        self.shape.friction = 1.0
         self.shape.collision_type = 1
+        self.game = game
+        self.game.space.add(self.body, self.shape)
+        self.game.all_sprites.append(self)
         self.game.proxies.append(self)
         self.image = self.game.proxy_img
         self.rect = self.image.get_rect()
@@ -119,37 +131,55 @@ class Proxy(Cell):
 class Cyte(Cell):
     """Passive cell not directly controlled by the agent"""
     def __init__(self, game, x, y):
-        super().__init__(game, x, y)
-        self.life = 5
-        self.shield = 0
-        self.mass = 300.0
+        self.life = 1
+        self.mass = 800.0
+        self.radius = TILESIZE / 2.1
+        self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
+        self.body = pm.Body(self.mass, self.inertia)
+        self.body.position = (x + 0.5) * TILESIZE, (y + 0.5) * TILESIZE
+        self.body.velocity = pm.Vec2d(0, 0)
+        self.shape = pm.Circle(self.body, self.radius, (0, 0))
+        self.shape.elasticity = 0.2
         self.shape.friction = 10.0
         self.shape.collision_type = 2
+        self.game = game
+        self.game.space.add(self.body, self.shape)
+        self.game.all_sprites.append(self)
         self.game.cytes.append(self)
         self.image = self.game.cyte_img
         self.rect = self.image.get_rect()
 
     def update(self, action):
         self.apply_friction(0.9)
-        self.decrease_shield(0.1)
-        self.random_walk(2.2, 20)
+        # self.decrease_shield(0.1)
+        # self.random_walk(100, 20)
 
-    def decrease_shield(self, time_interval):
-        if self.shield and self.game.timer % time_interval == 0:
-            self.shield -= 1
+    # def decrease_shield(self, interval):
+    #     if self.shield and self.game.ep_step % interval == 0:
+    #         self.shield -= 1
 
 class Cancer(Cell):
     """Enemy character"""
     def __init__(self, game, x, y):
-        super().__init__(game, x, y)
+        self.life = 1
         self.mass = 40.0
-        self.shape.friction = 1.5
+        self.radius = TILESIZE / 2.1
+        self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
+        self.body = pm.Body(self.mass, self.inertia)
+        self.body.position = (x + 0.5) * TILESIZE, (y + 0.5) * TILESIZE
+        self.body.velocity = pm.Vec2d(0, 0)
+        self.shape = pm.Circle(self.body, self.radius, (0, 0))
+        self.shape.elasticity = 0.2
+        self.shape.friction = 1.0
         self.shape.collision_type = 3
+        self.game = game
+        self.game.space.add(self.body, self.shape)
+        self.game.all_sprites.append(self)
         self.game.cancers.append(self)
         self.image = self.game.cancer_img
         self.rect = self.image.get_rect()
 
     def update(self, action):
         self.apply_friction(0.9)
-        # self.random_walk(1200, 30)
+        self.random_walk(12, 20)
         # self.out_of_view(20000)

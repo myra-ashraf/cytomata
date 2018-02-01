@@ -3,6 +3,6 @@ from cytomata.envs import Cytomatrix
 if __name__ == '__main__':
     env = Cytomatrix()
     while True:
-        env.reset()
+        env._reset()
         while not env.terminal:
-            env.step(None)
+            env._step(None)
