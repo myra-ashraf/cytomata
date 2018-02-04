@@ -51,7 +51,7 @@ class Cytomatrix(gym.Env):
     def _reset(self):
         self.terminal = False
         self.ep_step = 0
-        self.score = 0.0
+        self.ep_reward = 0.0
         self.reward = 0.0
         self.timer = 0.0
         self.reset_space()
@@ -89,7 +89,7 @@ class Cytomatrix(gym.Env):
         for cancer in self.cancers:
             if cancer_body == cancer.body:
                 self.reward += 1.0
-                self.score += 1.0
+                self.ep_reward += 1.0
                 self.space.remove(cancer.shape, cancer.shape.body)
                 self.cancers.remove(cancer)
                 self.all_sprites.remove(cancer)
@@ -180,7 +180,7 @@ class Cytomatrix(gym.Env):
     def update(self, action):
         self.timer += self.clock.get_time() / 1000.0
         # self.terminal = self.timer > MAX_TIME
-        self.terminal = self.ep_step > TERMINAL_STEP
+        self.terminal = self.ep_step == TERMINAL_STEP
         for sprite in self.all_sprites:
             sprite.update(action)
         if len(self.cancers) < 1:
@@ -198,7 +198,7 @@ class Cytomatrix(gym.Env):
 
     def show_stats(self):
         fps_str = 'FPS: {:.2f}'.format(self.clock.get_fps())
-        score_str = ' | Score: {:.2f}'.format(self.score)
+        score_str = ' | Score: {:.2f}'.format(self.ep_reward)
         time_str = ' | Time: {:.2f}'.format(self.timer)
         pg.display.set_caption(fps_str + score_str + time_str)
 

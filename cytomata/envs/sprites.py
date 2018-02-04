@@ -132,7 +132,7 @@ class Cyte(Cell):
     """Passive cell not directly controlled by the agent"""
     def __init__(self, game, x, y):
         self.life = 1
-        self.mass = 800.0
+        self.mass = 3000.0
         self.radius = TILESIZE / 2.1
         self.inertia = pm.moment_for_circle(self.mass, 0, self.radius, (0, 0))
         self.body = pm.Body(self.mass, self.inertia)

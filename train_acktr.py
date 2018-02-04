@@ -29,7 +29,7 @@ def make_cyto_env(env_id, num_env, seed, start_index=0):
 
 def train(env_id, num_timesteps, seed, num_cpu):
     env = VecFrameStack(make_cyto_env(env_id, num_cpu, seed), 4)
-    learn(CnnPolicy, env, seed, total_timesteps=int(num_timesteps * 1.1), nprocs=num_cpu)
+    learn(CnnPolicy, env, seed, total_timesteps=int(num_timesteps * 1.1), nprocs=num_cpu, save_interval=100000)
 
 
 if __name__ == '__main__':
@@ -39,4 +39,4 @@ if __name__ == '__main__':
         'seed': 23,
     }
     logger.configure()
-    train(args['env'], num_timesteps=args['num_timesteps'], seed=args['seed'], num_cpu=4)
+    train(args['env'], num_timesteps=args['num_timesteps'], seed=args['seed'], num_cpu=8)
