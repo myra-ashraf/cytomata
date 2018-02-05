@@ -39,10 +39,12 @@ To Do List
         - Better training if you see a big difference from frame to frame
         - Check using test_cytomatrix
 
-
-Create the Final Training Script
-================================
-*
-
-Other Tweaks
+Major Lessons
 ==============
+ * Standardization
+    - Integrate with openai gym and standard tools since everybody works off of them
+ * State
+    - Make sure there is a noticeable difference from state to state
+    - Can check that by printing the images after a series of actions
+    - Hence, game speed and frame-skipping are central
+    -

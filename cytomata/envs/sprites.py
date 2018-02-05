@@ -152,7 +152,7 @@ class Cyte(Cell):
     def update(self, action):
         self.apply_friction(0.9)
         # self.decrease_shield(0.1)
-        # self.random_walk(100, 20)
+        self.random_walk(64, 20)
 
     # def decrease_shield(self, interval):
     #     if self.shield and self.game.ep_step % interval == 0:

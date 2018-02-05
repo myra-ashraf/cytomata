@@ -131,8 +131,7 @@ class Cytomatrix(gym.Env):
             spaced=spaced)
         number += self.rng.randint(-rand_num, rand_num + 1)
         for i in range(number):
-            choice_ind = self.rng.choice(range(len(open_spots)))
-            rand_x, rand_y = open_spots[choice_ind]
+            rand_x, rand_y = open_spots[self.rng.choice(len(open_spots))]
             Entity(self, rand_x, rand_y)
             open_spots.remove((rand_x, rand_y))
 
