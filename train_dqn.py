@@ -6,6 +6,7 @@ import json
 import gym
 import numpy as np
 import tensorflow as tf
+from scipy.stats import norm
 import baselines.common.tf_util as U
 from baselines import bench, deepq, logger
 from baselines.common.schedules import LinearSchedule, PiecewiseSchedule
@@ -129,7 +130,7 @@ def main(env_name, tags=None, load_dir=None, fresh_state=False, rnd_seed=23,
             # Determine Epsilon
             # Backtrack epsilon schedule if ave reward hasn't improved for awhile
             bad_progress = np.mean(np.ediff1d(episode_rewards[-100:])) <= 0
-            if (bad_progress and exploration.value(epsilon_step) < 0.5):
+            if (bad_progress and exploration.value(epsilon_step) < 0.1):
                 epsilon_step = max(0, epsilon_step - total_steps * 0.05)
             kwargs = {}
             if param_noise:
@@ -270,8 +271,8 @@ def load_model(save_dir):
         logger.log('Error: ' + str(err) + '\n')
 
 
-def choose_param(param_vals):
-    return param_vals[np.random.choice(len(param_vals))]
+def choose_param(values, p=None):
+    return values[np.random.choice(len(values), p=p)]
 
 
 if __name__ == '__main__':
