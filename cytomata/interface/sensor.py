@@ -1,6 +1,7 @@
+import time
+import schedule
 import numpy as np
 import cv2
-import mahotas as mh
 
 
 class Camera(object):
@@ -33,10 +34,14 @@ class Camera(object):
         return roi_intensity, roi, bg_intensity, bg
 
 
+def task():
+    print('hello')
+
 with Camera(0) as cam:
-    while(True):
+    schedule.every(10).seconds.do(task)
+    while not (cv2.waitKey(1) & 0xFF == ord('q')):
         img = cam.read_raw_img()
         roi_int, roi, bg_int, bg = cam.measure_fluorescence(img)
         cv2.imshow('Camera Feed', roi)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        # Once every 10 seconds:
+        schedule.run_pending()
