@@ -1,1 +1,1 @@
-from cytomata.interface import sensor
+from cytomata.interface.sensor import Camera
