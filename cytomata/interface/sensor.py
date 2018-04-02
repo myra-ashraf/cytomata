@@ -3,6 +3,7 @@ sys.path.append("C:\Program Files\Micro-Manager-1.4")
 import numpy as np
 import cv2
 import MMCorePy
+import matplotlib.pyplot as plt
 
 
 class Camera(object):
@@ -12,7 +13,6 @@ class Camera(object):
         self.mmc.loadDevice(name, lib, adapter)
         self.mmc.initializeDevice(name)
         self.mmc.setCameraDevice(name)
-        self.mmc.startContinuousSequenceAcquisition(1)
 
     def __enter__(self):
         return self
@@ -23,9 +23,8 @@ class Camera(object):
         self.mmc.reset()
 
     def get_img(self):
-        if self.mmc.getRemainingImageCount() > 0:
-            return self.mmc.getLastImage()
-        return None
+        self.mmc.snapImage()
+        return self.mmc.getImage()
 
     def measure_fluorescence(self, img):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -39,3 +38,24 @@ class Camera(object):
         roi = img * (th_roi > 0)
         roi_intensity = np.median(roi[np.nonzero(roi)]) - bg_intensity
         return roi_intensity, roi, bg_intensity, bg
+
+		
+mmc = MMCorePy.CMMCore()
+mmc.loadDevice('QuantEM', 'PrincetonInstruments', 'Camera-1')
+mmc.initializeDevice('QuantEM')
+mmc.setCameraDevice('QuantEM')
+
+mmc.startContinuousSequenceAcquisition(1)
+while True:
+    remcount = mmc.getRemainingImageCount()
+    print(remcount)
+    if mmc.getRemainingImageCount() > 0:
+        img = mmc.getLastImage()
+        plt.imshow(img, cmap='gray')
+        plt.show()
+    else:
+        print('No frame')
+
+cv2.destroyAllWindows()
+mmc.stopSequenceAcquisition()
+mmc.reset()
