@@ -1,19 +1,23 @@
 import time
 import schedule
-import matplotlib.pyplot as plt
 import cv2
-from cytomata.interface import Camera
+from cytomata.interface import Microscope, PID
 
 
-def task():
-    print('hello')
+mic = Microscope()
+pid = PID(Kp=80.0, Ki=10.0, Kd=0.0, SP=5000.0, windup_limit=10.0)
 
 
-with Camera('QuantEM', 'PrincetonInstruments', 'Camera-1') as cam:
-    schedule.every(10).seconds.do(task)
-    while not (cv2.waitKey(1) & 0xFF == ord('q')):
-        img = cam.get_img()
-        roi_int, roi, bg_int, bg = cam.measure_fluorescence(img)
-        cv2.imshow('Camera Feed', img)
-        # Once every 10 seconds:
-        schedule.run_pending()
+def update():
+    mic.set_channel('mCherry')
+    img = mic.take_snapshot()
+    roi_int, roi, bg_int, bg = mic.measure_fluorescence(img)
+    mv = pid.step(roi_int)
+    mic.set_channel('Induction-460nm')
+    time.sleep(mv)
+    mic.set_channel('DIC')
+
+
+schedule.every(1).minutes.do(update)
+while True:
+    schedule.run_pending()

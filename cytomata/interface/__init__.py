@@ -1,1 +1,2 @@
-from cytomata.interface.sensor import Camera
+from cytomata.interface.io import Microscope
+from cytomata.interface.controller import PID

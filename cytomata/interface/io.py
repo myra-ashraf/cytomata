@@ -3,28 +3,20 @@ import cv2
 import MMCorePy
 
 
-class Camera(object):
-    """Image acquisition from microscope camera"""
-    
-    def __init__(self, name='QuantEM', lib='PrincetonInstruments', adapter='Camera-1'):
-        self.mmc = MMCorePy.CMMCore()
-        self.mmc.loadDevice(name, lib, adapter)
-        self.mmc.initializeDevice(name)
-        self.mmc.setCameraDevice(name)
-        self.mmc.startContinuousSequenceAcquisition(1)
+class Microscope(object):
+    """MicroManager wrapper for the acquisition and processing of images
+    to extract system output information"""
 
-    def __enter__(self):
-        return self
+    def __init__(self, config_file='mm.cfg'):
+        self.core = MMCorePy.CMMCore()
+        self.core.loadSystemConfiguration(config_file)
 
-    def __exit__(self, *args):
-        cv2.destroyAllWindows()
-        self.mmc.stopSequenceAcquisition()
-        self.mmc.reset()
+    def set_channel(self, chname):
+        self.core.setConfig('Channel', chname)
 
-    def get_img(self):
-        if self.mmc.getRemainingImageCount() > 0:
-            return self.mmc.getLastImage()
-        return None
+    def take_snapshot(self):
+        self.core.snapImage()
+        return self.core.getImage()
 
     def measure_fluorescence(self, img):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
