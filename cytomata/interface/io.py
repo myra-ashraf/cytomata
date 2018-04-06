@@ -10,9 +10,11 @@ class Microscope(object):
     def __init__(self, config_file='mm.cfg'):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
+        self.core.waitForSystem()
 
     def set_channel(self, chname):
         self.core.setConfig('Channel', chname)
+        self.core.waitForSystem()
 
     def take_snapshot(self):
         self.core.snapImage()
