@@ -1,3 +1,4 @@
+import pytest
 from cytomata.interface import Microscope, PID
 
 @pytest.fixture
@@ -10,5 +11,5 @@ def pid():
 @pytest.fixture
 def mic():
     """Set up microscope MM object for tests."""
-    mic = Microscope('mm.cfg')
+    mic = Microscope()
     yield mic

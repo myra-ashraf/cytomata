@@ -6,3 +6,4 @@ extras/
 models/
 experiments/
 .pytest_cache/
+*.pyc 
