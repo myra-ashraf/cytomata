@@ -1,2 +1,1 @@
-from cytomata.interface.io import Microscope
-from cytomata.interface.controller import PID
+from cytomata.interface.microscope import Microscope

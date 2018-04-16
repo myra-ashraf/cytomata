@@ -1,50 +1,7 @@
-To Do List
-============================
-1. Run Cartpole with openai DQN --> DONE
-    - Simple observation and action space
-    - Not image based
-    - Result: It works! Only took ~20 min
-2. Run Pong with openai DQN --> Stage B
-    - Still simple action space
-    - Image based --> Requires CNN and atari wrappers
-    - Result: It works! Took ~6 hours (only got ~19.8 reward though?)
-3. Run Breakout with openai DQN --> Stage B
-    - Known to converge slower
-    - Result: Only got to 16.0 reward with 2M steps
-    = Run for 10M steps with GTX 1080
-4a. Run pygame pong with native DQN implementation
-    - Are there are issues with pygame implementations?
-    - It works! Not issue with pygame
-4b. Run pygame pong with OpenAI DQN
-    - Made pygame version of pong based on PLE
-    - Are there issues with integrating pygame with OpenAI DQN?
-    - It works! But it seems to train slower than the gym pong?
-        - Full train loop:
-            - ALE pong runs 0.0033sec/loop | PLE pong runs 0.0232sec/loop
-        - env step:
-            - ALE pong runs 0.0018sec/env_step | PLE pong runs 0.0216sec/env_step
-        - get_raw_img function takes 0.004sec/env_step
-        = changing the speed of paddles & ball doesn't help
-        = not displaying the screen helps slightly: 0.0008sec reduction
-        = Don't cap the FPS!
-            - increasing FPS to 120 leads to proportional decrease in sec/loop
-        = Not using MaxAndSkip speeds up the env step by 3x
-        = Using WIDTHxHEIGHT from 400x400 to 200x200 speeds up the env step by 4x
-            - but not much improvement with 200x200 to 100x100
-5. Run cytomatrix with OpenAI DQN
-    = It works!
-    = The problem was due mainly to exploration; increase final eps to 0.1
-    = Need to find an optimal epsilon schedule
-    = MaxAndSkip and game speed are important
-        - Better training if you see a big difference from frame to frame
-        - Check using test_cytomatrix
-
-Major Lessons
-==============
- * Standardization
-    - Integrate with openai gym and standard tools since everybody works off of them
- * State
-    - Make sure there is a noticeable difference from state to state
-    - Can check that by printing the images after a series of actions
-    - Hence, game speed and frame-skipping are central
-    -
+1. Write tests for PID and lab experiment
+2. Write code for random controller and bang-bang controller
+3. Refactor top level scripts (play, enjoy, train)
+4. Refactor dqn.py in cytomata.control into a class
+5. Write tests for cytomatrix, pygamepong, DQN
+6. Write code for PPO
+7. Complete and reformat docstrings

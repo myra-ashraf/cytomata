@@ -1,5 +1,6 @@
 import pytest
-from cytomata.interface import Microscope, PID
+from cytomata.interface import Microscope
+from cytomata.control import PID
 
 @pytest.fixture
 def pid():

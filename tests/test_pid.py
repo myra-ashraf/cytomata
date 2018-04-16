@@ -1,5 +1,5 @@
 import pytest
-from cytomata.interface import PID
+from cytomata.control import PID
 
 
 def test_pid_maintains_setpoint(pid):

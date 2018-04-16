@@ -1,8 +1,8 @@
-import pytest
-from cytomata.interface import Microscope
-import matplotlib.pyplot as plt
-import numpy as np
 import cv2
+import pytest
+import numpy as np
+import matplotlib.pyplot as plt
+from cytomata.interface import Microscope
 
 
 def test_config_loaded(mic):

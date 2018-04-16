@@ -1,6 +1,5 @@
 <div align="center">
-  <img src="https://github.com/phuongho43/cytomata/blob/master/logo1.png"><br><br>
+  <img src="https://github.com/phuongho43/cytomata/blob/master/logo.png"><br><br>
 </div>
 
->Controlling biology with deep reinforcement learning!
-
+>A cybergenetics toolbox for controlling cells.

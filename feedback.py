@@ -1,7 +1,8 @@
 import time
-import schedule
 import cv2
-from cytomata.interface import Microscope, PID
+import schedule
+from cytomata.control import PID
+from cytomata.interface import Microscope
 
 
 def main():

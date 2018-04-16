@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import os
 from setuptools import setup, find_packages
 import cytomata
@@ -35,8 +34,7 @@ setup(
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6",
-        "Topic :: Scientific/Engineering :: Artificial Intelligence",
-        "Topic :: Scientific/Engineering :: Medical Science Apps",
+        "Topic :: Scientific/Engineering",
     ],
     keywords=cytomata.__keywords__,
     author=cytomata.__author__,
