@@ -30,8 +30,9 @@ def main():
     """Example"""
     x = []
     y = []
+    timerange = np.arange(0, 100, 1)
     model = SimpleModel()
-    for t in range(100):
+    for t in timerange:
         if t == 10:
             model.bl = 1.0
         xi = model.bl
@@ -39,7 +40,6 @@ def main():
         x.append(xi)
         y.append(yi)
 
-    t = np.arange(0, 100, 1)
     plt.plot(t, x)
     plt.plot(t, y)
     plt.show()

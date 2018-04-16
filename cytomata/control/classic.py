@@ -18,7 +18,7 @@ class PID(object):
         self.Ki = Ki
         self.Kd = Kd
         self.SP = SP
-        self.windup_limit = windup_limit
+        # self.windup_limit = windup_limit
         self.ta = time.time()
         self.integral = 0.0
         self.prev_error = 0.0
@@ -28,11 +28,13 @@ class PID(object):
         dt = tb - self.ta
         self.ta = tb
         error = self.SP - PV
-        integral = self.integral + error * dt
-        self.integral = max(min(integral, windup_limit), -windup_limit)
-        derivative = (error - self.prev_error) / dt
+        # self.integral = self.integral + error * dt
+        self.integral = self.integral + error
+        # self.integral = max(min(self.integral, self.windup_limit), -self.windup_limit)
+        # derivative = (error - self.prev_error) / dt
+        derivative = (error - self.prev_error)
         self.prev_error = error
-        output = Kp * error + Ki * self.integral + Kd * derivative
+        output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
         return output
 
 
