@@ -21,18 +21,25 @@ class SimpleModel(object):
         self.mc += self.k * self.bl - self.d * self.mc
         return self.mc
 
-x = []
-y = []
-model = SimpleModel()
-for t in range(100):
-    if t == 10:
-        model.bl = 1.0
-    xi = model.bl
-    yi = model.step()
-    x.append(xi)
-    y.append(yi)
 
-t = np.arange(0, 100, 1)
-plt.plot(t, x)
-plt.plot(t, y)
-plt.show()
+def main():
+    """Example"""
+    x = []
+    y = []
+    model = SimpleModel()
+    for t in range(100):
+        if t == 10:
+            model.bl = 1.0
+        xi = model.bl
+        yi = model.step()
+        x.append(xi)
+        y.append(yi)
+
+    t = np.arange(0, 100, 1)
+    plt.plot(t, x)
+    plt.plot(t, y)
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()

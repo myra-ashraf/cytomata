@@ -1,6 +1,14 @@
 import time
 
 
+class Random(object):
+    pass
+
+
+class BangBang(object):
+    pass
+
+
 class PID(object):
     """Proportional, integral, derivative controller
     with integral windup clipping"""
@@ -26,3 +34,7 @@ class PID(object):
         self.prev_error = error
         output = Kp * error + Ki * self.integral + Kd * derivative
         return output
+
+
+class MPC(object):
+    pass
