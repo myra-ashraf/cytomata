@@ -26,6 +26,14 @@ class OptoT7RNAP(object):
     pass
 
 
+class OptoLexA(object):
+    pass
+
+
+class OptoCreLoxP(object):
+    pass
+
+
 def main():
     """Example"""
     x = []

@@ -1,7 +1,7 @@
-1. Write tests for PID and lab experiment
-2. Write code for random controller and bang-bang controller
-3. Refactor top level scripts (play, enjoy, train)
-4. Refactor dqn.py in cytomata.control into a class
-5. Write tests for cytomatrix, pygamepong, DQN
-6. Write code for PPO
-7. Complete and reformat docstrings
+- Write code for random controller and bang-bang controller
+- Refactor top level scripts (play, enjoy, train)
+- Refactor dqn.py in cytomata.control into a class
+- Write tests for cytomatrix, pygamepong, DQN
+- Write code for PPO
+- Complete and reformat docstrings
+- Add python logging to tests

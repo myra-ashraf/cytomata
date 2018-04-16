@@ -1,28 +1,26 @@
 import pytest
 import numpy as np
 import matplotlib.pyplot as plt
-from cytomata.control import PID
+from cytomata.control import BangBang
 from cytomata.simulate import Simple
 
 
-def test_pid_maintains_setpoint():
-    """Test that the PID controller can drive and maintain the process variable
+def test_bb_maintains_setpoint():
+    """Test that the BB controller can drive and maintain the process variable
     within an error interval around the setpoint."""
     SP = 500.0
     sim0 = Simple()
-    pid = PID(SP=SP, Kp=1.1, Ki=0.1, Kd=0.1, windup_limit=20.0)
+    bb = BangBang(SP * 0.98)
     x = []
     y = []
-    timerange = np.arange(0, 100, 1)
+    timerange = np.arange(0, 200, 1)
 
     for t in timerange:
         xi = sim0.bl
         yi = sim0.step()
-        sim0.bl = pid.step(yi)
+        sim0.bl = bb.step(yi) * SP * 0.25
         x.append(xi)
         y.append(yi)
-
-    assert y[-1] > SP - 0.05 * SP and y[-1] < SP + 0.05 * SP
 
     plt.axhline(y=SP, color='r')
     plt.plot(timerange, x, label='input')
@@ -30,14 +28,18 @@ def test_pid_maintains_setpoint():
     plt.legend()
     plt.show()
 
+    assert y[-1] > SP - 0.1 * SP and y[-1] < SP + 0.1 * SP
+
 
 def test_pid_accomodates_perturbation():
-    """Test that the PID controller can return system to setpoint after it has
+    """Test that the BB controller can return system to setpoint after it has
     been perturbed."""
     SP = 500.0
+    TH_scale = 0.98
+    MV_scale = 0.2
     sim0 = Simple()
     sim0.mc = SP
-    pid = PID(SP=SP, Kp=1.0, Ki=0.5, Kd=0, windup_limit=20.0)
+    bb = BangBang(SP * TH_scale)
     x = []
     y = []
     timerange = np.arange(0, 200, 1)
@@ -48,11 +50,9 @@ def test_pid_accomodates_perturbation():
             sim0.mc += noise
         xi = sim0.bl
         yi = sim0.step()
-        sim0.bl = pid.step(yi)
+        sim0.bl = bb.step(yi) * SP * MV_scale
         x.append(xi)
         y.append(yi)
-
-    assert y[-1] > SP - 0.05 * SP and y[-1] < SP + 0.05 * SP
 
     plt.axhline(y=SP, color='r')
     plt.plot(timerange, x, label='input')
@@ -60,39 +60,43 @@ def test_pid_accomodates_perturbation():
     plt.legend()
     plt.show()
 
+    assert y[-1] > SP - 0.1 * SP and y[-1] < SP + 0.1 * SP
+
 
 def test_pid_tracks_moving_setpoint():
-    """Test that the PID controller can maintain the process variable within
+    """Test that the BB controller can maintain the process variable within
     the error interval around a changing setpoint."""
     SP = 500.0
+    TH_scale = 0.98
+    MV_scale = 0.2
     sim0 = Simple()
     sim0.mc = SP
-    pid = PID(SP=SP, Kp=1.0, Ki=0.1, Kd=0, windup_limit=20.0)
+    bb = BangBang(SP * TH_scale)
     x = []
     y = []
-    sp = []
+    th = []
     timerange = np.arange(0, 200, 1)
 
     for t in timerange:
         if t == 20:
-            pid.SP += 20
+            bb.th += 20
         if t == 60:
-            pid.SP -= 40
+            bb.th -= 40
         if t == 100:
-            pid.SP += 60
+            bb.th += 60
         if t == 140:
-            pid.SP -= 120
+            bb.th -= 120
         xi = sim0.bl
         yi = sim0.step()
-        sim0.bl = pid.step(yi)
+        sim0.bl = bb.step(yi) * SP * MV_scale
         x.append(xi)
         y.append(yi)
-        sp.append(pid.SP)
+        th.append(bb.th)
 
     plt.plot(timerange, x, label='input')
     plt.plot(timerange, y, label='output')
-    plt.plot(timerange, sp, label='setpoint')
+    plt.plot(timerange, th, label='setpoint')
     plt.legend()
     plt.show()
 
-    assert y[-1] > pid.SP - 0.05 * pid.SP and y[-1] < pid.SP + 0.05 * pid.SP
+    assert y[-1] > bb.th - 0.1 * bb.th and y[-1] < bb.th + 0.1 * bb.th
