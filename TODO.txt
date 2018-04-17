@@ -1,7 +1,27 @@
-- Write code for random controller and bang-bang controller
+- Write lab experiment script for OptoLexA system
+    - Negative Control: No light
+    - Open Loop: With different set levels of light per timestep
+    - Characterization: Step input or doublet input
+    - BangBang: With different threshold and light levels
+    - PID
+- Order LexA Constructs
+    - Research DNA binding domain for LexA
+    - CRY2-CIB1 or nMag-pMag carrying VP16
+- Clone into HEK cells
+    - Verification
+    - Amplification
+    - Assembly
+    - Transfection
+- FOPDT model for OptoLexA
+- Tune parameters for PID and perform 2nd iteration
+- Write code for PPO
+- Write and pass tests for PPO
+- Write code for MPC
+- Write and pass tests for MPC
+- Perform lab experiments for PPO and MPC
+--------------------------------------------------------------------------------
 - Refactor top level scripts (play, enjoy, train)
 - Refactor dqn.py in cytomata.control into a class
 - Write tests for cytomatrix, pygamepong, DQN
-- Write code for PPO
 - Complete and reformat docstrings
 - Add python logging to tests
