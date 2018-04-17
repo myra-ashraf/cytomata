@@ -19,7 +19,7 @@ class Simple(object):
     def step(self):
         """Transition to next state based on current state of the system"""
         self.mc += self.k * self.bl - self.d * self.mc
-        return self.mc
+        return [self.mc]
 
 
 class OptoLexA(object):
@@ -59,7 +59,7 @@ class OptoLexA(object):
         self.cry += self.p0 - self.d * self.cry + self.kb * self.c2c1
         self.c2c1 += self.k0 * self.bl * self.cry * self.cib - self.d * self.c2c1 - self.kb * self.c2c1
         self.mc += self.p0 * self.k1 * self.c2c1 - self.d * self.mc
-        return self.mc, self.cib, self.cry, self.c2c1
+        return [self.mc, self.cib, self.cry, self.c2c1]
 
 
 class OptoT7RNAP(object):
