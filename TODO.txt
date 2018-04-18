@@ -1,5 +1,6 @@
 - Write lab experiment script for OptoLexA system
     - Negative Control: No light
+    - Positive Control: Full light
     - Open Loop: With different set levels of light per timestep
     - Characterization: Step input or doublet input
     - BangBang: With different threshold and light levels
@@ -25,3 +26,9 @@
 - Write tests for cytomatrix, pygamepong, DQN
 - Complete and reformat docstrings
 - Add python logging to tests
+--------------------------------------------------------------------------------
+Notes:
+- Write calibration code?
+    - Get light reference intensity from blank dish?
+- Max light intensity or number/duration of flashes per time interval before
+  cells get bleached?
