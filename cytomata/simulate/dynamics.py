@@ -1,72 +1,82 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.integrate import odeint
+
+
+def Hill(y, K, a, b, n):
+    return b + a * (y**n / (K**n + y**n))
 
 
 class Simple(object):
-    """Simple model where blue light (input) directly leads to observable
-    mCherry reporter (output) which also degrades over time."""
-    def __init__(self, bl=0, mc=0, k=0.5, d=0.05):
+    """Simple first order model where input produces output at a linear rate
+    and the output also degrades at the linear rate."""
+    def __init__(self, A=0, B=0, k=0.5, d=0.05):
         """
-        bl = blue light : manipulated variable
-        mc = mCherry : process variable
+        A = input
+        B = output
+        k = production rate of B from A
+        d = degradation rate of B
         """
-        self.bl = bl
-        self.mc = mc
+        self.A = A
+        self.B = B
         self.k = k
         self.d = d
 
     def step(self):
-        """Transition to next state based on current state of the system"""
-        self.mc += self.k * self.bl - self.d * self.mc
-        return [self.mc]
+        """Transition to next state."""
+        self.B += self.k * self.A - self.d * self.B
+        return [self.B]
 
 
 class OptoLexA(object):
-    """A two step inducible gene expression model.
+    """An inducible gene expression model based on cytoplasmic-nuclear
+    localization of a transcription activator.
     Components:
         1. Blue Light
-        2. LexA-CIB1
-        3. CRY2-VP16
-        4. DBD-mCherry
+        2. LexA-VP64 (cytoplasm)
+        3. LexA-VP64 (nucleus)
+        4. LBS-mNeonGreen
     Process:
-        1. LexA-CIB1 and CRY2-VP16 are constitutively expressed
-        2. LexA binds to its DNA binding domain (DBD)
-        3. Blue light induction dimerizes CIB1-CRY2
-        4. VP16 promotes expression of mCherry reporter
+        1. LexA-VP64 is constitutively expressed; mostly localizes to cytoplasm
+        2. Blue light induction increases LexA-VP64 localization to nucleus
+        3. LexA binds to LexA Binding Site (LBS)
+        4. VP64 increases expression of mNeonGreen reporter
     """
-    def __init__(self, bl=0, cib=0, cry=0, c2c1=0, mc=0, p0=1.0, k0=0.01, k1=0.02, kb=0.001, d=0.05):
+    def __init__(self, Lc=0, Ln=0, kL=0, kn=0, kc=0, kd=0, Gr=0, kG=0):
         """
-        bl = blue light : manipulated variable
-        cib = LexA-CIB1
-        cry = CRY2-VP16
-        mc = mCherry : process variable
+        Lc = conc of LexA-VP64 in cytoplasm
+        Ln = conc of LexA-VP64 in nucleus
+        Gr = conc of mNeonGreen reporter
+        kL = rate of LexA-VP64 (cytoplasm) production
+        kn = rate of LexA-VP64 transport to nucleus from cytoplasm
+        kc = rate of LexA-VP64 transport to cytoplasm from nucleus
+        kd = rate of dilution due to cell growth and protein degradation
         """
-        self.bl = bl
-        self.cib = cib
-        self.cry = cry
-        self.c2c1 = c2c1
-        self.mc = mc
-        self.p0 = p0
-        self.k0 = k0
-        self.k1 = k1
-        self.kb = kb
-        self.d = d
+        # Sensing Model
+        self.Lc = Lc
+        self.Ln = Ln
+        self.kL = kL
+        self.kn = kn
+        self.kc = kc
+        self.kd = kd
+        # Output Model
+        self.Gr = Gr
+        self.kG = kG
+        self.K = 0
+        self.a = 0
+        self.b = 0
+        self.n = 0
 
     def step(self):
-        """Transition to next state based on current state of the system"""
-        self.cib += self.p0 - self.d * self.cib + self.kb * self.c2c1
-        self.cry += self.p0 - self.d * self.cry + self.kb * self.c2c1
-        self.c2c1 += self.k0 * self.bl * self.cry * self.cib - self.d * self.c2c1 - self.kb * self.c2c1
-        self.mc += self.p0 * self.k1 * self.c2c1 - self.d * self.mc
-        return [self.mc, self.cib, self.cry, self.c2c1]
+        """Transition to next state."""
+        self.Lc += self.kL + self.kc * self.Ln - (self.kn + self.kd) * self.Lc
+        self.Ln += self.kn * self.Lc - (self.kc + self.d) * self.Ln
+        self.Gr += self.kG - self.kd * self.Gr
+        self.R = self.Ln / self.Lc
+        self.kG = Hill(self.R, self.K, self.a, self.b, self.n)
+        return [self.Lc, self.Ln, self.Gr]
 
 
 class OptoT7RNAP(object):
-    pass
-
-
-class OptoCreLoxP(object):
     pass
 
 
