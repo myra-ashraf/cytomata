@@ -15,6 +15,9 @@ class Microscope(object):
         self.core.loadSystemConfiguration(config_file)
         self.core.waitForSystem()
 
+    def get_channel(self):
+        return self.core.getCurrentConfig('Channel')
+
     def set_channel(self, chname):
         self.core.setConfig('Channel', chname)
         self.core.waitForSystem()
