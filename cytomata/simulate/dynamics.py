@@ -2,10 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def Hill(y, K, a, b, n):
-    return b + a * (y**n / (K**n + y**n))
-
-
 class Simple(object):
     """Simple first order model where input produces output at a linear rate
     and the output also degrades at the linear rate."""
@@ -71,8 +67,8 @@ class OptoLexA(object):
         self.Lc += self.kL + self.kc * self.Ln - (self.kn + self.kd) * self.Lc
         self.Ln += self.kn * self.Lc - (self.kc + self.d) * self.Ln
         self.Gr += self.kG - self.kd * self.Gr
-        self.R = self.Ln / self.Lc
-        self.kG = Hill(self.R, self.K, self.a, self.b, self.n)
+        R = self.Ln / self.Lc
+        self.kG = self.b + self.a * (R**self.n / (self.K**self.n + R**self.n))
         return [self.Lc, self.Ln, self.Gr]
 
 
@@ -80,8 +76,7 @@ class OptoT7RNAP(object):
     pass
 
 
-def main():
-    """Example"""
+if __name__ == '__main__':
     x = []
     y = []
     q = []
@@ -108,7 +103,3 @@ def main():
     plt.plot(timerange, s, label='CIB1-CRY2')
     plt.legend()
     plt.show()
-
-
-if __name__ == '__main__':
-    main()
