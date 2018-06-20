@@ -10,8 +10,8 @@ from cytomata.control import BangBang, PID
 from cytomata.interface import Microscope
 
 
-def step_up_down(save_dir, t_total=10800, img_int=300, t_on=600,
-    t_off=10800, ch_dark='None', chs_img=['GFP', 'mCherry'],
+def step_up_down(save_dir, mag=4, t_total=36000, img_int=300, t_on=300,
+    t_off=21600, ch_dark='None', chs_img=['GFP', 'mCherry'],
     ch_exc='Induction-460nm'):
     """Use step functions to characterize an optogenetic system.
 
@@ -24,6 +24,7 @@ def step_up_down(save_dir, t_total=10800, img_int=300, t_on=600,
 
     Args:
         save_dir: File directory to save data for this experiment.
+        mag (MM state): Microscope default magnification (e.g. 4 = 100x).
         t_total (seconds): How long the enire experiment will last.
         img_int (seconds): Time interval for capturing image.
         t_on (seconds): Timepoint to turn on excitation light.
@@ -41,6 +42,7 @@ def step_up_down(save_dir, t_total=10800, img_int=300, t_on=600,
 
     mic = Microscope()
     mic.set_channel(ch_dark)
+    mic.set_magnification(mag)
     data = []
 
     def record_data():

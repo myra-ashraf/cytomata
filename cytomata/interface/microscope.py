@@ -21,6 +21,9 @@ class Microscope(object):
     def set_channel(self, chname):
         self.core.setConfig('Channel', chname)
         self.core.waitForSystem()
+        
+    def set_magnification(self, mag):
+        self.core.setState('TINosePiece', mag)
 
     def take_snapshot(self):
         self.core.snapImage()
