@@ -15,15 +15,15 @@ class Microscope(object):
         self.core.loadSystemConfiguration(config_file)
         self.core.waitForSystem()
 
-    def get_channel(self):
-        return self.core.getCurrentConfig('Channel')
-
     def set_channel(self, chname):
-        self.core.setConfig('Channel', chname)
-        self.core.waitForSystem()
-        
+        if chname != self.core.getCurrentConfig('Channel'):
+            self.core.setConfig('Channel', chname)
+            self.core.waitForConfig('Channel', chname)
+
     def set_magnification(self, mag):
-        self.core.setState('TINosePiece', mag)
+        if mag != self.core.getState('TINosePiece'):
+            self.core.setState('TINosePiece', mag)
+            self.core.waitForDevice('TINosePiece')
 
     def take_snapshot(self):
         self.core.snapImage()

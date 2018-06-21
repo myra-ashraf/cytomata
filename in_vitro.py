@@ -11,8 +11,8 @@ from cytomata.interface import Microscope
 
 
 def step_up_down(save_dir, mag=4, t_total=36000, img_int=300, t_on=300,
-    t_off=21600, ch_dark='None', chs_img=['GFP', 'mCherry'],
-    ch_exc='Induction-460nm'):
+    t_on_freq=30, t_on_dur=2, t_off=21600, ch_dark='None',
+    chs_img=['GFP', 'mCherry'], ch_exc='Induction-460nm'):
     """Use step functions to characterize an optogenetic system.
 
     Starting from the dark state, the excitation light is turned on at t_on
@@ -28,6 +28,8 @@ def step_up_down(save_dir, mag=4, t_total=36000, img_int=300, t_on=300,
         t_total (seconds): How long the enire experiment will last.
         img_int (seconds): Time interval for capturing image.
         t_on (seconds): Timepoint to turn on excitation light.
+        t_on_freq (seconds): How often to turn on excitation light.
+        t_on_dur (seconds): How long to turn on excitation light.
         t_off (seconds): Timepoint to turn off excitation light.
         ch_dark (MM config): Micromanager channel of the dark state.
         chs_img (MM config): Micromanager channels for taking images.
@@ -45,6 +47,11 @@ def step_up_down(save_dir, mag=4, t_total=36000, img_int=300, t_on=300,
     mic.set_magnification(mag)
     data = []
 
+    def control_light():
+        mic.set_channel(ch_exc)
+        time.sleep(t_on_dur)
+        mic.set_channel(ch_dark)
+
     def record_data():
         d = []
         for ch in chs_img:
@@ -56,10 +63,6 @@ def step_up_down(save_dir, mag=4, t_total=36000, img_int=300, t_on=300,
             cv2.imwrite(img_path, img)
             roi_int, roi, bg_int, bg = mic.measure_fluorescence(img)
             d += [roi_int, bg_int]
-        if (time.time() >= t0 + t_on and time.time() <= t0 + t_off):
-            mic.set_channel(ch_exc)
-        else:
-            mic.set_channel(ch_dark)
         data.append([ts] + d)
         data_path = os.path.join(save_dir, 'step_up_down.csv')
         column_names = ', '.join(['time (s)'] + [
@@ -67,10 +70,18 @@ def step_up_down(save_dir, mag=4, t_total=36000, img_int=300, t_on=300,
         np.savetxt(data_path, np.array(data), delimiter=',',
             header=column_names, comments='')
 
-    schedule.every(img_int).seconds.do(record_data)
+    schedule.every(img_int).seconds.do(record_data).tag('data')
     t0 = time.time()
     while time.time() - t0 < t_total:
         schedule.run_pending()
+        if (time.time() >= t0 + t_on and time.time() <= t0 + t_off):
+            if 'light' not in [list(j.tags)[0] for j in schedule.jobs]:
+                schedule.every(t_on_freq).seconds.do(control_light).tag('light')
+        else:
+            if 'light' in [list(j.tags)[0] for j in schedule.jobs]:
+                schedule.clear('light')
+            mic.set_channel(ch_dark)
+
 
 
 if __name__ == '__main__':
