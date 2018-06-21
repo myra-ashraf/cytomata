@@ -48,11 +48,13 @@ def step_up_down(save_dir, mag=4, t_total=36000, img_int=300, t_on=300,
     data = []
 
     def control_light():
+        print('control_light')
         mic.set_channel(ch_exc)
         time.sleep(t_on_dur)
         mic.set_channel(ch_dark)
 
     def record_data():
+        print('record_data')
         d = []
         for ch in chs_img:
             mic.set_channel(ch)
@@ -77,10 +79,12 @@ def step_up_down(save_dir, mag=4, t_total=36000, img_int=300, t_on=300,
         if (time.time() >= t0 + t_on and time.time() <= t0 + t_off):
             if 'light' not in [list(j.tags)[0] for j in schedule.jobs]:
                 schedule.every(t_on_freq).seconds.do(control_light).tag('light')
+            print('light on')
         else:
             if 'light' in [list(j.tags)[0] for j in schedule.jobs]:
                 schedule.clear('light')
             mic.set_channel(ch_dark)
+        time.sleep(1)
 
 
 

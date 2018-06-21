@@ -17,11 +17,13 @@ class Microscope(object):
 
     def set_channel(self, chname):
         if chname != self.core.getCurrentConfig('Channel'):
+            print('set_channel')
             self.core.setConfig('Channel', chname)
             self.core.waitForConfig('Channel', chname)
 
     def set_magnification(self, mag):
         if mag != self.core.getState('TINosePiece'):
+            print('set_magnification')
             self.core.setState('TINosePiece', mag)
             self.core.waitForDevice('TINosePiece')
 
