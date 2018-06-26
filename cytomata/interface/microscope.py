@@ -13,19 +13,42 @@ class Microscope(object):
     def __init__(self, config_file=os.path.join(dir_path, 'mm.cfg')):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
+        self.core.setExposure(500)
         self.core.waitForSystem()
 
     def set_channel(self, chname):
         if chname != self.core.getCurrentConfig('Channel'):
-            print('set_channel')
             self.core.setConfig('Channel', chname)
             self.core.waitForConfig('Channel', chname)
 
     def set_magnification(self, mag):
         if mag != self.core.getState('TINosePiece'):
-            print('set_magnification')
             self.core.setState('TINosePiece', mag)
             self.core.waitForDevice('TINosePiece')
+            
+    def get_position(self, axis):
+        if axis == 'XY':
+            return self.core.getXPosition('XYStage'), self.core.getYPosition('XYStage')
+        elif axis == 'Z':
+            return self.core.getPosition('TIZDrive')
+        else:
+            print('Error getting stage position')
+            
+    def set_position(self, axis, value):
+        if axis == 'XY':
+            self.core.setXYPosition('XYStage', value[0], value[1])
+        elif axis == 'Z':
+            self.core.setPosition('TIZDrive', value)
+        else:
+            print('Error setting stage position')
+    
+    def shift_position(self, axis, value):
+        if axis == 'XY':
+            self.core.setRelativeXYPosition('XYStage', value[0], value[1])
+        elif axis == 'Z':
+            self.core.setRelativePosition('TIZDrive', value)
+        else:
+            print('Error shifting stage position')
 
     def take_snapshot(self):
         self.core.snapImage()

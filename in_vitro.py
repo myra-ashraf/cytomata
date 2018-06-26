@@ -10,8 +10,8 @@ from cytomata.control import BangBang, PID
 from cytomata.interface import Microscope
 
 
-def step_up_down(save_dir, mag=4, t_total=36000, img_int=300, t_on=300,
-    t_on_freq=30, t_on_dur=2, t_off=21600, ch_dark='None',
+def step_up_down(save_dir, mag=4, t_total=7200, img_int=300, t_on=300,
+    t_on_freq=30, t_on_dur=1, t_off=7200, ch_dark='None',
     chs_img=['GFP', 'mCherry'], ch_exc='Induction-460nm'):
     """Use step functions to characterize an optogenetic system.
 
@@ -45,17 +45,18 @@ def step_up_down(save_dir, mag=4, t_total=36000, img_int=300, t_on=300,
     mic = Microscope()
     mic.set_channel(ch_dark)
     mic.set_magnification(mag)
+    stage_pos = list(mic.get_position('XY')) + [mic.get_position('Z')]
     data = []
 
     def control_light():
-        print('control_light')
         mic.set_channel(ch_exc)
         time.sleep(t_on_dur)
         mic.set_channel(ch_dark)
 
     def record_data():
-        print('record_data')
         d = []
+        # mic.set_position('XY', stage_pos[:2])
+        mic.set_position('Z', stage_pos[2])
         for ch in chs_img:
             mic.set_channel(ch)
             img = mic.take_snapshot()
@@ -65,7 +66,8 @@ def step_up_down(save_dir, mag=4, t_total=36000, img_int=300, t_on=300,
             cv2.imwrite(img_path, img)
             roi_int, roi, bg_int, bg = mic.measure_fluorescence(img)
             d += [roi_int, bg_int]
-        data.append([ts] + d)
+        log_pos = list(mic.get_position('XY')) + [mic.get_position('Z')]
+        data.append([ts] + d + log_pos)
         data_path = os.path.join(save_dir, 'step_up_down.csv')
         column_names = ', '.join(['time (s)'] + [
             ch + d for ch in chs_img for d in ['_fluo_int', '_bg_int']])
@@ -79,11 +81,11 @@ def step_up_down(save_dir, mag=4, t_total=36000, img_int=300, t_on=300,
         if (time.time() >= t0 + t_on and time.time() <= t0 + t_off):
             if 'light' not in [list(j.tags)[0] for j in schedule.jobs]:
                 schedule.every(t_on_freq).seconds.do(control_light).tag('light')
-            print('light on')
         else:
             if 'light' in [list(j.tags)[0] for j in schedule.jobs]:
                 schedule.clear('light')
             mic.set_channel(ch_dark)
+            time.sleep(1)
         time.sleep(1)
 
 
