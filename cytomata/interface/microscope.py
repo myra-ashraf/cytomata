@@ -13,7 +13,7 @@ class Microscope(object):
     def __init__(self, config_file=os.path.join(dir_path, 'mm.cfg')):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
-        self.core.setExposure(500)
+        self.core.setExposure(200)
         self.core.waitForSystem()
 
     def set_channel(self, chname):
