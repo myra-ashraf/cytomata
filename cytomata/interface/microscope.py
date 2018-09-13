@@ -1,7 +1,9 @@
 import os
-import numpy as np
-import cv2
+
 import MMCorePy
+import numpy as np
+from scipy import optimize
+from skimage.filters import laplace
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -15,6 +17,8 @@ class Microscope(object):
         self.core.loadSystemConfiguration(config_file)
         self.core.setExposure(200)
         self.core.waitForSystem()
+        self.af_positions = []
+        self.af_focuses = []
 
     def set_channel(self, chname):
         if chname != self.core.getCurrentConfig('Channel'):
@@ -25,7 +29,7 @@ class Microscope(object):
         if mag != self.core.getState('TINosePiece'):
             self.core.setState('TINosePiece', mag)
             self.core.waitForDevice('TINosePiece')
-            
+
     def get_position(self, axis):
         if axis == 'XY':
             return self.core.getXPosition('XYStage'), self.core.getYPosition('XYStage')
@@ -33,7 +37,7 @@ class Microscope(object):
             return self.core.getPosition('TIZDrive')
         else:
             print('Error getting stage position')
-            
+
     def set_position(self, axis, value):
         if axis == 'XY':
             self.core.setXYPosition('XYStage', value[0], value[1])
@@ -41,7 +45,7 @@ class Microscope(object):
             self.core.setPosition('TIZDrive', value)
         else:
             print('Error setting stage position')
-    
+
     def shift_position(self, axis, value):
         if axis == 'XY':
             self.core.setRelativeXYPosition('XYStage', value[0], value[1])
@@ -55,16 +59,44 @@ class Microscope(object):
         return self.core.getImage()
 
     def measure_fluorescence(self, img):
-        img = img.astype(np.uint8)
-        if img.ndim > 2:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        equ = cv2.equalizeHist(img)
-        blur = cv2.GaussianBlur(equ, (5, 5), 0)
-        th_bg = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 115, 10)
-        blur = cv2.GaussianBlur(img, (5, 5), 0)
-        ret, th_roi = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-        bg = img * (th_bg > 0)
-        bg_intensity = np.percentile(bg[np.nonzero(bg)], 25)
-        roi = img * (th_roi > 0)
-        roi_intensity = np.median(roi[np.nonzero(roi)]) - bg_intensity
-        return roi_intensity, roi, bg_intensity, bg
+        pass
+
+    def measure_focus(self, img):
+        return np.var(laplace(img))
+
+    def sample_pos_focus(self, num=10, step=5, pos0=None, clear_data=True):
+        """
+        Sample different stage positions about the current position
+        and calculate variance of laplace for each image.
+
+        Args:
+            num (int): Number of positions above or below the current position
+            step (int): Difference in stage position in microns
+            pos0 (float): Specified position instead of current position
+
+        Returns:
+            new_positions (list(floats)): Stage positions for each image
+            new_focuses (list(floats)): Variance of laplace for each image
+        """
+        if pos0 is None:
+            pos0 = self.get_position('Z')
+        self.set_position('Z', pos0 - num*step)
+        self.set_channel('DIC')
+        if clear_data:
+            self.af_positions = []
+            self.af_focuses = []
+        for z in range(num*2):
+            img = self.take_snapshot()
+            self.af_focuses.append(self.measure_focus(img))
+            self.af_positions.append(self.get_position('Z'))
+            self.shift_position('Z', step)
+        self.set_position('Z', pos0)
+        return positions, focuses
+
+    def autofocus(self, positions=self.af_positions, focuses=self.af_focuses):
+        coeffs = np.polyfit(positions, focuses, 2)
+        func = np.poly1d(-coeffs)
+        results = opt.minimize(func, x0=positions[-1])
+        best_z = results.x[0]
+        self.set_position('Z', best_z)
+        return best_z, func, results
