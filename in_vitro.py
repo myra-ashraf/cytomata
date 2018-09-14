@@ -2,14 +2,14 @@ import os
 import time
 import datetime
 
+import cv2
 import schedule
 import numpy as np
-from skimage.io import imsave
 
 from cytomata.interface import Microscope
 
 
-def step_up_down(save_dir, mag=1, t_total=129600, t_on=0, t_off=129600,
+def step_up_down(save_dir, mag=2, t_total=129600, t_on=0, t_off=129600,
     t_on_freq=30, t_on_dur=1, img_int=300, ch_dark='None', ch_exc='Induction-460nm',
     chs_img=['DIC', 'GFP']):
     """Use step functions to characterize an optogenetic system.
@@ -44,10 +44,11 @@ def step_up_down(save_dir, mag=1, t_total=129600, t_on=0, t_off=129600,
         # mic.set_position('XY', stage_pos[:2])
         # mic.set_position('Z', stage_pos[2])
         # Forget old autofocusing data
-        if len(mic.af_positions) > 25 and len(mic.af_focuses) > 25:
-            mic.af_positions.pop(0)
-            mic.af_focuses.pop(0)
+        # if len(mic.af_positions) > 50 and len(mic.af_focuses) > 50:
+            # mic.af_positions.pop(0)
+            # mic.af_focuses.pop(0)
         best_z, af_func, af_optim = mic.autofocus()
+        ts = time.time()
         for ch in chs_img:
             mic.set_channel(ch)
             img = mic.take_snapshot()
@@ -56,21 +57,18 @@ def step_up_down(save_dir, mag=1, t_total=129600, t_on=0, t_off=129600,
                 foc = mic.measure_focus(img)
                 mic.af_positions.append(pos)
                 mic.af_focuses.append(foc)
-            ts = time.time()
             img_path = os.path.join(
-                save_dir, 'imgs', ch, str(data_count) + '.tiff')
-            imsave(img_path, img)
+                save_dir, 'imgs', ch, str(int(np.round(ts))) + '.tiff')
+            cv2.imwrite(img_path, img)
             # roi_int, roi, bg_int, bg = mic.measure_fluorescence(img)
             # d += [roi_int, bg_int]
-            d += [pos, foc, best_z]
-        current_pos = list(mic.get_position('XY')) + [mic.get_position('Z')]
-        data.append([data_count, ts] + d + current_pos)
-        data_count += 1
+        # current_pos = list(mic.get_position('XY')) + [mic.get_position('Z')]
+        data.append([ts, pos, foc, best_z])
         data_path = os.path.join(save_dir, 'step_up_down.csv')
         # column_names = ', '.join(['time (s)'] + [
         #     ch + d for ch in chs_img for d in ['_fluo_int', '_bg_int']])
         column_names = ', '.join([
-            'index', 'time (s)', 'position', 'focus', 'best_z'
+            'time (s)', 'position', 'focus', 'best_z',
             'stage-x (um)', 'stage-y (um)', 'stage-z (um)'
         ])
         np.savetxt(data_path, np.array(data), delimiter=',',
@@ -93,9 +91,8 @@ def step_up_down(save_dir, mag=1, t_total=129600, t_on=0, t_off=129600,
     mic.set_channel(ch_dark)
     # stage_pos = list(mic.get_position('XY')) + [mic.get_position('Z')]
 
-    data = []
-    data_count = 0
     # Acquire data and images for time = 0
+    data = []
     record_data()
     # Schedule data recording routine
     schedule.every(img_int).seconds.do(record_data).tag('data')

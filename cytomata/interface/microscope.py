@@ -1,4 +1,5 @@
 import os
+import time
 
 import MMCorePy
 import numpy as np
@@ -17,6 +18,7 @@ class Microscope(object):
         self.core.loadSystemConfiguration(config_file)
         self.core.setExposure(200)
         self.core.waitForSystem()
+        self.init_z = self.get_position('Z')
         self.af_positions = []
         self.af_focuses = []
 
@@ -45,6 +47,7 @@ class Microscope(object):
             self.core.setPosition('TIZDrive', value)
         else:
             print('Error setting stage position')
+        time.sleep(1)
 
     def shift_position(self, axis, value):
         if axis == 'XY':
@@ -53,6 +56,7 @@ class Microscope(object):
             self.core.setRelativePosition('TIZDrive', value)
         else:
             print('Error shifting stage position')
+        time.sleep(1)
 
     def take_snapshot(self):
         self.core.snapImage()
@@ -85,18 +89,23 @@ class Microscope(object):
         if clear_data:
             self.af_positions = []
             self.af_focuses = []
-        for z in range(num*2):
+        for z in range(num*2 + 1):
             img = self.take_snapshot()
             self.af_focuses.append(self.measure_focus(img))
             self.af_positions.append(self.get_position('Z'))
             self.shift_position('Z', step)
         self.set_position('Z', pos0)
-        return positions, focuses
+        return self.af_positions, self.af_focuses
 
-    def autofocus(self, positions=self.af_positions, focuses=self.af_focuses):
+    def autofocus(self, positions=None, focuses=None, bounds=[100.0, 100.0]):
+        if positions is None:
+            positions = self.af_positions
+        if focuses is None:
+            focuses = self.af_focuses
         coeffs = np.polyfit(positions, focuses, 2)
         func = np.poly1d(-coeffs)
-        results = opt.minimize(func, x0=positions[-1])
+        results = optimize.minimize(func, x0=positions[int(len(positions)//2)])
         best_z = results.x[0]
-        self.set_position('Z', best_z)
+        if best_z > self.init_z - bounds[0] and best_z < self.init_z + bounds[1]:
+            self.set_position('Z', best_z)
         return best_z, func, results
