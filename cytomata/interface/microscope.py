@@ -140,7 +140,7 @@ class Microscope(object):
     def autofocus(self, ch='DIC', method='qf', step=5,
         maxiter=9, bounds=[-100.0, 100.0]):
         self.set_channel(ch)
-        if method == 'qf':
+        if method == 'qf':  # Quadratic Fitting
             positions, focuses = self.sample_focus_multi()
             coeffs = np.polyfit(positions, focuses, 2)
             func = np.poly1d(-coeffs)
@@ -151,7 +151,7 @@ class Microscope(object):
             if (best_pos > self.stage_zs[0] + bounds[0]
                 and best_pos < self.stage_zs[0] + bounds[1]):
                 self.set_position('z', best_pos)
-        elif method == 'bs':
+        elif method == 'bs':  # Binary Search Hill Climb
             i = 0
             pos, foc = self.sample_focus()
             af_positions = [pos]
@@ -167,7 +167,7 @@ class Microscope(object):
                 i += 1
             best_pos = af_positions[-1]
             best_foc = af_focuses[-1]
-        elif method == 'lf':
+        elif method == 'lf':  # Linear Fitting Hill Climb
             if not self.af_positions or not self.af_focuses:
                 return self.sample_focus()
             i = 0
@@ -189,7 +189,7 @@ class Microscope(object):
                 i += 1
             best_pos = af_positions[-1]
             best_foc = af_focuses[-1]
-        else:
+        else:  # Reset stage position to initial state
             self.set_position(self.stage_zs[0])
             best_pos = self.stage_zs[0]
             best_foc = 0.0

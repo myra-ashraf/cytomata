@@ -37,9 +37,9 @@ def step_up_down(save_dir, mag=2, t_total=129600, t_on=0, t_off=129600,
         if not os.path.exists(img_dir):
             os.makedirs(img_dir)
     # Initialize Microscope controller
-    mic = Microscope(ch, mag)
+    mic = Microscope(ch='DIC', mag=mag)
     # Acquire data and images for time = 0
-    mic.record_data()
+    mic.record_data(save_dir, chs_img)
     # Schedule data recording routine
     schedule.every(img_int).seconds.do(
         mic.record_data, save_dir, chs_img).tag('data')
