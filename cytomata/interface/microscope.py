@@ -18,7 +18,6 @@ class Microscope(object):
         self.core.loadSystemConfiguration(config_file)
         self.core.setExposure(200)
         self.core.waitForSystem()
-        self.init_z = self.get_position('Z')
         self.af_positions = []
         self.af_focuses = []
 
@@ -65,10 +64,18 @@ class Microscope(object):
     def measure_fluorescence(self, img):
         pass
 
-    def measure_focus(self, img):
-        return np.var(laplace(img))
+    def measure_focus(self, img, metric='lap'):
+        if metric == 'lap':
+            return np.var(laplace(img))
+        elif metric == 'vol':
 
-    def sample_pos_focus(self, num=10, step=5, pos0=None, clear_data=True):
+
+    def sample_focus(self):
+        self.af_positions.append(self.get_position('Z'))
+        self.af_focuses.append(self.measure_focus(self.take_snapshot()))
+        return self.af_positions, self.af_focuses
+
+    def sample_focus_multi(self, num=2, step=3, pos0=None, clear_data=True):
         """
         Sample different stage positions about the current position
         and calculate variance of laplace for each image.
@@ -86,26 +93,51 @@ class Microscope(object):
             pos0 = self.get_position('Z')
         self.set_position('Z', pos0 - num*step)
         self.set_channel('DIC')
-        if clear_data:
-            self.af_positions = []
-            self.af_focuses = []
+        af_focuses = []
+        af_positions = []
         for z in range(num*2 + 1):
             img = self.take_snapshot()
-            self.af_focuses.append(self.measure_focus(img))
-            self.af_positions.append(self.get_position('Z'))
+            af_focuses.append(self.measure_focus(img))
+            af_positions.append(self.get_position('Z'))
             self.shift_position('Z', step)
         self.set_position('Z', pos0)
-        return self.af_positions, self.af_focuses
+        return af_positions, af_focuses
 
-    def autofocus(self, positions=None, focuses=None, bounds=[100.0, 100.0]):
-        if positions is None:
-            positions = self.af_positions
-        if focuses is None:
-            focuses = self.af_focuses
+    def autofocus_qf(self, bounds=[-50.0, 50.0]):
+        positions, focuses = self.sample_focus_multi()
         coeffs = np.polyfit(positions, focuses, 2)
         func = np.poly1d(-coeffs)
-        results = optimize.minimize(func, x0=positions[int(len(positions)//2)])
+        results = optimize.minimize(func, x0=positions[-1])
         best_z = results.x[0]
-        if best_z > self.init_z - bounds[0] and best_z < self.init_z + bounds[1]:
+        if best_z > self.init_z + bounds[0] and best_z < self.init_z + bounds[1]:
             self.set_position('Z', best_z)
-        return best_z, func, results
+        return best_z
+
+
+    def autofocus_lf(self, step=5, bounds=[50.0, 50.0], max_iter=20):
+        if not self.af_positions or not self.af_focuses:
+            self.sample_focus()
+            return self.af_focuses[-1]
+        self.sample_focus()
+        while (self.af_focuses[-1] < np.max(self.af_focuses)*0.95
+            and self.af_positions[-1] > self.af_positions[0] + bounds[0]
+            and self.af_positions[-1] < self.af_positions[0] + bounds[1]
+            and i < max_iter):
+            self.shift_position('Z', step)
+            self.sample_focus()
+            coeffs = np.polyfit(self.af_positions[-2:], self.af_focuses[-2:], 1)
+            func = np.poly1d(coeffs)
+            new_pos = (func - np.max(self.af_focuses)).roots[0]
+            step = new_pos - self.af_positions[-1]
+        return self.af_focuses[-1]
+
+    def autofocus_bi(self, step=10, bounds=[50.0, 50.0], max_iter=20):
+        self.sample_focus()
+        while (self.af_focuses[-1] < np.max(self.af_focuses)*0.95
+            and self.af_positions[-1] > self.af_positions[0] + bounds[0]
+            and self.af_positions[-1] < self.af_positions[0] + bounds[1]
+            and i < max_iter):
+            self.shift_position('Z', step)
+            self.sample_focus()
+            if self.af_focuses[-1] < self.af_focuses[-2]:
+                step *= -0.5

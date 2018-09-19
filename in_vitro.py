@@ -43,11 +43,7 @@ def step_up_down(save_dir, mag=2, t_total=129600, t_on=0, t_off=129600,
         d = [] # per-timepoint data vector
         # mic.set_position('XY', stage_pos[:2])
         # mic.set_position('Z', stage_pos[2])
-        # Forget old autofocusing data
-        # if len(mic.af_positions) > 50 and len(mic.af_focuses) > 50:
-            # mic.af_positions.pop(0)
-            # mic.af_focuses.pop(0)
-        best_z, af_func, af_optim = mic.autofocus()
+        best_z = mic.autofocus()
         ts = time.time()
         for ch in chs_img:
             mic.set_channel(ch)
@@ -69,7 +65,6 @@ def step_up_down(save_dir, mag=2, t_total=129600, t_on=0, t_off=129600,
         #     ch + d for ch in chs_img for d in ['_fluo_int', '_bg_int']])
         column_names = ', '.join([
             'time (s)', 'position', 'focus', 'best_z',
-            'stage-x (um)', 'stage-y (um)', 'stage-z (um)'
         ])
         np.savetxt(data_path, np.array(data), delimiter=',',
             header=column_names, comments='')
@@ -86,10 +81,8 @@ def step_up_down(save_dir, mag=2, t_total=129600, t_on=0, t_off=129600,
     # Initialize Microscope controller
     mic = Microscope()
     mic.set_magnification(mag)
-    # Acquire data to be used in autofocusing routine
-    mic.sample_pos_focus(num=10, step=5)
     mic.set_channel(ch_dark)
-    # stage_pos = list(mic.get_position('XY')) + [mic.get_position('Z')]
+    stage_pos = list(mic.get_position('XY')) + [mic.get_position('Z')]
 
     # Acquire data and images for time = 0
     data = []
