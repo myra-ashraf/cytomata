@@ -1,110 +1,64 @@
 import os
 import time
-import datetime
 
-import cv2
 import schedule
-import numpy as np
 
 from cytomata.interface import Microscope
 
 
 def step_up_down(save_dir, mag=2, t_total=129600, t_on=0, t_off=129600,
-    t_on_freq=30, t_on_dur=1, img_int=300, ch_dark='None', ch_exc='Induction-460nm',
-    chs_img=['DIC', 'GFP']):
-    """Use step functions to characterize an optogenetic system.
+    t_on_freq=30, t_on_dur=1, img_int=300, ch_dark='None',
+    ch_exc='Induction-460nm', chs_img=['DIC', 'GFP']):
+    """
+    Use step functions to characterize an optogenetic system.
 
     Starting from the dark state, the excitation light is turned on at t_on
     and turned off at t_off. Images are taken at regular time intervals via
     the microscope camera and processed to calculate fluorescence intensity
-    as the output. At each timepoint, the input (light intensity = 0 in this
-    case) and output (fluorescence intensity) are logged as csv files and
-    images taken are saved as well.
+    as the output.
 
     Args:
         save_dir: File directory to save data for this experiment.
-        mag (MM state): Microscope default magnification (e.g. 4 = 100x).
-        t_total (seconds): How long the enire experiment will last.
+        mag (MM state): Microscope magnification (e.g. 4 = 100x).
+        t_total (seconds): Duration of entire experiment.
         t_on (seconds): Timepoint to turn on excitation light.
         t_off (seconds): Timepoint to turn off excitation light.
         t_on_freq (seconds): How often to turn on excitation light.
         t_on_dur (seconds): How long to turn on excitation light.
         img_int (seconds): Time interval for capturing image.
-        ch_dark (MM config): Micromanager channel of the dark state.
-        ch_exc (MM config): Micromanager channel of induction light.
+        ch_dark (MM config): Micromanager channel for the dark state.
+        ch_exc (MM config): Micromanager channel for induction light.
         chs_img (MM config): Micromanager channels for taking images.
     """
-    def control_light():
-        mic.set_channel(ch_exc)
-        time.sleep(t_on_dur)
-        mic.set_channel(ch_dark)
-
-    def record_data():
-        d = [] # per-timepoint data vector
-        # mic.set_position('XY', stage_pos[:2])
-        # mic.set_position('Z', stage_pos[2])
-        best_z = mic.autofocus()
-        ts = time.time()
-        for ch in chs_img:
-            mic.set_channel(ch)
-            img = mic.take_snapshot()
-            if ch == 'DIC':  # autofocus is based on DIC channel
-                pos = mic.get_position('Z')
-                foc = mic.measure_focus(img)
-                mic.af_positions.append(pos)
-                mic.af_focuses.append(foc)
-            img_path = os.path.join(
-                save_dir, 'imgs', ch, str(int(np.round(ts))) + '.tiff')
-            cv2.imwrite(img_path, img)
-            # roi_int, roi, bg_int, bg = mic.measure_fluorescence(img)
-            # d += [roi_int, bg_int]
-        # current_pos = list(mic.get_position('XY')) + [mic.get_position('Z')]
-        data.append([ts, pos, foc, best_z])
-        data_path = os.path.join(save_dir, 'step_up_down.csv')
-        # column_names = ', '.join(['time (s)'] + [
-        #     ch + d for ch in chs_img for d in ['_fluo_int', '_bg_int']])
-        column_names = ', '.join([
-            'time (s)', 'position', 'focus', 'best_z',
-        ])
-        np.savetxt(data_path, np.array(data), delimiter=',',
-            header=column_names, comments='')
-
-    # BEGIN Experiment
     # Create data and image directories
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
-    img_dirs = [os.path.join(save_dir, 'imgs', ch) for ch in chs_img]
-    for d in img_dirs:
-        if not os.path.exists(d):
-            os.makedirs(d)
-
+    for img_dir in [os.path.join(save_dir, 'imgs', ch) for ch in chs_img]:
+        if not os.path.exists(img_dir):
+            os.makedirs(img_dir)
     # Initialize Microscope controller
-    mic = Microscope()
-    mic.set_magnification(mag)
-    mic.set_channel(ch_dark)
-    stage_pos = list(mic.get_position('XY')) + [mic.get_position('Z')]
-
+    mic = Microscope(ch, mag)
     # Acquire data and images for time = 0
-    data = []
-    record_data()
+    mic.record_data()
     # Schedule data recording routine
-    schedule.every(img_int).seconds.do(record_data).tag('data')
+    schedule.every(img_int).seconds.do(
+        mic.record_data, save_dir, chs_img).tag('data')
     t0 = time.time()
     # While in timeframe for experiment:
     while time.time() - t0 < t_total:
         schedule.run_pending()
-        # Schedule light induction routine when within certain timeframes
+        # Schedule light induction routine
         if (time.time() >= t0 + t_on and time.time() <= t0 + t_off):
             if 'light' not in [list(j.tags)[0] for j in schedule.jobs]:
-                schedule.every(t_on_freq).seconds.do(control_light).tag('light')
-        # Remove light induction routine when out of certain timeframes
+                schedule.every(t_on_freq).seconds.do(
+                    mic.control_light, ch_exc, ch_dark, t_on_dur).tag('light')
+        # Remove light induction routine
         else:
             if 'light' in [list(j.tags)[0] for j in schedule.jobs]:
                 schedule.clear('light')
             mic.set_channel(ch_dark)
             time.sleep(1) # schedule needs pauses otherwise program crashes
         time.sleep(1)
-
 
 
 if __name__ == '__main__':
