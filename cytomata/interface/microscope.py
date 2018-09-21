@@ -131,14 +131,15 @@ class Microscope(object):
         pos0 = self.get_position('z')
         self.set_position('z', pos0 - num*step)
         for z in range(num*2 + 1):
-            positions.append(self.get_position('z'))
-            focuses.append(self.measure_focus(self.take_snapshot()))
+            pos, foc = self.sample_focus()
+            positions.append(pos)
+            focuses.append(foc)
             self.shift_position('z', step)
         self.set_position('z', pos0)
         return positions, focuses
 
     def autofocus(self, ch='DIC', method='qf', step=5,
-        maxiter=9, bounds=[-100.0, 100.0]):
+        maxiter=9, bounds=[-50.0, 50.0]):
         self.set_channel(ch)
         if method == 'qf':  # Quadratic Fitting
             positions, focuses = self.sample_focus_multi()

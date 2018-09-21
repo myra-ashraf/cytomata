@@ -6,7 +6,7 @@ import schedule
 from cytomata.interface import Microscope
 
 
-def step_up_down(save_dir, mag=2, t_total=129600, t_on=0, t_off=129600,
+def step_up_down(save_dir, mag=2, t_total=43200, t_on=0, t_off=43200,
     t_on_freq=30, t_on_dur=1, img_int=300, ch_dark='None',
     ch_exc='Induction-460nm', chs_img=['DIC', 'GFP']):
     """
@@ -37,7 +37,7 @@ def step_up_down(save_dir, mag=2, t_total=129600, t_on=0, t_off=129600,
         if not os.path.exists(img_dir):
             os.makedirs(img_dir)
     # Initialize Microscope controller
-    mic = Microscope(ch='DIC', mag=mag)
+    mic = Microscope(ch=chs_img[0], mag=mag)
     # Acquire data and images for time = 0
     mic.record_data(save_dir, chs_img)
     # Schedule data recording routine
