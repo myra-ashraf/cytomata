@@ -74,7 +74,7 @@ class Microscope(object):
         self.core.snapImage()
         return self.core.getImage()
 
-    def record_data(self, save_dir, chs_img, af_channel='DIC', af_method='qf'):
+    def record_data(self, save_dir, chs_img, af_channel='DIC', af_method='tr'):
         self.stage_xs.append(self.get_position('x'))
         self.stage_ys.append(self.get_position('y'))
         self.stage_zs.append(self.get_position('z'))
@@ -115,17 +115,18 @@ class Microscope(object):
         else:
             raise ValueError('Invalid focus metric.')
 
-    def control_light(self, ch_exc, ch_dark, duration):
+    def control_light(self, pattern, ch_exc, ch_dark, duration):
         self.set_channel(ch_exc)
-        time.sleep(duration)
-        self.set_channel(ch_dark)
+        if pattern == 'pulsatile':
+            time.sleep(duration)
+            self.set_channel(ch_dark)
 
     def sample_focus(self):
         pos = self.get_position('z')
         foc = self.measure_focus(self.take_snapshot())
         return pos, foc
 
-    def sample_focus_multi(self, num=3, step=5):
+    def sample_focus_multi(self, num=4, step=1):
         positions = []
         focuses = []
         pos0 = self.get_position('z')
@@ -138,10 +139,17 @@ class Microscope(object):
         self.set_position('z', pos0)
         return positions, focuses
 
-    def autofocus(self, ch='DIC', method='qf', step=5,
+    def autofocus(self, ch='DIC', method='tr', step=5,
         maxiter=9, bounds=[-50.0, 50.0]):
         self.set_channel(ch)
-        if method == 'qf':  # Quadratic Fitting
+        if method == 'tr': # Top Ranked
+            positions, focuses = self.sample_focus_multi()
+            best_foc = max(focuses)
+            best_pos = positions[focuses.index(max(focuses))]
+            if (best_pos > self.stage_zs[0] + bounds[0]
+                and best_pos < self.stage_zs[0] + bounds[1]):
+                self.set_position('z', best_pos)
+        elif method == 'qf':  # Quadratic Fitting
             positions, focuses = self.sample_focus_multi()
             coeffs = np.polyfit(positions, focuses, 2)
             func = np.poly1d(-coeffs)

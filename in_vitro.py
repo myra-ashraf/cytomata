@@ -6,8 +6,8 @@ import schedule
 from cytomata.interface import Microscope
 
 
-def step_up_down(save_dir, mag=2, t_total=43200, t_on=0, t_off=43200,
-    t_on_freq=30, t_on_dur=1, img_int=300, ch_dark='None',
+def step_up_down(save_dir, mag=1, t_total=172800, t_on=43200, t_off=172800,
+    pattern='pulsatile', t_on_freq=30, t_on_dur=1, img_int=300, ch_dark='None',
     ch_exc='Induction-460nm', chs_img=['DIC', 'GFP']):
     """
     Use step functions to characterize an optogenetic system.
@@ -51,14 +51,13 @@ def step_up_down(save_dir, mag=2, t_total=43200, t_on=0, t_off=43200,
         if (time.time() >= t0 + t_on and time.time() <= t0 + t_off):
             if 'light' not in [list(j.tags)[0] for j in schedule.jobs]:
                 schedule.every(t_on_freq).seconds.do(
-                    mic.control_light, ch_exc, ch_dark, t_on_dur).tag('light')
+                    mic.control_light, pattern, ch_exc, ch_dark, t_on_dur).tag('light')
         # Remove light induction routine
         else:
             if 'light' in [list(j.tags)[0] for j in schedule.jobs]:
                 schedule.clear('light')
-            mic.set_channel(ch_dark)
-            time.sleep(1) # schedule needs pauses otherwise program crashes
-        time.sleep(1)
+                mic.set_channel(ch_dark)
+        time.sleep(1)  # schedule needs pauses otherwise program crashes
 
 
 if __name__ == '__main__':
