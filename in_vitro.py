@@ -6,7 +6,7 @@ import schedule
 from cytomata.interface import Microscope
 
 
-def step_up_down(save_dir, mag=1, t_total=172800, t_on=43200, t_off=172800,
+def step_up_down(save_dir, mag=1, t_total=259200, t_on=43200, t_off=259200,
     pattern='pulsatile', t_on_freq=30, t_on_dur=1, img_int=300, ch_dark='None',
     ch_exc='Induction-460nm', chs_img=['DIC', 'GFP']):
     """

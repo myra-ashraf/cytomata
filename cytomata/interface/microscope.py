@@ -126,7 +126,7 @@ class Microscope(object):
         foc = self.measure_focus(self.take_snapshot())
         return pos, foc
 
-    def sample_focus_multi(self, num=4, step=1):
+    def sample_focus_multi(self, num=5, step=0.5):
         positions = []
         focuses = []
         pos0 = self.get_position('z')
@@ -140,7 +140,7 @@ class Microscope(object):
         return positions, focuses
 
     def autofocus(self, ch='DIC', method='tr', step=5,
-        maxiter=9, bounds=[-50.0, 50.0]):
+        maxiter=9, bounds=[-100.0, 50.0]):
         self.set_channel(ch)
         if method == 'tr': # Top Ranked
             positions, focuses = self.sample_focus_multi()
