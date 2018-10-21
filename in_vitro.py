@@ -46,17 +46,19 @@ def step_up_down(save_dir, mag=1, t_total=259200, t_on=43200, t_off=259200,
     t0 = time.time()
     # While in timeframe for experiment:
     while time.time() - t0 < t_total:
-        schedule.run_pending()
         # Schedule light induction routine
         if (time.time() >= t0 + t_on and time.time() <= t0 + t_off):
             if 'light' not in [list(j.tags)[0] for j in schedule.jobs]:
                 schedule.every(t_on_freq).seconds.do(mic.control_light,
                 pattern, ch_exc, ch_dark, t_on_dur).tag('light')
+                time.sleep(1)
         # Remove light induction routine
         else:
             if 'light' in [list(j.tags)[0] for j in schedule.jobs]:
                 schedule.clear('light')
                 mic.set_channel(ch_dark)
+                time.sleep(1)
+        schedule.run_pending()
         time.sleep(1)  # schedule needs pauses otherwise program crashes
 
 

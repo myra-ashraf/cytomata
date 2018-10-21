@@ -6,7 +6,7 @@ import MMCorePy
 import numpy as np
 from scipy import optimize
 from skimage import img_as_float
-from skimage.filters import laplace
+from skimage.filters import laplace, sobel_h, sobel_v
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -20,9 +20,9 @@ class Microscope(object):
     def __init__(self, ch, mag, config_file=os.path.join(dir_path, 'mm.cfg')):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
-        self.core.waitForSystem()
         self.set_channel(ch)
         self.set_magnification(mag)
+        self.core.waitForSystem()
         self.count = 0
         self.times = []
         self.stage_xs = []
@@ -55,26 +55,28 @@ class Microscope(object):
     def set_position(self, axis, value):
         if axis.lower() == 'xy':
             self.core.setXYPosition('XYStage', value[0], value[1])
+            self.core.waitForDevice('XYStage')
         elif axis.lower() == 'z':
             self.core.setPosition('TIZDrive', value)
+            self.core.waitForDevice('TIZDrive')
         else:
             raise ValueError('Invalid axis argument.')
-        time.sleep(0.25)
 
     def shift_position(self, axis, value):
         if axis.lower() == 'xy':
             self.core.setRelativeXYPosition('XYStage', value[0], value[1])
+            self.core.waitForDevice('XYStage')
         elif axis.lower() == 'z':
             self.core.setRelativePosition('TIZDrive', value)
+            self.core.waitForDevice('TIZDrive')
         else:
             raise ValueError('Invalid axis argument.')
-        time.sleep(0.25)
 
     def take_snapshot(self):
         self.core.snapImage()
         return self.core.getImage()
 
-    def record_data(self, save_dir, chs_img, af_channel='DIC', af_method='tr'):
+    def record_data(self, save_dir, chs_img, af_channel='DIC', af_method='ts'):
         self.stage_xs.append(self.get_position('x'))
         self.stage_ys.append(self.get_position('y'))
         self.stage_zs.append(self.get_position('z'))
@@ -104,14 +106,16 @@ class Microscope(object):
         pass
 
     def measure_focus(self, img, metric='lap'):
-        if metric == 'lap':
+        if metric == 'var': # Variance of image
+            return np.var(img)
+        elif metric == 'lap':  # Variance of laplacian
             return np.var(laplace(img))
-        elif metric == 'vol':
-            pass
-        elif metric == 'bren':
-            pass
-        elif metric == 'ten':
-            pass
+        elif metric == 'vol':  # Vollath's F4
+            return np.mean(img[:-1, :]*img[1:, :]) - np.mean(img[:-2, :]*img[2:, :])
+        elif metric == 'bren':  # Brenner Gradient
+            return np.mean((img - np.roll(img, 2, 0))**2)
+        elif metric == 'ten':  # Tenengrad
+            return np.mean((sobel_h(img)**2) + (sobel_v(img)**2))
         else:
             raise ValueError('Invalid focus metric.')
 
@@ -139,10 +143,10 @@ class Microscope(object):
         self.set_position('z', pos0)
         return positions, focuses
 
-    def autofocus(self, ch='DIC', method='tr', step=5,
+    def autofocus(self, ch='DIC', method='ts', step=5,
         maxiter=9, bounds=[-100.0, 50.0]):
         self.set_channel(ch)
-        if method == 'tr': # Top Ranked
+        if method == 'ts': # Top Sampled
             positions, focuses = self.sample_focus_multi()
             best_foc = max(focuses)
             best_pos = positions[focuses.index(max(focuses))]
@@ -171,30 +175,10 @@ class Microscope(object):
                 and i < maxiter):
                 self.shift_position('z', step)
                 pos, foc = self.sample_focus()
-                if af_focuses[-1] < af_focuses[-2]:
-                    step *= -0.5
-                i += 1
-            best_pos = af_positions[-1]
-            best_foc = af_focuses[-1]
-        elif method == 'lf':  # Linear Fitting Hill Climb
-            if not self.af_positions or not self.af_focuses:
-                return self.sample_focus()
-            i = 0
-            pos, foc = self.sample_focus()
-            af_positions = [pos]
-            af_focuses = [foc]
-            while (af_focuses[-1] < np.max(af_focuses)*0.90
-                and af_positions[-1] > af_positions[0] + bounds[0]
-                and af_positions[-1] < af_positions[0] + bounds[1]
-                and i < maxiter):
-                self.shift_position('z', step)
-                pos, foc = self.sample_focus()
                 af_positions.append(pos)
                 af_focuses.append(foc)
-                coeffs = np.polyfit(af_positions[-2:], af_focuses[-2:], 1)
-                func = np.poly1d(coeffs)
-                new_pos = (func - np.max(af_focuses)).roots[0]
-                step = new_pos - af_positions[-1]
+                if af_focuses[-1] < af_focuses[-2]:
+                    step *= -0.5
                 i += 1
             best_pos = af_positions[-1]
             best_foc = af_focuses[-1]
