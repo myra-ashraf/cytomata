@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import os
 from setuptools import setup, find_packages
 import cytomata
@@ -45,6 +44,6 @@ setup(
     license=cytomata.__license__,
     packages=find_packages(exclude=['tests']),
     install_requires=[
-        'numpy', 'tensorflow', 'pygame', 'pymunk', 'gym', 'baselines', 'dill'
+        'numpy', 'scipy', 'pytorch', 'scikit-image', 'opencv', 'lmfit'
     ]
 )

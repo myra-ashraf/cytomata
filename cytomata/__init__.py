@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
     cytomata
     -----
@@ -6,17 +5,6 @@
     :copyright: (c) 2018 Phuong T. Ho
     :license: MIT, see LICENSE for more details.
 """
-from gym.envs.registration import register
-
-
-register(
-    id='Cytomatrix-v0',
-    entry_point='cytomata.simulate:Cytomatrix',
-)
-register(
-    id='PygamePong-v0',
-    entry_point='cytomata.simulate:PygamePong',
-)
 
 
 __name__ = 'cytomata'

@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 
 
@@ -108,7 +109,7 @@ class Env(object):
               'seed'. Often, the main seed equals the provided 'seed', but
               this won't be true if seed=None, for example.
         """
-        logger.warn("Could not seed environment %s", self)
+        logging.warn("Could not seed environment %s", self)
         return
 
     @property
@@ -215,7 +216,7 @@ class Box(Space):
                 dtype = np.uint8
             else:
                 dtype = np.float32
-            logger.warn("Box autodetected dtype as %s. Please provide explicit dtype." % dtype)
+            logging.warn("Box autodetected dtype as %s. Please provide explicit dtype." % dtype)
         self.low = low.astype(dtype)
         self.high = high.astype(dtype)
         Space.__init__(self, shape, dtype)

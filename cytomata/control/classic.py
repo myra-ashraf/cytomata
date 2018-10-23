@@ -1,7 +1,7 @@
 import time
 
 
-class BangBang(object):
+class BB(object):
     """On-Off controller that turns the binary input ON when the output is below
     a certain threshold otherwise the input is turned OFF"""
 
