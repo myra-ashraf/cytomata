@@ -6,11 +6,11 @@ import schedule
 from cytomata.interface import Microscope
 
 
-def step_up_down(save_dir, mag=1, t_total=259200, t_on=43200, t_off=259200,
-    pattern='pulsatile', t_on_freq=30, t_on_dur=1, img_int=300, ch_dark='None',
-    ch_exc='Induction-460nm', chs_img=['DIC', 'GFP']):
+def step_input(save_dir, coords_file=None, mag=1, chs_img=['DIC', 'GFP'],
+    ch_dark='None', ch_exc='Induction-460nm', pattern='pulsatile',
+    t_total=259200, t_on=43200, t_off=259200, t_on_freq=30, t_on_dur=1, img_int=300):
     """
-    Use step functions to characterize an optogenetic system.
+    Use a step input to characterize an optogenetic system.
 
     Starting from the dark state, the excitation light is turned on at t_on
     and turned off at t_off. Images are taken at regular time intervals via
@@ -30,21 +30,12 @@ def step_up_down(save_dir, mag=1, t_total=259200, t_on=43200, t_off=259200,
         ch_exc (MM config): Micromanager channel for induction light.
         chs_img (MM config): Micromanager channels for taking images.
     """
-    # Create data and image directories
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    for img_dir in [os.path.join(save_dir, 'imgs', ch) for ch in chs_img]:
-        if not os.path.exists(img_dir):
-            os.makedirs(img_dir)
-    # Initialize Microscope controller
-    mic = Microscope(ch=chs_img[0], mag=mag)
-    # Acquire data and images for time = 0
-    mic.record_data(save_dir, chs_img)
-    # Schedule data recording routine
-    schedule.every(img_int).seconds.do(
-        mic.record_data, save_dir, chs_img).tag('data')
+    mic = Microscope(save_dir=save_dir, coords_file=None, chs=chs_img, mag=mag,
+        af_ch='DIC', af_method='hc'
+    )
+    mic.record_data()
+    schedule.every(img_int).seconds.do(mic.record_data).tag('data')
     t0 = time.time()
-    # While in timeframe for experiment:
     while time.time() - t0 < t_total:
         # Schedule light induction routine
         if (time.time() >= t0 + t_on and time.time() <= t0 + t_off):
@@ -65,4 +56,4 @@ def step_up_down(save_dir, mag=1, t_total=259200, t_on=43200, t_off=259200,
 if __name__ == '__main__':
     timestamp = time.strftime('%Y%m%d-%H%M%S')
     save_dir = os.path.join('experiments', timestamp)
-    step_up_down(save_dir)
+    step_input(save_dir)
