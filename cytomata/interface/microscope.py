@@ -25,6 +25,7 @@ class Microscope(object):
         self.core.waitForSystem()
         self.count = 0
         self.times = []
+        self.multi_acquisition = None
         self.stage_xs = []
         self.stage_ys = []
         self.stage_zs = []
@@ -93,7 +94,39 @@ class Microscope(object):
             cv2.imwrite(img_path, img)
         data_path = os.path.join(save_dir, 'step_up_down.csv')
         column_names = ', '.join([
-            'time (s)', 'x', 'y', 'z', 'af_position', 'af_focus',
+            'time', 'x', 'y', 'z', 'af_position', 'af_focus',
+        ])
+        data = np.column_stack((
+            self.times, self.stage_xs, self.stage_ys, self.stage_zs,
+            self.af_positions, self.af_focuses,
+        ))
+        np.savetxt(data_path, data, delimiter=',', header=column_names)
+        self.count += 1
+
+    def record_data_multi(self, save_dir, chs_img, positions_file=None, af_channel='DIC', af_method='ts'):
+        if positions_file and not self.multi_acquisition:
+            self.multi_acquisition = np.load(positions_file)
+        self.autofocus(ch=af_channel, method=af_method)
+        if self.multi_acquisition:
+            for pos in self.multi_acquisition:
+                self.set_position('xy', pos[0:2])
+                self.set_position('z', pos[2])
+                for ch in chs_img:
+                    self.set_channel(ch)
+                    img = self.take_snapshot()
+                    # self.fluo_ints.append(self.measure_fluorescence(img))
+                    if ch == 'DIC':
+                        self.af_positions.append(self.get_position('z'))
+                        self.af_focuses.append(self.measure_focus(img))
+                    img_path = os.path.join(save_dir, 'imgs', ch, str(self.count) + '.tiff')
+                    cv2.imwrite(img_path, img)
+                    self.times.append(time.time())
+                    self.stage_xs.append(self.get_position('x'))
+                    self.stage_ys.append(self.get_position('y'))
+                    self.stage_zs.append(self.get_position('z'))
+        data_path = os.path.join(save_dir, 'step_up_down.csv')
+        column_names = ', '.join([
+            'time', 'x', 'y', 'z', 'af_position', 'af_focus',
         ])
         data = np.column_stack((
             self.times, self.stage_xs, self.stage_ys, self.stage_zs,
@@ -187,3 +220,16 @@ class Microscope(object):
             best_pos = self.stage_zs[0]
             best_foc = 0.0
         return best_pos, best_foc
+
+    def record_position(self, save_dir):
+        x = self.get_position('x')
+        y = self.get_position('y')
+        z = self.get_position('z')
+        data_path = os.path.join(save_dir, 'positions.npy')
+        if not os.path.isfile(data_path):
+            data = np.array([[x, y, z]])
+            np.save(data_path, data)
+        else:
+            data = np.load(data_path)
+            data = np.vstack((data, [x, y, z]))
+            np.save(data_path, data)
