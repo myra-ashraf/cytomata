@@ -38,7 +38,7 @@ class Microscope(object):
                 self.get_position('y'),
                 self.get_position('z')
             ]])
-        for sample_dir in [os.path.join(save_dir, 'imgs', ch, i) for ch in chs for i in range(len(self.coords))]:
+        for sample_dir in [os.path.join(save_dir, 'imgs', ch, str(i)) for ch in chs for i in range(len(self.coords))]:
             if not os.path.exists(sample_dir):
                 os.makedirs(sample_dir)
         self.count = 0
@@ -93,7 +93,7 @@ class Microscope(object):
         return self.core.getImage()
 
     def measure_fluorescence(self, img):
-        den = denoise_nl_means(img_as_float(img), h=0.005)
+        den = denoise_nl_means(img_as_float(img), h=0.005, multichannel=False)
         gau = gaussian(den, sigma=30)
         sub = den - gau
         sub[sub < 0] = 0
@@ -144,14 +144,12 @@ class Microscope(object):
             positions, focuses = self.sample_focus_multi()
             best_foc = max(focuses)
             best_pos = positions[focuses.index(max(focuses))]
-            if (best_pos > z0 + bounds[0] and best_pos < z0 + bounds[1]):
-                self.set_position('z', best_pos)
         elif self.af_method == 'hc':  # Hill Climb
             iter = 0
             pos, foc = self.sample_focus()
             positions = [pos]
             focuses = [foc]
-            while (step > 0.2 and iter < maxiter
+            while (abs(step) > 0.2 and iter < maxiter
                 and positions[-1] > z0 + bounds[0]
                 and positions[-1] < z0 + bounds[1]):
                 self.shift_position('z', step)
@@ -163,13 +161,13 @@ class Microscope(object):
                 iter += 1
             best_foc = max(focuses)
             best_pos = positions[focuses.index(max(focuses))]
-            if (best_pos > z0 + bounds[0] and best_pos < z0 + bounds[1]):
-                self.set_position('z', best_pos)
         else:  # Reset stage position to initial state
-            self.set_position(z0)
             best_pos = z0
             best_foc = 0.0
-        return best_pos, best_foc
+        if (best_pos > z0 + bounds[0] and best_pos < z0 + bounds[1]): 
+            return best_pos, best_foc
+        else:
+            return z0, 0.0
 
     def record_position(self):
         x = self.get_position('x')
@@ -187,7 +185,7 @@ class Microscope(object):
     def record_data(self):
         best_pos, best_foc = self.autofocus()
         self.coords[:, 2] += (best_pos - self.coords[0, 2])
-        for i, (x, y, z) in self.coords:
+        for i, (x, y, z) in enumerate(self.coords):
             self.set_position('xy', (x, y))
             self.set_position('z', z)
             self.ts[i].append(time.time())
@@ -197,7 +195,8 @@ class Microscope(object):
             for ch in self.chs:
                 self.set_channel(ch)
                 img = self.take_snapshot()
-                self.fls[i].append(self.measure_fluorescence(img))
+                if ch != 'DIC':
+                    self.fls[i].append(self.measure_fluorescence(img))
                 img_path = os.path.join(self.save_dir, 'imgs', ch, str(i), str(self.count) + '.tiff')
                 cv2.imwrite(img_path, img)
             data_path = os.path.join(self.save_dir, str(i) + '.csv')
