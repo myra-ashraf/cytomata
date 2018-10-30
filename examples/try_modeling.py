@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import itertools
 sys.path.append(os.path.abspath('../'))
 
 import numpy as np
@@ -24,26 +25,58 @@ yp = np.array([yf(t) for t in tp])
 
 # Fit Model
 fopdt = FOPDT()
-t0 = time.time()
-fopdt.fit_model(tp=tp, up=up, yp=yp, K0=None, tau0=None, theta0=None, method='differential_evolution')
-t1 = time.time()
+fopdt.fit_model(tp=tp, up=up, yp=yp, K0=None, tau0=None, theta0=None, method='leastsq')
+
+# Optimize Pattern
+def residual(params):
+    light = params['light']
+    dark = params['dark']
+    period = light + dark
+    tp = np.array(range(0, 100000))/3600
+    up = np.array([0]*(100000%period) + ([1]*light + [0]*dark) * (100000//period))
+    y = fopdt.simulate(tp, up, 0.0)
+    plt.clf()
+    plt.plot(tp, y)
+    plt.ylabel('Output')
+    plt.xlabel('Time')
+    plt.pause(1e-6)
+    return np.sum((y - 10.0)**2)
+best_res = np.inf
+best_l = 1
+best_d = 1
+for l in range(1, 30):
+    for d in range(0, 30):
+        res = residual({'light': l, 'dark': d})
+        if res < best_res:
+            os.system('cls' if os.name == 'nt' else 'clear')
+            print('Lowest SSE: ' + str(res))
+            best_res = res
+            best_l = l
+            best_d = d
+plt.close()
+os.system('cls' if os.name == 'nt' else 'clear')
+print('Best On Duration: ' + str(best_l))
+print('Best Off Duration: ' + str(best_d))
 
 # Simulate
-n = 100
-reward_func = lambda t, u, y: -abs(y[-1] - np.mean(yp))
-obs = fopdt.reset(y0=0.0, dt=1.0, n=n, reward_func=reward_func)
+# best_l = 10
+# best_d = 20
+n = 200
+dt = 0.1
+# Note: dt is in hours, if take dt of the tp array, it is 1/3600
+reward_func = lambda t, u, y: -abs(y[-1] - 10.0)
+obs = fopdt.reset(y0=0.0, dt=dt, n=n, reward_func=reward_func)
 fopdt.render()
-t2 = time.time()
-step_dur = []
+counter = False
+count = 0
 for i in range(n):
-    t3 = time.time()
-    action = 1.0
-    if i > 50:
+    if i % best_d == 0:
+        action = 1.0
+        counter = True
+    if counter:
+        count += 1
+    if count == best_l:
+        count = 0
+        counter = False
         action = 0.0
     obs, rew, done, info = fopdt.step(action)
-    t4 = time.time()
-    step_dur.append(t4 - t3)
-print('Fitting Duration: ' + str(t1 - t0))
-print('Reset Duration: ' + str(t2 - t1))
-print('Step Duration: ' + str(np.mean(step_dur)))
-print('Total Duration: ' + str(t4 - t0))

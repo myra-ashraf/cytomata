@@ -30,15 +30,14 @@ class FOPDT(Env):
             u = uf(0.0)
         else:
             u = uf(t - theta)
-        dydt = (-(y - y0) + K*(u - uf(0.0)))/tau
+        dydt = (-(y - 0) + K*(u - 0))/tau
         return dydt
 
     def simulate(self, t, u, y0):
         uf = interp1d(t, u)
         result = solve_ivp(
             fun=lambda t, y: self.model(t, y, uf, y0, self.K, self.tau, self.theta),
-            t_span=[t[0], t[-1]], y0=[y0], t_eval=t, method='LSODA'
-        )
+            t_span=[t[0], t[-1]], y0=[y0], t_eval=t, method='LSODA')
         return result.y[0]
 
     def residual(self, params):
@@ -73,7 +72,6 @@ class FOPDT(Env):
         self.tp = tp
         self.up = up
         self.yp = yp
-        params = lm.Parameters()
         if K0 is None:
             K0 = np.max(self.yp)
         if tau0 is None:
@@ -82,12 +80,14 @@ class FOPDT(Env):
         if theta0 is None:
             # time duration where input is nonzero but output is close to zero
             theta0 = len(np.where((self.tp < np.percentile(self.tp, 10)) & (self.up > 0))[0]) * np.mean(np.ediff1d(self.tp))
+        params = lm.Parameters()
         params.add('K', value=K0, min=0.0, max=2*np.max(self.yp))
         params.add('tau', value=tau0, min=0.0, max=np.max(self.tp))
         params.add('theta', value=theta0, min=0.0, max=np.max(self.tp))
         self.opt_results = lm.minimize(
             self.residual, params, method=method, iter_cb=self.progress
         )
+        self.close()
         self.K = self.opt_results.params['K'].value
         self.tau = self.opt_results.params['tau'].value
         self.theta = self.opt_results.params['theta'].value
@@ -117,6 +117,7 @@ class FOPDT(Env):
         done = False
         if len(self.t) >= self.n:
             done = True
+            self.close()
         info = None
         if self.display:
             plt.clf()
@@ -130,7 +131,6 @@ class FOPDT(Env):
             plt.ylabel('Output')
             plt.xlabel('Time')
             plt.pause(1e-2)
-
         return obs, reward, done, info
 
     def seed(self, seed):
@@ -145,3 +145,4 @@ class FOPDT(Env):
 
     def close(self):
         self.display = False
+        plt.close()
