@@ -137,7 +137,7 @@ class Microscope(object):
         self.set_position('z', pos0)
         return positions, focuses
 
-    def autofocus(self, step=-1.0, maxiter=9, bounds=[-100.0, 50.0]):
+    def autofocus(self, step=-1.0, maxiter=7, bounds=[-100.0, 50.0]):
         self.set_channel(self.af_ch)
         z0 = self.coords[0, 2]
         if self.af_method == 'ts':  # Top Sampled
@@ -149,7 +149,7 @@ class Microscope(object):
             pos, foc = self.sample_focus()
             positions = [pos]
             focuses = [foc]
-            while (abs(step) > 0.2 and iter < maxiter
+            while (abs(step) > 0.3 and iter < maxiter
                 and positions[-1] > z0 + bounds[0]
                 and positions[-1] < z0 + bounds[1]):
                 self.shift_position('z', step)
@@ -164,7 +164,7 @@ class Microscope(object):
         else:  # Reset stage position to initial state
             best_pos = z0
             best_foc = 0.0
-        if (best_pos > z0 + bounds[0] and best_pos < z0 + bounds[1]): 
+        if (best_pos > z0 + bounds[0] and best_pos < z0 + bounds[1]):
             return best_pos, best_foc
         else:
             return z0, 0.0
