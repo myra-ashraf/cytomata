@@ -1,2 +1,1 @@
-from cytomata.process.fit import FOPDTFitter
-from cytomata.process.sim import FOPDT
+from cytomata.process.model import FOPDT
