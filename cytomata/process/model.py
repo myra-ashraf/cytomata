@@ -1,4 +1,5 @@
 import os
+import time
 from collections import defaultdict
 
 import numpy as np
@@ -157,7 +158,7 @@ class Regulator(Env):
     """
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, params={}):
+    def __init__(self, params=None):
         self.action_space = Discrete(2)
         self.observation_space = Box(
             low=np.array([0.0, 0.0, 0.0]),
@@ -168,6 +169,58 @@ class Regulator(Env):
         self.y = defaultdict(list)
         self.params = params
         self.sse = np.inf
+        self.save_dir = os.path.join('logs', time.strftime('%Y%m%d-%H%M%S'))
+        if not os.path.exists(self.save_dir):
+            os.makedirs(self.save_dir)
+
+    def fit_model(self, tp, up, yp, y0=None, method='powell'):
+        self.fit_figs_dir = os.path.join(self.save_dir, 'fit_figs')
+        if not os.path.exists(self.fit_figs_dir):
+            os.makedirs(self.fit_figs_dir)
+        self.tp = tp
+        self.up = up
+        self.yp = yp
+        if y0:
+            self.y0 = y0
+        elif len(self.yp.shape) == 1:
+            self.y0 = [0.0, 0.0, self.yp[0]]
+        else:
+            self.y0 = self.yp[0]
+        params = lm.Parameters()
+        params.add('k_r', value=1.0, min=1e-6, max=40)
+        params.add('k_i', value=1.0, min=1e-6, max=40)
+        params.add('k_a', value=1.0, min=1e-6, max=40)
+        params.add('k_b', value=1.0, min=1e-6, max=40)
+        params.add('k_d', value=1.0, min=1e-6, max=40)
+        params.add('a', value=1.0, min=1e-6, max=40)
+        params.add('b', value=1.0, min=1e-6, max=40)
+        params.add('n', value=1.0, min=1, max=6)
+        params.add('K', value=1.0, min=1e-6, max=40)
+        self.opt_results = lm.minimize(
+            self.residual, params, method=method, iter_cb=self.progress, nan_policy='propagate'
+        )
+        self.close()
+        self.params = self.opt_results.params.valuesdict()
+        os.system('cls' if os.name == 'nt' else 'clear')
+        print(lm.report_fit(self.opt_results))
+
+    def residual(self, params):
+        self.params = params
+        y = self.simulate(self.tp, self.up, self.y0)
+        self.y['I'] = np.nan_to_num(y[0])
+        self.y['A'] = np.nan_to_num(y[1])
+        self.y['P'] = np.nan_to_num(y[2])
+        if len(self.yp.shape) == 1:
+            return self.y['P'] - self.yp
+        else:
+            return y - self.yp
+
+    def simulate(self, t, u, y0):
+        self.uf = interp1d(t, u)
+        result = solve_ivp(
+            fun=lambda t, y: self.model(t, y),
+            t_span=[t[0], t[-1]], y0=y0, t_eval=t, method='LSODA')
+        return result.y
 
     def model(self, t, y):
         I, A, P = y
@@ -184,77 +237,30 @@ class Regulator(Env):
         dIdt = k_r + k_i*A - (k_a*u + k_b + k_d)*I
         dAdt = (k_a*u + k_b)*I - (k_i + k_d)*A
         dPdt = b + a*(A**n/(K**n + A**n)) - k_d*P
-        if np.isnan(dPdt):
-            print('K: ' + str(K))
-            print('A: ' + str(A))
-            print('n: ' + str(n))
         return [dIdt, dAdt, dPdt]
-
-    def simulate(self, t, u, y0):
-        self.uf = interp1d(t, u)
-        result = solve_ivp(
-            fun=lambda t, y: self.model(t, y),
-            t_span=[t[0], t[-1]], y0=y0, t_eval=t, method='LSODA')
-        return result.y
-
-    def residual(self, params):
-        self.params = params
-        y = self.simulate(self.tp, self.up, [0.0, 0.0, self.yp[0]])
-        self.y['I'] = y[0]
-        self.y['A'] = y[1]
-        self.y['P'] = y[2]
-        if np.isnan(self.y['P']).any():
-            return 1e6
-        else:
-            return self.y['P'] - self.yp
 
     def progress(self, params, iter, resid):
         sse = np.sum(resid**2)
         if sse < self.sse:
             self.sse = sse
-        if self.prg_plot:
-            plt.clf()
-            plt.plot(self.tp, self.yp)
-            plt.plot(self.tp, self.y['I'], label='I')
-            plt.plot(self.tp, self.y['A'], label='A')
-            plt.plot(self.tp, self.y['P'], label='P')
-            title = 'SSE: ' + str(np.format_float_scientific(sse, precision=4)) + '\n'
-            for i, (k, v) in enumerate(params.valuesdict().items()):
-                title += ' | '+ k +': ' + str(np.round(v, 3))
-                if i > 0 and i % 4 == 0:
-                    title += '\n'
-            plt.title(title)
-            plt.ylabel('Output')
-            plt.xlabel('Time')
-            plt.legend(loc='best')
-            plt.pause(1e-6)
-        else:
-            os.system('cls' if os.name == 'nt' else 'clear')
-            print('SSE: ' + str(sse))
-            print(params.valuesdict())
-
-    def fit_model(self, tp, up, yp, method='leastsq', prg_plot=True):
-        self.prg_plot = prg_plot
-        self.tp = tp
-        self.up = up
-        self.yp = yp
-        params = lm.Parameters()
-        params.add('k_r', value=1.0, min=1e-6, max=50)
-        params.add('k_i', value=1.0, min=1e-6, max=50)
-        params.add('k_a', value=1.0, min=1e-6, max=50)
-        params.add('k_b', value=1.0, min=1e-6, max=50)
-        params.add('k_d', value=1.0, min=1e-6, max=50)
-        params.add('a', value=1.0, min=1e-6, max=50)
-        params.add('b', value=1.0, min=1e-6, max=50)
-        params.add('n', value=1.0, min=1, max=10)
-        params.add('K', value=1.0, min=1e-6, max=50)
-        self.opt_results = lm.minimize(
-            self.residual, params, method=method, iter_cb=self.progress, nan_policy='propagate'
-        )
-        self.close()
-        self.params = self.opt_results.params.valuesdict()
-        os.system('cls' if os.name == 'nt' else 'clear')
-        print(lm.report_fit(self.opt_results))
+        plt.clf()
+        plt.plot(self.tp, self.yp)
+        # plt.plot(self.tp, self.y['I'], label='I')
+        # plt.plot(self.tp, self.y['A'], label='A')
+        plt.plot(self.tp, self.y['P'], label='P')
+        title = 'SSE: ' + str(np.format_float_scientific(sse, precision=3))
+        for i, (k, v) in enumerate(params.valuesdict().items()):
+            title += ' | '+ k +': ' + str(np.round(v, 3))
+            if i > 0 and i % 4 == 0:
+                title += '\n'
+        plt.title(title)
+        plt.ylabel('Output')
+        plt.xlabel('Time')
+        plt.legend(loc='best')
+        if iter % 10 == 0:
+            fig_path = os.path.join(self.fit_figs_dir, str(iter) + '.png')
+            plt.savefig(fig_path)
+        plt.pause(1e-6)
 
     def reset(self, y0, dt, n, reward_func):
         # self.n = n

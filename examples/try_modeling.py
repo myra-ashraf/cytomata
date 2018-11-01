@@ -14,18 +14,10 @@ from cytomata.process import FOPDT, Regulator
 
 
 # Load Data
-df = pd.read_csv('data1.csv')
+df = pd.read_csv('data2.csv')
 tp = df['t'].values
 up = df['u'].values
 yp = df['y'].values
-# tp = df['time'].values/3600
-# yp = df['fluo'].values*100
-# up = df['light'].values
-# yf = interp1d(tp, yp)
-# up = np.array([0]*5 + ([1]*1 + [0]*29) * 3857)
-# tp = np.array(range(0, 115715))/3600
-# yp = np.array([yf(t) for t in tp])
-# pd.DataFrame({'t': tp, 'u': up, 'y': yp}).to_csv('data2.csv')
 
 # Fit Model
 regulator = Regulator()
