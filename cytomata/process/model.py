@@ -1,5 +1,6 @@
 import os
 import time
+import json
 from collections import defaultdict
 
 import numpy as np
@@ -7,6 +8,7 @@ import lmfit as lm
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
+plt.rcParams['figure.figsize'] = 8, 6
 
 from cytomata.utils.gym import Env, Box, Discrete
 
@@ -168,7 +170,9 @@ class Regulator(Env):
         self.display = False
         self.y = defaultdict(list)
         self.params = params
-        self.sse = np.inf
+        self.top_sse = np.inf
+        self.top_params = None
+        self.clock = time.time()
         self.save_dir = os.path.join('logs', time.strftime('%Y%m%d-%H%M%S'))
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
@@ -177,6 +181,7 @@ class Regulator(Env):
         self.fit_figs_dir = os.path.join(self.save_dir, 'fit_figs')
         if not os.path.exists(self.fit_figs_dir):
             os.makedirs(self.fit_figs_dir)
+        self.method = method
         self.tp = tp
         self.up = up
         self.yp = yp
@@ -187,17 +192,18 @@ class Regulator(Env):
         else:
             self.y0 = self.yp[0]
         params = lm.Parameters()
-        params.add('k_r', value=1.0, min=1e-6, max=40)
-        params.add('k_i', value=1.0, min=1e-6, max=40)
-        params.add('k_a', value=1.0, min=1e-6, max=40)
-        params.add('k_b', value=1.0, min=1e-6, max=40)
-        params.add('k_d', value=1.0, min=1e-6, max=40)
-        params.add('a', value=1.0, min=1e-6, max=40)
-        params.add('b', value=1.0, min=1e-6, max=40)
-        params.add('n', value=1.0, min=1, max=6)
-        params.add('K', value=1.0, min=1e-6, max=40)
+        params.add('k_r', value=1, min=0, max=20)
+        params.add('k_i', value=1, min=0, max=20)
+        params.add('k_a', value=1, min=0, max=20)
+        params.add('k_b', value=1, min=0, max=20)
+        params.add('k_d', value=1, min=0, max=20)
+        params.add('a', value=1, min=0, max=20)
+        params.add('b', value=1, min=0, max=20)
+        params.add('n', value=1, min=0, max=10)
+        params.add('K', value=1, min=0, max=20)
         self.opt_results = lm.minimize(
-            self.residual, params, method=method, iter_cb=self.progress, nan_policy='propagate'
+            self.residual, params, method=method, iter_cb=self.progress,
+            nan_policy='propagate', local='Nelder-Mead'
         )
         self.close()
         self.params = self.opt_results.params.valuesdict()
@@ -241,12 +247,21 @@ class Regulator(Env):
 
     def progress(self, params, iter, resid):
         sse = np.sum(resid**2)
-        if sse < self.sse:
-            self.sse = sse
+        if sse < self.top_sse:
+            self.top_sse = sse
+            self.top_params = self.params.valuesdict()
+            top_data = {'method': self.method, 'sse': sse, **self.top_params}
+            top_path = os.path.join(self.save_dir, 'params.json')
+            with open(top_path, 'w') as fp:
+                json.dump(top_data, fp)
         plt.clf()
-        plt.plot(self.tp, self.yp)
-        # plt.plot(self.tp, self.y['I'], label='I')
-        # plt.plot(self.tp, self.y['A'], label='A')
+        if len(self.yp.shape) == 1:
+            plt.plot(self.tp, self.yp)
+        else:
+            for i in range(self.yp.shape[1]):
+                plt.plot(self.tp, self.yp[:, i], label='p' + str(i))
+        plt.plot(self.tp, self.y['I'], label='I')
+        plt.plot(self.tp, self.y['A'], label='A')
         plt.plot(self.tp, self.y['P'], label='P')
         title = 'SSE: ' + str(np.format_float_scientific(sse, precision=3))
         for i, (k, v) in enumerate(params.valuesdict().items()):
@@ -261,6 +276,8 @@ class Regulator(Env):
             fig_path = os.path.join(self.fit_figs_dir, str(iter) + '.png')
             plt.savefig(fig_path)
         plt.pause(1e-6)
+        if time.time() - self.clock > 86400:
+            return True
 
     def reset(self, y0, dt, n, reward_func):
         # self.n = n

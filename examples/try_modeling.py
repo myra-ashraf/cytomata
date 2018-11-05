@@ -14,14 +14,23 @@ from cytomata.process import FOPDT, Regulator
 
 
 # Load Data
-df = pd.read_csv('data2.csv')
+df = pd.read_csv('data10.csv')
 tp = df['t'].values
 up = df['u'].values
 yp = df['y'].values
+# df = pd.read_csv('data.csv')
+# tp = df['time'].values/3600
+# yp = df['fluo'].values*10
+# up = df['light'].values
+# yf = interp1d(tp, yp)
+# up = np.array([0]*5 + ([1]*1 + [0]*29) * 3857)
+# tp = np.array(range(0, 115715))/3600
+# yp = np.array([yf(t) for t in tp])
+# pd.DataFrame({'t': tp, 'u': up, 'y': yp}).to_csv('data.csv')
 
 # Fit Model
 regulator = Regulator()
-regulator.fit_model(tp=tp, up=up, yp=yp, method='powell')
+regulator.fit_model(tp=tp, up=up, yp=yp, method='ampgo')
 #
 # # Optimize Pattern
 # def residual(params):
