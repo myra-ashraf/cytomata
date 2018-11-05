@@ -1,3 +1,6 @@
+import faulthandler
+faulthandler.enable()
+
 import os
 import time
 from collections import defaultdict
@@ -185,13 +188,13 @@ class Microscope(object):
             np.save(data_path, data)
 
     def save_data(self):
-        for i in len(self.coords):
+        for i in range(len(self.coords)):
             data_path = os.path.join(self.save_dir, str(i) + '.csv')
-            header = ', '.join(['t', 'x', 'y', 'z', 'fl'])
+            header = ','.join(['t', 'x', 'y', 'z', 'fl'])
             data = np.column_stack((self.ts[i], self.xs[i], self.ys[i], self.zs[i], self.fls[i]))
-            np.savetxt(data_path, data, delimiter=',', header=header)
+            np.savetxt(data_path, data, delimiter=',', header=header, comments='')
         u_path = os.path.join(self.save_dir, 'u.csv')
-        np.savetxt(u_path, np.array(self.us), delimiter=',', header='t')
+        np.savetxt(u_path, np.array(self.us), delimiter=',', header='t', comments='')
 
     def record_data(self):
         best_pos, best_foc = self.autofocus()
