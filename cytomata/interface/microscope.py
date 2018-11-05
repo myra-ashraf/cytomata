@@ -47,6 +47,7 @@ class Microscope(object):
         self.ys = defaultdict(list)
         self.zs = defaultdict(list)
         self.fls = defaultdict(list)
+        self.us = []
 
     def get_position(self, axis):
         if axis.lower() == 'x':
@@ -100,6 +101,7 @@ class Microscope(object):
         return np.mean(sub[sub.nonzero()])
 
     def control_light(self, pattern, ch_exc, ch_dark, duration):
+        self.us.append(time.time())
         self.set_channel(ch_exc)
         if pattern == 'pulsatile':
             time.sleep(duration)
@@ -182,6 +184,15 @@ class Microscope(object):
             data = np.vstack((data, [x, y, z]))
             np.save(data_path, data)
 
+    def save_data(self):
+        for i in len(self.coords):
+            data_path = os.path.join(self.save_dir, str(i) + '.csv')
+            header = ', '.join(['t', 'x', 'y', 'z', 'fl'])
+            data = np.column_stack((self.ts[i], self.xs[i], self.ys[i], self.zs[i], self.fls[i]))
+            np.savetxt(data_path, data, delimiter=',', header=header)
+        u_path = os.path.join(self.save_dir, 'u.csv')
+        np.savetxt(u_path, np.array(self.us), delimiter=',', header='t')
+
     def record_data(self):
         best_pos, best_foc = self.autofocus()
         self.coords[:, 2] += (best_pos - self.coords[0, 2])
@@ -199,8 +210,5 @@ class Microscope(object):
                     self.fls[i].append(self.measure_fluorescence(img))
                 img_path = os.path.join(self.save_dir, 'imgs', ch, str(i), str(self.count) + '.tiff')
                 cv2.imwrite(img_path, img)
-            data_path = os.path.join(self.save_dir, str(i) + '.csv')
-            header = ', '.join(['t', 'x', 'y', 'z', 'fl'])
-            data = np.column_stack((self.ts[i], self.xs[i], self.ys[i], self.zs[i], self.fls[i]))
-            np.savetxt(data_path, data, delimiter=',', header=header)
+            self.save_data()
         self.count += 1
