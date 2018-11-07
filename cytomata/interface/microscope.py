@@ -1,6 +1,3 @@
-import faulthandler
-faulthandler.enable()
-
 import os
 import time
 from collections import defaultdict
@@ -104,15 +101,19 @@ class Microscope(object):
         return np.mean(sub[sub.nonzero()])
 
     def control_light(self, pattern, ch_exc, ch_dark, duration):
+        print('control_light0')
         self.us.append(time.time())
         self.set_channel(ch_exc)
         if pattern == 'pulsatile':
             time.sleep(duration)
             self.set_channel(ch_dark)
+        print('control_light1')
 
     def measure_focus(self, img, metric='lap'):
         if metric == 'var': # Variance of image
             return np.var(img)
+        elif metric == 'nvar':  # Normalized variance of image
+            return np.var(img)/np.mean(img)
         elif metric == 'lap':  # Variance of laplacian
             return np.var(laplace(img))
         elif metric == 'vol':  # Vollath's F4
@@ -197,8 +198,11 @@ class Microscope(object):
         np.savetxt(u_path, np.array(self.us), delimiter=',', header='t', comments='')
 
     def record_data(self):
+        print('autofocus0')
         best_pos, best_foc = self.autofocus()
+        print('autofocus1')
         self.coords[:, 2] += (best_pos - self.coords[0, 2])
+        print('save_data0')
         for i, (x, y, z) in enumerate(self.coords):
             self.set_position('xy', (x, y))
             self.set_position('z', z)
@@ -206,6 +210,7 @@ class Microscope(object):
             self.xs[i].append(x)
             self.ys[i].append(y)
             self.zs[i].append(z)
+            print('save_img0')
             for ch in self.chs:
                 self.set_channel(ch)
                 img = self.take_snapshot()
@@ -213,5 +218,7 @@ class Microscope(object):
                     self.fls[i].append(self.measure_fluorescence(img))
                 img_path = os.path.join(self.save_dir, 'imgs', ch, str(i), str(self.count) + '.tiff')
                 cv2.imwrite(img_path, img)
+            print('save_img0')
             self.save_data()
+        print('save_data1')
         self.count += 1

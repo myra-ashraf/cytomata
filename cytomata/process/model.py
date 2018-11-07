@@ -170,14 +170,15 @@ class Regulator(Env):
         self.display = False
         self.y = defaultdict(list)
         self.params = params
-        self.top_sse = np.inf
+        self.sse_fit = [1e12]
+        self.time_fit = [time.time()]
         self.top_params = None
         self.clock = time.time()
         self.save_dir = os.path.join('logs', time.strftime('%Y%m%d-%H%M%S'))
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
 
-    def fit_model(self, tp, up, yp, y0=None, method='powell'):
+    def fit_model(self, tp, up, yp, y0=None, method='powell', method_kwargs={}):
         self.fit_figs_dir = os.path.join(self.save_dir, 'fit_figs')
         if not os.path.exists(self.fit_figs_dir):
             os.makedirs(self.fit_figs_dir)
@@ -192,20 +193,23 @@ class Regulator(Env):
         else:
             self.y0 = self.yp[0]
         params = lm.Parameters()
-        params.add('k_r', value=1, min=0, max=40)
-        params.add('k_i', value=1, min=0, max=40)
-        params.add('k_a', value=1, min=0, max=40)
-        params.add('k_b', value=1, min=0, max=40)
-        params.add('k_d', value=1, min=0, max=40)
-        params.add('a', value=1, min=0, max=40)
-        params.add('b', value=1, min=0, max=40)
+        params.add('k_r', value=1, min=0, max=100)
+        params.add('k_i', value=1, min=0, max=100)
+        params.add('k_a', value=1, min=0, max=100)
+        params.add('k_b', value=1, min=0, max=100)
+        params.add('k_d', value=1, min=0, max=100)
+        params.add('a', value=1, min=0, max=100)
+        params.add('b', value=1, min=0, max=100)
         params.add('n', value=1, min=0, max=10)
-        params.add('K', value=1, min=0, max=40)
+        params.add('K', value=1, min=0, max=100)
         self.opt_results = lm.minimize(
             self.residual, params, method=method, iter_cb=self.progress,
-            nan_policy='propagate', local='Powell'
+            nan_policy='propagate', **method_kwargs
         )
         self.close()
+        sse_path = os.path.join(self.save_dir, 'sse.csv')
+        sse_data = np.column_stack((self.time_fit, self.sse_fit))
+        np.savetxt(sse_path, sse_data, delimiter=',', header='t,sse')
         self.params = self.opt_results.params.valuesdict()
         os.system('cls' if os.name == 'nt' else 'clear')
         print(lm.report_fit(self.opt_results))
@@ -247,10 +251,11 @@ class Regulator(Env):
 
     def progress(self, params, iter, resid):
         sse = np.sum(resid**2)
-        if sse < self.top_sse:
-            self.top_sse = sse
+        if sse < self.sse_fit[-1]:
+            self.sse_fit.append(sse)
+            self.time_fit.append(time.time())
             self.top_params = self.params.valuesdict()
-            top_data = {'method': self.method, 'sse': sse, **self.top_params}
+            top_data = {'method': self.method, 'time': time.strftime('%Y%m%d-%H%M%S'), 'sse': sse, **self.top_params}
             top_path = os.path.join(self.save_dir, 'params.json')
             with open(top_path, 'w') as fp:
                 json.dump(top_data, fp)
@@ -276,7 +281,7 @@ class Regulator(Env):
             fig_path = os.path.join(self.fit_figs_dir, str(iter) + '.png')
             plt.savefig(fig_path)
         plt.pause(1e-6)
-        if time.time() - self.clock > 86400:
+        if time.time() - self.clock > 43200:
             return True
 
     def reset(self, y0, dt, n, reward_func):

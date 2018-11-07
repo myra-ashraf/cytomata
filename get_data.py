@@ -11,7 +11,7 @@ from cytomata.interface import Microscope
 
 def step_input(save_dir, coords_file=None, mag=1, chs_img=['DIC', 'GFP'],
     ch_dark='None', ch_exc='Induction-460nm', pattern='pulsatile',
-    t_total=259200, t_on=43200, t_off=259200, t_on_freq=30, t_on_dur=1, img_int=300):
+    t_total=86400, t_on=43200, t_off=57600, t_on_freq=30, t_on_dur=1, img_int=300):
     """
     Use a step input to characterize an optogenetic system.
 

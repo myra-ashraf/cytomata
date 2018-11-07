@@ -30,7 +30,7 @@ yp = df['y'].values
 
 # Fit Model
 regulator = Regulator()
-regulator.fit_model(tp=tp, up=up, yp=yp, method='ampgo')
+regulator.fit_model(tp=tp, up=up, yp=yp, method='ampgo', method_kwargs={'local': 'Nelder-Mead'})
 #
 # # Optimize Pattern
 # def residual(params):
