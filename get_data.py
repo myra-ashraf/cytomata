@@ -1,6 +1,3 @@
-import faulthandler
-faulthandler.enable()
-
 import os
 import time
 
@@ -37,11 +34,10 @@ def step_input(save_dir, coords_file=None, mag=1, img_int=300,
         af_ch='DIC', af_method='hc'
     )
     mic.record_data()
-    t0 = mic.ts[0][0]
     schedule.every(t_on_freq).seconds.do(
         mic.control_light, ch_exc, ch_dark, t_on, t_off, t_on_dur).tag('light')
     schedule.every(img_int).seconds.do(mic.record_data).tag('data')
-    while time.time() - t0 < t_total:
+    while time.time() - mic.ts[0][0] < t_total:
         schedule.run_pending()
         time.sleep(1)  # schedule needs pauses otherwise program crashes
 
