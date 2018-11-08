@@ -9,9 +9,9 @@ import schedule
 from cytomata.interface import Microscope
 
 
-def step_input(save_dir, coords_file=None, mag=1, chs_img=['DIC', 'GFP'],
-    ch_dark='None', ch_exc='Induction-460nm', pattern='pulsatile',
-    t_total=86400, t_on=43200, t_off=57600, t_on_freq=30, t_on_dur=1, img_int=300):
+def step_input(save_dir, coords_file=None, mag=1, img_int=300,
+    chs_img=['DIC', 'GFP'], ch_dark='None', ch_exc='Induction-460nm',
+    t_total=43200, t_on=43200, t_off=43200, t_on_freq=30, t_on_dur=1):
     """
     Use a step input to characterize an optogenetic system.
 
@@ -37,19 +37,11 @@ def step_input(save_dir, coords_file=None, mag=1, chs_img=['DIC', 'GFP'],
         af_ch='DIC', af_method='hc'
     )
     mic.record_data()
+    t0 = mic.ts[0][0]
+    schedule.every(t_on_freq).seconds.do(
+        mic.control_light, ch_exc, ch_dark, t_on, t_off, t_on_dur).tag('light')
     schedule.every(img_int).seconds.do(mic.record_data).tag('data')
-    t0 = time.time()
     while time.time() - t0 < t_total:
-        # Schedule light induction routine
-        if (time.time() >= t0 + t_on and time.time() <= t0 + t_off):
-            if 'light' not in [list(j.tags)[0] for j in schedule.jobs]:
-                schedule.every(t_on_freq).seconds.do(mic.control_light,
-                pattern, ch_exc, ch_dark, t_on_dur).tag('light')
-        # Remove light induction routine
-        else:
-            if 'light' in [list(j.tags)[0] for j in schedule.jobs]:
-                schedule.clear('light')
-                mic.set_channel(ch_dark)
         schedule.run_pending()
         time.sleep(1)  # schedule needs pauses otherwise program crashes
 

@@ -83,6 +83,7 @@ class Microscope(object):
         if chname != self.core.getCurrentConfig('Channel'):
             self.core.setConfig('Channel', chname)
             self.core.waitForConfig('Channel', chname)
+            time.sleep(0.25)
 
     def set_magnification(self, mag):
         if mag != self.core.getState('TINosePiece'):
@@ -100,14 +101,15 @@ class Microscope(object):
         sub[sub < 0] = 0
         return np.mean(sub[sub.nonzero()])
 
-    def control_light(self, pattern, ch_exc, ch_dark, duration):
-        print('control_light0')
-        self.us.append(time.time())
-        self.set_channel(ch_exc)
-        if pattern == 'pulsatile':
+    def control_light(self, ch_exc, ch_dark, t_on, t_off, duration):
+        t = time.time() - self.ts[0][0]
+        if t > t_on and t < t_off:
+            print('control_light0')
+            self.us.append(time.time())
+            self.set_channel(ch_exc)
             time.sleep(duration)
             self.set_channel(ch_dark)
-        print('control_light1')
+            print('control_light1')
 
     def measure_focus(self, img, metric='lap'):
         if metric == 'var': # Variance of image
