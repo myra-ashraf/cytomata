@@ -47,6 +47,7 @@ class Microscope(object):
         self.ys = defaultdict(list)
         self.zs = defaultdict(list)
         self.fls = defaultdict(list)
+        self.ut = []
         self.us = []
 
     def get_position(self, axis):
@@ -102,14 +103,17 @@ class Microscope(object):
         return np.mean(sub[sub.nonzero()])
 
     def control_light(self, ch_exc, ch_dark, t_on, t_off, duration):
+        self.ut.append(time.time())
         t = time.time() - self.ts[0][0]
         if t > t_on and t < t_off:
             print('control_light0')
-            self.us.append(time.time())
+            self.us.append(1.0)
             self.set_channel(ch_exc)
             time.sleep(duration)
             self.set_channel(ch_dark)
             print('control_light1')
+        else:
+            self.us.append(0.0)
 
     def measure_focus(self, img, metric='lap'):
         if metric == 'var': # Variance of image
@@ -197,7 +201,7 @@ class Microscope(object):
             data = np.column_stack((self.ts[i], self.xs[i], self.ys[i], self.zs[i], self.fls[i]))
             np.savetxt(data_path, data, delimiter=',', header=header, comments='')
         u_path = os.path.join(self.save_dir, 'u.csv')
-        np.savetxt(u_path, np.array(self.us), delimiter=',', header='t', comments='')
+        np.savetxt(u_path, np.column_stack((self.ut, self.us)), delimiter=',', header='t, u', comments='')
 
     def record_data(self):
         print('autofocus0')

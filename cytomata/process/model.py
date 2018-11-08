@@ -193,15 +193,15 @@ class Regulator(Env):
         else:
             self.y0 = self.yp[0]
         params = lm.Parameters()
-        params.add('k_r', value=1, min=0, max=100)
-        params.add('k_i', value=1, min=0, max=100)
-        params.add('k_a', value=1, min=0, max=100)
-        params.add('k_b', value=1, min=0, max=100)
-        params.add('k_d', value=1, min=0, max=100)
-        params.add('a', value=1, min=0, max=100)
-        params.add('b', value=1, min=0, max=100)
+        params.add('k_r', value=1, min=0, max=20)
+        params.add('k_i', value=1, min=0, max=20)
+        params.add('k_a', value=1, min=0, max=20)
+        params.add('k_b', value=1, min=0, max=20)
+        params.add('k_d', value=1, min=0, max=20)
+        params.add('a', value=1, min=0, max=20)
+        params.add('b', value=1, min=0, max=20)
         params.add('n', value=1, min=0, max=10)
-        params.add('K', value=1, min=0, max=100)
+        params.add('K', value=1, min=0, max=20)
         self.opt_results = lm.minimize(
             self.residual, params, method=method, iter_cb=self.progress,
             nan_policy='propagate', **method_kwargs
@@ -255,7 +255,8 @@ class Regulator(Env):
             self.sse_fit.append(sse)
             self.time_fit.append(time.time())
             self.top_params = self.params.valuesdict()
-            top_data = {'method': self.method, 'time': time.strftime('%Y%m%d-%H%M%S'), 'sse': sse, **self.top_params}
+            top_data = {'method': self.method, 'iter': iter, 'sse': sse,
+                'time': time.strftime('%Y%m%d-%H%M%S'), **self.top_params}
             top_path = os.path.join(self.save_dir, 'params.json')
             with open(top_path, 'w') as fp:
                 json.dump(top_data, fp)
