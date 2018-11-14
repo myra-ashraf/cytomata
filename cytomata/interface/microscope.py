@@ -2,13 +2,13 @@ import os
 import time
 from collections import defaultdict
 
-import cv2
-import MMCorePy
 import numpy as np
-from scipy import optimize
 from skimage import img_as_float
+from skimage.io import imsave
 from skimage.restoration import denoise_nl_means
 from skimage.filters import gaussian, laplace, sobel_h, sobel_v
+
+import MMCorePy
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -84,7 +84,7 @@ class Microscope(object):
         if chname != self.core.getCurrentConfig('Channel'):
             self.core.setConfig('Channel', chname)
             self.core.waitForConfig('Channel', chname)
-            time.sleep(0.25)
+            time.sleep(0.1)
 
     def set_magnification(self, mag):
         if mag != self.core.getState('TINosePiece'):
@@ -223,8 +223,8 @@ class Microscope(object):
                 if ch != 'DIC':
                     self.fls[i].append(self.measure_fluorescence(img))
                 img_path = os.path.join(self.save_dir, 'imgs', ch, str(i), str(self.count) + '.tiff')
-                cv2.imwrite(img_path, img)
-            print('save_img0')
+                imsave(img_path, img)
+            print('save_img1')
             self.save_data()
         print('save_data1')
         self.count += 1
