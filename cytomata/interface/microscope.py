@@ -19,8 +19,8 @@ class Microscope(object):
     MicroManager wrapper for microscope automation, image acquisition,
     image processing, and data recording.
     """
-    def __init__(self, save_dir, coords_file=None, chs=['DIC'], mag=1, af_ch='DIC',
-        af_method='hc', config_file=os.path.join(dir_path, 'mm.cfg')):
+    def __init__(self, chs, mag, af_ch=None, af_method=None,
+        save_dir='', config_file=os.path.join(dir_path, 'mm.cfg')):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
         self.set_channel(chs[0])
@@ -30,17 +30,11 @@ class Microscope(object):
         self.chs = chs
         self.af_ch = af_ch
         self.af_method = af_method
-        if coords_file:
-            self.coords = np.load(coords_file)
-        else:
-            self.coords = np.array([[
-                self.get_position('x'),
-                self.get_position('y'),
-                self.get_position('z')
-            ]])
-        for sample_dir in [os.path.join(save_dir, 'imgs', ch, str(i)) for ch in chs for i in range(len(self.coords))]:
-            if not os.path.exists(sample_dir):
-                os.makedirs(sample_dir)
+        self.coords = np.array([[
+            self.get_position('x'),
+            self.get_position('y'),
+            self.get_position('z')
+        ]])
         self.count = 0
         self.ts = defaultdict(list)
         self.xs = defaultdict(list)
@@ -58,7 +52,7 @@ class Microscope(object):
         elif axis.lower() == 'z':
             return self.core.getPosition('TIZDrive')
         else:
-            raise ValueError('Invalid axis argument.')
+            raise ValueError('Invalid axis arg in Microscope.get_position(axis).')
 
     def set_position(self, axis, value):
         if axis.lower() == 'xy':
@@ -68,7 +62,7 @@ class Microscope(object):
             self.core.setPosition('TIZDrive', value)
             self.core.waitForDevice('TIZDrive')
         else:
-            raise ValueError('Invalid axis argument.')
+            raise ValueError('Invalid axis arg in Microscope.set_position(axis).')
 
     def shift_position(self, axis, value):
         if axis.lower() == 'xy':
@@ -78,13 +72,12 @@ class Microscope(object):
             self.core.setRelativePosition('TIZDrive', value)
             self.core.waitForDevice('TIZDrive')
         else:
-            raise ValueError('Invalid axis argument.')
+            raise ValueError('Invalid axis arg in Microscope.shift_position(axis).')
 
     def set_channel(self, chname):
         if chname != self.core.getCurrentConfig('Channel'):
             self.core.setConfig('Channel', chname)
             self.core.waitForConfig('Channel', chname)
-            time.sleep(0.1)
 
     def set_magnification(self, mag):
         if mag != self.core.getState('TINosePiece'):
@@ -127,7 +120,7 @@ class Microscope(object):
         elif metric == 'ten':  # Tenengrad
             return np.mean((sobel_h(img)**2) + (sobel_v(img)**2))
         else:
-            raise ValueError('Invalid focus metric.')
+            raise ValueError('Invalid metric arg in Microscope.measure_focus(img, metric).')
 
     def sample_focus(self):
         pos = self.get_position('z')
@@ -147,33 +140,34 @@ class Microscope(object):
         self.set_position('z', pos0)
         return positions, focuses
 
-    def autofocus(self, step=-1.0, maxiter=7, bounds=[-100.0, 50.0]):
-        self.set_channel(self.af_ch)
-        z0 = self.coords[0, 2]
-        if self.af_method == 'ts':  # Top Sampled
-            positions, focuses = self.sample_focus_multi()
-            best_foc = max(focuses)
-            best_pos = positions[focuses.index(max(focuses))]
-        elif self.af_method == 'hc':  # Hill Climb
-            iter = 0
-            pos, foc = self.sample_focus()
-            positions = [pos]
-            focuses = [foc]
-            while (abs(step) > 0.3 and iter < maxiter
-                and positions[-1] > z0 + bounds[0]
-                and positions[-1] < z0 + bounds[1]):
-                self.shift_position('z', step)
+    def autofocus(self, step=-2.0, min_step=0.3, max_iter=7, bounds=[-100.0, 50.0]):
+        if self.af_ch and self.af_method:
+            self.set_channel(self.af_ch)
+            z0 = self.coords[0, 2]
+            if self.af_method == 'ts':  # Top Sampled
+                positions, focuses = self.sample_focus_multi()
+                best_foc = max(focuses)
+                best_pos = positions[focuses.index(max(focuses))]
+            elif self.af_method == 'hc':  # Hill Climb
                 pos, foc = self.sample_focus()
-                if foc < focuses[-1]:
-                    step *= -0.5
-                positions.append(pos)
-                focuses.append(foc)
-                iter += 1
-            best_foc = max(focuses)
-            best_pos = positions[focuses.index(max(focuses))]
-        else:  # Reset stage position to initial state
-            best_pos = z0
-            best_foc = 0.0
+                positions = [pos]
+                focuses = [foc]
+                iter = 0
+                while (abs(step) > min_step and iter < max_iter
+                    and positions[-1] > z0 + bounds[0]
+                    and positions[-1] < z0 + bounds[1]):
+                    self.shift_position('z', step)
+                    pos, foc = self.sample_focus()
+                    if foc < focuses[-1]:
+                        step *= -0.4
+                    positions.append(pos)
+                    focuses.append(foc)
+                    iter += 1
+                best_foc = max(focuses)
+                best_pos = positions[focuses.index(max(focuses))]
+            else:  # Reset stage position to initial state
+                best_pos = z0
+                best_foc = 0.0
         if (best_pos > z0 + bounds[0] and best_pos < z0 + bounds[1]):
             return best_pos, best_foc
         else:
@@ -183,25 +177,14 @@ class Microscope(object):
         x = self.get_position('x')
         y = self.get_position('y')
         z = self.get_position('z')
-        data_path = os.path.join(self.save_dir, 'positions.npy')
-        if not os.path.isfile(data_path):
-            data = np.array([[x, y, z]])
-            np.save(data_path, data)
-        else:
-            data = np.load(data_path)
-            data = np.vstack((data, [x, y, z]))
-            np.save(data_path, data)
-
-    def save_data(self):
-        for i in range(len(self.coords)):
-            data_path = os.path.join(self.save_dir, str(i) + '.csv')
-            header = ','.join(['t', 'x', 'y', 'z', 'fl'])
-            data = np.column_stack((self.ts[i], self.xs[i], self.ys[i], self.zs[i], self.fls[i]))
-            np.savetxt(data_path, data, delimiter=',', header=header, comments='')
-        u_path = os.path.join(self.save_dir, 'u.csv')
-        np.savetxt(u_path, np.column_stack((self.ut, self.us)), delimiter=',', header='t, u', comments='')
+        self.coords = np.vstack((self.coords, [x, y, z]))
 
     def record_data(self):
+        for sample_dir in [
+            os.path.join(save_dir, 'imgs', ch, str(i))
+            for ch in chs for i in range(len(self.coords))]:
+            if not os.path.exists(sample_dir):
+                os.makedirs(sample_dir)
         best_pos, best_foc = self.autofocus()
         self.coords[:, 2] += (best_pos - self.coords[0, 2])
         for i, (x, y, z) in enumerate(self.coords):
@@ -211,12 +194,18 @@ class Microscope(object):
             self.xs[i].append(x)
             self.ys[i].append(y)
             self.zs[i].append(z)
+            data_path = os.path.join(self.save_dir, str(i) + '.csv')
+            header = ','.join(['t', 'x', 'y', 'z', 'fl'])
+            data = np.column_stack((self.ts[i], self.xs[i], self.ys[i], self.zs[i], self.fls[i]))
+            np.savetxt(data_path, data, delimiter=',', header=header, comments='')
             for ch in self.chs:
                 self.set_channel(ch)
                 img = self.take_snapshot()
                 if ch != 'DIC':
                     self.fls[i].append(self.measure_fluorescence(img))
-                img_path = os.path.join(self.save_dir, 'imgs', ch, str(i), str(self.count) + '.tiff')
-                imsave(img_path, img)
-            self.save_data()
+                img_path = os.path.join(self.save_dir, 'imgs', ch, str(i), str(self.count) + '.tif')
+                imsave(img_path, img, plugin='tifffile')
+        u_path = os.path.join(self.save_dir, 'u.csv')
+        np.savetxt(u_path, np.column_stack((self.ut, self.us)),
+            delimiter=',', header='t,u', comments='')
         self.count += 1

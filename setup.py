@@ -44,6 +44,7 @@ setup(
     license=cytomata.__license__,
     packages=find_packages(exclude=['tests']),
     install_requires=[
-        'numpy', 'scipy', 'pytorch', 'scikit-image', 'opencv', 'lmfit'
+        'numpy', 'scipy', 'pandas', 'matplotlib', 'scikit-image',
+        'schedule', 'lmfit', 'eel'
     ]
 )
