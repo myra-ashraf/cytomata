@@ -106,12 +106,10 @@ class Microscope(object):
         self.ut.append(time.time())
         t = time.time() - self.ts[0][0]
         if t > t_on and t < t_off:
-            print('control_light0')
             self.us.append(1.0)
             self.set_channel(ch_exc)
             time.sleep(duration)
             self.set_channel(ch_dark)
-            print('control_light1')
         else:
             self.us.append(0.0)
 
@@ -204,11 +202,8 @@ class Microscope(object):
         np.savetxt(u_path, np.column_stack((self.ut, self.us)), delimiter=',', header='t, u', comments='')
 
     def record_data(self):
-        print('autofocus0')
         best_pos, best_foc = self.autofocus()
-        print('autofocus1')
         self.coords[:, 2] += (best_pos - self.coords[0, 2])
-        print('save_data0')
         for i, (x, y, z) in enumerate(self.coords):
             self.set_position('xy', (x, y))
             self.set_position('z', z)
@@ -216,7 +211,6 @@ class Microscope(object):
             self.xs[i].append(x)
             self.ys[i].append(y)
             self.zs[i].append(z)
-            print('save_img0')
             for ch in self.chs:
                 self.set_channel(ch)
                 img = self.take_snapshot()
@@ -224,7 +218,5 @@ class Microscope(object):
                     self.fls[i].append(self.measure_fluorescence(img))
                 img_path = os.path.join(self.save_dir, 'imgs', ch, str(i), str(self.count) + '.tiff')
                 imsave(img_path, img)
-            print('save_img1')
             self.save_data()
-        print('save_data1')
         self.count += 1
