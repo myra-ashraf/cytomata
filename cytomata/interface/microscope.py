@@ -16,11 +16,10 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 
 class Microscope(object):
     """
-    MicroManager wrapper for microscope automation, image acquisition,
-    image processing, and data recording.
+    MicroManager wrapper for microscope automation and data recording.
     """
     def __init__(self, chs, mag, af_ch=None, af_method=None,
-        save_dir='', config_file=os.path.join(dir_path, 'mm.cfg')):
+        save_dir='.', config_file=os.path.join(dir_path, 'mm.cfg')):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
         self.set_channel(chs[0])
