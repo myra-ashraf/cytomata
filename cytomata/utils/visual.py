@@ -44,19 +44,30 @@ def plot(x, y, labels, xlabel, ylabel, title, color=None, save_path=None):
     plt.show()
 
 
-def load_images(img_dir):
+def imshow(img, title, save_path=None):
+    fig, ax = plt.subplots()
+    ax.imshow(img)
+    ax.set_title(title)
+    ax.grid(False)
+    ax.axis('off')
+    if save_path is not None:
+        fig.savefig(save_path)
+    plt.close(fig)
+
+
+def list_img_names(img_dir):
     return [img for img in sorted(os.listdir(img_dir), key=lambda f: int(filter(str.isdigit, f)))]
 
 
 def convert_to_png(img_dir, png_dir):
-    for i, img in enumerate(load_images(img_dir)):
+    for i, img in enumerate(list_img_names(img_dir)):
         img = imread(os.path.join(img_dir, img), as_gray=True)
         img = exposure.equalize_adapthist(img, clip_limit=0.003)
         imsave(os.path.join(png_dir, str(i) + '.png'), img)
 
 
 def frames_to_video(img_dir, vid_path, fps):
-    images = load_images(img_dir)
+    images = list_img_names(img_dir)
     frame0 = cv2.imread(os.path.join(img_dir, images[0]))
     height, width = frame0.shape[:2]
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')

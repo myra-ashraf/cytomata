@@ -256,7 +256,9 @@ class Regulator(Env):
             self.time_fit.append(time.time())
             self.top_params = self.params.valuesdict()
             top_data = {'method': self.method, 'iter': iter, 'sse': sse,
-                'time': time.strftime('%Y%m%d-%H%M%S'), **self.top_params}
+                'time': time.strftime('%Y%m%d-%H%M%S')}
+            for k, v in self.top_params.items():
+                top_data[k] = v
             top_path = os.path.join(self.save_dir, 'params.json')
             with open(top_path, 'w') as fp:
                 json.dump(top_data, fp)

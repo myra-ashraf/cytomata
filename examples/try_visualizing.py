@@ -5,7 +5,8 @@ sys.path.append(os.path.abspath('../'))
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from cytomata.utils.plotting import plot, convert_to_png, load_images, frames_to_video
+
+from cytomata.utils.visual import plot, convert_to_png, load_images, frames_to_video
 
 if __name__ == '__main__':
     # df = pd.read_csv('data_test.csv')

@@ -45,6 +45,6 @@ setup(
     packages=find_packages(exclude=['tests']),
     install_requires=[
         'numpy', 'scipy', 'pandas', 'matplotlib', 'scikit-image',
-        'schedule', 'lmfit', 'eel'
+        'schedule', 'lmfit', 'eel', 'filterpy'
     ]
 )

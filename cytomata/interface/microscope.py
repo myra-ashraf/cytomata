@@ -9,7 +9,7 @@ from skimage.restoration import denoise_nl_means
 from skimage.filters import gaussian, laplace, sobel_h, sobel_v
 
 import MMCorePy
-
+from cytomata.process.extract import extract_intensity
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -86,13 +86,6 @@ class Microscope(object):
     def take_snapshot(self):
         self.core.snapImage()
         return self.core.getImage()
-
-    def measure_fluorescence(self, img):
-        den = denoise_nl_means(img_as_float(img), h=0.005, multichannel=False)
-        gau = gaussian(den, sigma=30)
-        sub = den - gau
-        sub[sub < 0] = 0
-        return np.mean(sub[sub.nonzero()])
 
     def control_light(self, ch_exc, ch_dark, t_on, t_off, duration):
         self.ut.append(time.time())
@@ -201,7 +194,7 @@ class Microscope(object):
                 self.set_channel(ch)
                 img = self.take_snapshot()
                 if ch != 'DIC':
-                    self.fls[i].append(self.measure_fluorescence(img))
+                    self.fls[i].append(extract_intensity(img))
                 img_path = os.path.join(self.save_dir, 'imgs', ch, str(i), str(self.count) + '.tif')
                 imsave(img_path, img, plugin='tifffile')
         u_path = os.path.join(self.save_dir, 'u.csv')
