@@ -5,11 +5,10 @@ from collections import defaultdict
 import numpy as np
 from skimage import img_as_float
 from skimage.io import imsave
-from skimage.restoration import denoise_nl_means
-from skimage.filters import gaussian, laplace, sobel_h, sobel_v
+from skimage.filters import laplace, sobel_h, sobel_v
 
 import MMCorePy
-from cytomata.process.extract import extract_intensity
+
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -18,17 +17,17 @@ class Microscope(object):
     """
     MicroManager wrapper for microscope automation and data recording.
     """
-    def __init__(self, chs, mag, af_ch=None, af_method=None,
-        save_dir='.', config_file=os.path.join(dir_path, 'mm.cfg')):
+    def __init__(self, save_dir, mag, chs_img, ch_af=None,
+        algo_af=None, config_file=os.path.join(dir_path, 'mm.cfg')):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
-        self.set_channel(chs[0])
+        self.set_channel(chs_img[0])
         self.set_magnification(mag)
         self.core.waitForSystem()
         self.save_dir = save_dir
-        self.chs = chs
-        self.af_ch = af_ch
-        self.af_method = af_method
+        self.chs_img = chs_img
+        self.ch_af = ch_af
+        self.algo_af = algo_af
         self.coords = np.array([[
             self.get_position('x'),
             self.get_position('y'),
@@ -39,7 +38,6 @@ class Microscope(object):
         self.xs = defaultdict(list)
         self.ys = defaultdict(list)
         self.zs = defaultdict(list)
-        self.fls = defaultdict(list)
         self.ut = []
         self.us = []
 
@@ -87,13 +85,13 @@ class Microscope(object):
         self.core.snapImage()
         return self.core.getImage()
 
-    def control_light(self, ch_exc, ch_dark, t_on, t_off, duration):
+    def control_excitation(self, ch_dark, ch_exc, t_exc_on, t_exc_off, t_exc_width):
         self.ut.append(time.time())
         t = time.time() - self.ts[0][0]
-        if t > t_on and t < t_off:
+        if t > t_exc_on and t < t_exc_off:
             self.us.append(1.0)
             self.set_channel(ch_exc)
-            time.sleep(duration)
+            time.sleep(t_exc_width)
             self.set_channel(ch_dark)
         else:
             self.us.append(0.0)
@@ -133,14 +131,14 @@ class Microscope(object):
         return positions, focuses
 
     def autofocus(self, step=-2.0, min_step=0.3, max_iter=7, bounds=[-100.0, 50.0]):
-        if self.af_ch and self.af_method:
-            self.set_channel(self.af_ch)
+        if self.ch_af is not None and self.algo_af is not None:
+            self.set_channel(self.ch_af)
             z0 = self.coords[0, 2]
-            if self.af_method == 'ts':  # Top Sampled
+            if self.algo_af == 'ts':  # Top Sampled
                 positions, focuses = self.sample_focus_multi()
                 best_foc = max(focuses)
                 best_pos = positions[focuses.index(max(focuses))]
-            elif self.af_method == 'hc':  # Hill Climb
+            elif self.algo_af == 'hc':  # Hill Climb
                 pos, foc = self.sample_focus()
                 positions = [pos]
                 focuses = [foc]
@@ -157,7 +155,7 @@ class Microscope(object):
                     iter += 1
                 best_foc = max(focuses)
                 best_pos = positions[focuses.index(max(focuses))]
-            else:  # Reset stage position to initial state
+            else:  # Reset stage position to initial position
                 best_pos = z0
                 best_foc = 0.0
         if (best_pos > z0 + bounds[0] and best_pos < z0 + bounds[1]):
@@ -172,13 +170,15 @@ class Microscope(object):
         self.coords = np.vstack((self.coords, [x, y, z]))
 
     def record_data(self):
-        for sample_dir in [
-            os.path.join(save_dir, 'imgs', ch, str(i))
-            for ch in chs for i in range(len(self.coords))]:
+        sample_dirs = [
+            os.path.join(self.save_dir, 'imgs', ch, str(i))
+            for ch in self.chs_img
+            for i in range(len(self.coords))]
+        for sample_dir in sample_dirs:
             if not os.path.exists(sample_dir):
                 os.makedirs(sample_dir)
         best_pos, best_foc = self.autofocus()
-        self.coords[:, 2] += (best_pos - self.coords[0, 2])
+        self.coords[:, 2] += (best_pos - self.coords[0, 2]) # Update all coords based on 1st coord
         for i, (x, y, z) in enumerate(self.coords):
             self.set_position('xy', (x, y))
             self.set_position('z', z)
@@ -186,17 +186,15 @@ class Microscope(object):
             self.xs[i].append(x)
             self.ys[i].append(y)
             self.zs[i].append(z)
-            data_path = os.path.join(self.save_dir, str(i) + '.csv')
-            header = ','.join(['t', 'x', 'y', 'z', 'fl'])
-            data = np.column_stack((self.ts[i], self.xs[i], self.ys[i], self.zs[i], self.fls[i]))
-            np.savetxt(data_path, data, delimiter=',', header=header, comments='')
-            for ch in self.chs:
+            for ch in self.chs_img:
                 self.set_channel(ch)
                 img = self.take_snapshot()
-                if ch != 'DIC':
-                    self.fls[i].append(extract_intensity(img))
                 img_path = os.path.join(self.save_dir, 'imgs', ch, str(i), str(self.count) + '.tif')
                 imsave(img_path, img, plugin='tifffile')
+            data_path = os.path.join(self.save_dir, str(i) + '.csv')
+            header = ','.join(['t', 'x', 'y', 'z'])
+            data = np.column_stack((self.ts[i], self.xs[i], self.ys[i], self.zs[i]))
+            np.savetxt(data_path, data, delimiter=',', header=header, comments='')
         u_path = os.path.join(self.save_dir, 'u.csv')
         np.savetxt(u_path, np.column_stack((self.ut, self.us)),
             delimiter=',', header='t,u', comments='')
