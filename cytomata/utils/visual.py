@@ -37,11 +37,14 @@ def plot(x, y, labels, xlabel, ylabel, title, color=None, save_path=None):
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     labels = [labels] if type(labels) is str else labels
-    plt.legend(labels=labels, loc='best')
+    if labels:
+        plt.legend(labels=labels, loc='best')
     plt.title(title, loc='left')
     if save_path is not None:
         plt.savefig(save_path, dpi=100, bbox_inches='tight')
-    plt.show()
+    else:
+        plt.show()
+    plt.close()
 
 
 def imshow(img, title, save_path=None):
@@ -52,11 +55,9 @@ def imshow(img, title, save_path=None):
     ax.axis('off')
     if save_path is not None:
         fig.savefig(save_path)
+    else:
+        plt.show()
     plt.close(fig)
-
-
-def list_img_names(img_dir):
-    return [img for img in sorted(os.listdir(img_dir), key=lambda f: int(filter(str.isdigit, f)))]
 
 
 def convert_to_png(img_dir, png_dir):

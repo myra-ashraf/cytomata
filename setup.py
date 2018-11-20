@@ -1,5 +1,6 @@
 import os
-from setuptools import setup, find_packages
+import setuptools
+
 import cytomata
 
 
@@ -21,7 +22,7 @@ long_description = """
 %(README)s
 """ % read('README')
 
-setup(
+setuptools.setup(
     name=cytomata.__name__,
     version=cytomata.__version__,
     description=cytomata.__description__,
@@ -47,7 +48,7 @@ setup(
     maintainer_email=cytomata.__email__,
     url=cytomata.__website__,
     license=cytomata.__license__,
-    packages=find_packages(exclude=['tests']),
+    packages=setuptools.find_packages(exclude=['tests']),
     install_requires=[
         'numpy', 'scipy', 'pandas', 'matplotlib', 'scikit-image',
         'schedule', 'lmfit', 'eel', 'filterpy'
