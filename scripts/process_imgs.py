@@ -85,47 +85,68 @@ def plot_single_cell_trajectories_ave(trajs, out_dir, by_frame=True):
     plt.close()
 
 
-def save_single_cell_data(img_dir, trajs, out_dir, min_traj_length=100):
+def save_single_cell_data(img_dir, trajs, out_dir, min_traj_length=100, calc_func=None, **kwargs):
     trajs = {id:info for id, info in trajs.items() if len(info['ints']) > min_traj_length}
     img_names = list_fnames_sorted(img_dir)
     for id, info in trajs.items():
-        id_dir = os.path.join(out_dir, 'traj', str(id))
+        traj_dir = os.path.join(out_dir, 'traj')
+        id_dir = os.path.join(traj_dir, str(id))
         setup_dirs(id_dir)
-        rec_frames = []
-        rec_flints = []
-        for tframe, tbbox in info['trks'].items():
-            flint = info['ints'][tframe]
-            rec_frames.append(tframe)
-            rec_flints.append(flint)
+        frames = []
+        ints = []
+        for i, (tframe, tbbox) in enumerate(info['trks'].items()):
             fig, ax = plt.subplots()
+            flint = info['ints'][tframe]
+            frames.append(tframe)
+            ints.append(flint)
             ax.imshow(imread(os.path.join(img_dir, img_names[tframe])))
             ax.axis('off')
             rect = Rectangle((tbbox[1], tbbox[0]), tbbox[3] - tbbox[1],
                 tbbox[2] - tbbox[0], fill=False, edgecolor=info['color'], linewidth=1)
             ax.add_patch(rect)
             ax.set_title('Frame: ' + str(tframe) + ' | ' + 'Intensity: ' + str(round(flint, 4)))
-            fig.savefig(os.path.join(id_dir, str(tframe) + '.png'), bbox_inches='tight')
+            if i == 0:
+                plt.savefig(os.path.join(traj_dir, str(id) + '.png'), bbox_inches='tight')
+            plt.savefig(os.path.join(id_dir, str(tframe) + '.png'), bbox_inches='tight')
             plt.close(fig)
+        if calc_func is not None:
+            calc = calc_func(frames, ints, **kwargs)
+            calc_path = os.path.join(id_dir, 'calcs.csv')
+            np.savetxt(calc_path, np.array(calc), delimiter=',', header='norm_auc', comments='')
         traj_path = os.path.join(id_dir, 'traj_int.png')
-        plot(rec_frames, rec_flints, labels=None, xlabel='Frame',
+        plot(frames, ints, labels=None, xlabel='Frame',
             ylabel='Ave Intensity', title='Trajectory #' + str(id), save_path=traj_path)
         flint_path = os.path.join(id_dir, 'flint.csv')
-        np.savetxt(flint_path, np.column_stack((rec_frames, rec_flints)), delimiter=',', header='frame,fl_int', comments='')
+        np.savetxt(flint_path, np.column_stack((frames, ints)), delimiter=',', header='frame,fl_int', comments='')
+    plt.close('all')
+
+
+def norm_auc(frames, ints, t_offs, t_ons):
+    df = pd.DataFrame({'frame': frames, 'int': ints})
+    t_offs.append(min(frames))
+    t_ons.append(max(frames))
+    calcs = []
+    for t0, t1 in zip(t_ons, t_offs):
+        interval = df.loc[(df['frame'] >= t0) & (df['frame'] <= t1), 'int']
+        calcs.append(interval.sum()/(t1 - t0))
+    return calcs
 
 
 if __name__ == '__main__':
     data_dir = 'data'
     expt = 'linshan'
-    # ch = '1'
-    # img_dir = os.path.join(data_dir, expt, ch)
-    # # out_path = os.path.join(data_dir, 'ave_frame_results.csv')
-    # out_dir = os.path.join(data_dir, expt + '_' + ch + '_' + 'single_cell_results')
-    # setup_dirs(out_dir)
-    # # images_to_ave_frame_intensities(img_dir, out_path)
-    # trajs = images_to_ave_single_cell_intensities(img_dir, out_dir)
-    # plot_single_cell_trajectories(trajs, out_dir)
-    # plot_single_cell_trajectories_ave(trajs, out_dir)
-    # save_single_cell_data(img_dir, trajs, out_dir)
+
+    ch = '1'
+    img_dir = os.path.join(data_dir, expt, ch)
+    out_dir = os.path.join(data_dir, expt + '_' + ch + '_' + 'single_cell_results')
+    setup_dirs(out_dir)
+    trajs = images_to_ave_single_cell_intensities(img_dir, out_dir)
+    plot_single_cell_trajectories(trajs, out_dir)
+    plot_single_cell_trajectories_ave(trajs, out_dir)
+    t_offs = [73, 109, 145, 181, 217]
+    t_ons = [62, 98, 134, 170, 206]
+    calcs = save_single_cell_data(img_dir, trajs, out_dir,
+        calc_func=norm_auc, t_offs=t_offs, t_ons=t_ons)
 
     ch = '2'
     img_dir = os.path.join(data_dir, expt, ch)
@@ -134,4 +155,7 @@ if __name__ == '__main__':
     trajs = images_to_ave_single_cell_intensities(img_dir, out_dir)
     plot_single_cell_trajectories(trajs, out_dir)
     plot_single_cell_trajectories_ave(trajs, out_dir)
-    save_single_cell_data(img_dir, trajs, out_dir)
+    t_offs = [73, 109, 145, 181, 217]
+    t_ons = [62, 98, 134, 170, 206]
+    calcs = save_single_cell_data(img_dir, trajs, out_dir,
+        calc_func=norm_auc, t_offs=t_offs, t_ons=t_ons)
