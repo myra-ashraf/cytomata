@@ -6,8 +6,10 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from skimage import exposure
-from skimage.io import imread, imsave
+from skimage import img_as_ubyte
+
+from cytomata.utils.io import setup_dirs
+
 
 sns.set_style('whitegrid')
 plt.rcParams['image.cmap'] = 'viridis'
@@ -33,50 +35,44 @@ sns.set_palette(['#1E88E5', '#43A047', '#e53935', '#5E35B1', '#FFB300', '#00ACC1
 
 
 def plot(x, y, labels, xlabel, ylabel, title, color=None, save_path=None):
-    plt.plot(x, y, color=color)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
+    fig, ax = plt.subplots()
+    ax.plot(x, y, color=color)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
     labels = [labels] if type(labels) is str else labels
     if labels:
-        plt.legend(labels=labels, loc='best')
-    plt.title(title, loc='left')
+        ax.legend(labels=labels, loc='best')
+    ax.set_title(title, loc='left')
     if save_path is not None:
-        plt.savefig(save_path, dpi=100, bbox_inches='tight')
-    else:
-        plt.show()
-    plt.close()
-
-
-def imshow(img, title, save_path=None):
-    fig, ax = plt.subplots()
-    ax.imshow(img)
-    ax.set_title(title)
-    ax.grid(False)
-    ax.axis('off')
-    if save_path is not None:
-        fig.savefig(save_path)
+        fig.savefig(save_path, dpi=100, bbox_inches='tight')
     else:
         plt.show()
     plt.close(fig)
 
 
-def convert_to_png(img_dir, png_dir):
-    for i, img in enumerate(list_img_names(img_dir)):
-        img = imread(os.path.join(img_dir, img), as_gray=True)
-        img = exposure.equalize_adapthist(img, clip_limit=0.003)
-        imsave(os.path.join(png_dir, str(i) + '.png'), img)
+def imshow(img, title=None, save_path=None):
+    fig, ax = plt.subplots()
+    ax.imshow(img)
+    if title is not None:
+        ax.set_title(title)
+    ax.grid(False)
+    ax.axis('off')
+    if save_path is not None:
+        fig.savefig(save_path, dpi=100, bbox_inches='tight')
+    else:
+        plt.show()
+    plt.close(fig)
 
 
-def frames_to_video(img_dir, vid_path, fps):
-    images = list_img_names(img_dir)
-    frame0 = cv2.imread(os.path.join(img_dir, images[0]))
-    height, width = frame0.shape[:2]
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    vid_path = vid_path + '.mp4' if not vid_path.endswith('.mp4') else vid_path
-    video = cv2.VideoWriter(vid_path, fourcc, fps, (width, height))
-    for image in images:
-        image = cv2.imread(os.path.join(img_dir, image))
-        video.write(image)
+def frames_to_video(imgs, vid_path, fps):
+    for i, img in enumerate(imgs):
+        img = img_as_ubyte(img)
+        if i == 0:
+            height, width = imgs[0].shape[:2]
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            vid_path = vid_path + '.mp4' if not vid_path.endswith('.mp4') else vid_path
+            video = cv2.VideoWriter(vid_path, fourcc, fps, (width, height))
+        video.write(img)
     cv2.destroyAllWindows()
     video.release()
 
@@ -87,17 +83,16 @@ class DynamicPlot(object):
         self.save_dir = save_dir
         self.fig, self.ax = plt.subplots()
         self.lines = self.ax.plot(x, y)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
         labels = [labels] if type(labels) is str else labels
-        plt.legend(labels=labels, loc='best')
-        plt.title(title, loc='left')
+        fig.legend(labels=labels, loc='best')
+        ax.set_title(title, loc='left')
         self.fig.canvas.draw()
         self.count = 0
         plt.show(block=False)
         if self.save_dir is not None:
-            if not os.path.exists(self.save_dir):
-                os.makedirs(self.save_dir)
+            setup_dirs(self.save_dir)
             save_path = os.path.join(self.save_dir, str(self.count) + '.png')
             self.fig.savefig(save_path, dpi=100)
 
@@ -120,3 +115,6 @@ class DynamicPlot(object):
         if self.save_dir is not None:
             save_path = os.path.join(self.save_dir, str(self.count) + '.png')
             self.fig.savefig(save_path, dpi=100)
+
+    def close(self):
+        plt.close(self.fig)

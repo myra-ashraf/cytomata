@@ -1,12 +1,15 @@
 import os
 import sys
+import time
 sys.path.append(os.path.abspath('../'))
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from skimage.io import imread
 
-from cytomata.utils.visual import plot, convert_to_png, load_images, frames_to_video
+from cytomata.utils.io import list_fnames
+
 
 if __name__ == '__main__':
     # df = pd.read_csv('data_test.csv')

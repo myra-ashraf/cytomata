@@ -7,6 +7,7 @@ sys.path.append(os.path.abspath('../'))
 import schedule
 
 from cytomata.interface import Microscope
+from cytomata.utils.io import setup_dirs
 
 
 if __name__ == '__main__':
@@ -20,7 +21,7 @@ if __name__ == '__main__':
         'ch_exc': 'Induction-460nm',
         'ch_af': 'DIC',
         'algo_af': 'hc',
-        't_img_period': '300',
+        't_img_period': 300,
         't_total': 129600,
         't_exc_on': 43200,
         't_exc_off': 57600,
@@ -29,8 +30,7 @@ if __name__ == '__main__':
     }
 
     # Record Parameters
-    if not os.path.exists(params['save_dir']):
-        os.makedirs(params['save_dir'])
+    setup_dirs(params['save_dir'])
     with open(os.path.join(save_dir, 'params.json'), 'w') as fp:
         json.dump(params, fp)
 
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         mag=params['mag'],
         chs_img=params['chs_img'],
         ch_af=params['ch_af'],
-        algo_af=['algo_af'])
+        algo_af=params['algo_af'])
     mic.record_data()
     schedule.every(params['t_exc_period']).seconds.do(
         mic.control_excitation,

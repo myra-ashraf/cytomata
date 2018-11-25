@@ -1,8 +1,8 @@
 import os
 
 
-def list_fnames_sorted(dir):
-    return [fn for fn in sorted(os.listdir(dir), key=float)]
+def list_fnames(dir, key=float):
+    return [fn for fn in sorted(os.listdir(dir), key=key)]
 
 
 def setup_dirs(dirs):
