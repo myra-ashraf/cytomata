@@ -9,6 +9,7 @@ from matplotlib.patches import Rectangle
 from scipy import ndimage as ndi
 from skimage import img_as_float
 from skimage.io import imread
+from skimage.exposure import equalize_adapthist
 from skimage.measure import regionprops
 from skimage.feature import peak_local_max
 from skimage.filters import threshold_local, gaussian
@@ -21,25 +22,47 @@ from cytomata.utils.io import list_fnames, setup_dirs
 from cytomata.utils.visual import plot, imshow
 
 
-def get_median_intensity(img):
+def get_median_intensity(img, gauss_sigma=50):
     img = img_as_float(img)
     sigma = estimate_sigma(img)
     den = denoise_nl_means(img, h=sigma, sigma=sigma, multichannel=False)
-    gau = gaussian(den, sigma=50)
+    gau = gaussian(den, sigma=gauss_sigma)
     sub = den - gau
     sub[sub < 0] = 0
-    return np.median(sub[sub.nonzero()])
+    med_int = np.median(sub[sub.nonzero()])
+    imgs = [img, den, gau, sub]
+    return med_int, imgs
 
 
-def images_to_median_frame_intensities(img_dir, save_path=None):
+def images_to_median_frame_intensities(img_dir, save_dir=None, gauss_sigma=50, iter_cb=None):
     med_ints = []
-    for fn in list_fnames(img_dir):
+    img_step = {0: 'original', 1: 'denoised', 2: 'gaussian', 3: 'subtracted'}
+    img_fnames = list_fnames(img_dir)
+    for i, fn in enumerate(img_fnames):
         img = imread(os.path.join(img_dir, fn))
-        med_int = get_median_intensity(img)
+        med_int, imgs = get_median_intensity(img, gauss_sigma)
         med_ints.append(med_int)
+        if iter_cb is not None:
+            fig, ax = plt.subplots(figsize=(16, 8))
+            ax.plot(range(len(med_ints)), med_ints)
+            ax.set_xlabel('Frame')
+            ax.set_ylabel('Median Intensity')
+            fig.tight_layout(pad=0)
+            fig.canvas.draw()
+            iter_imgs = imgs + [np.array(fig.canvas.renderer._renderer)]
+            plt.close(fig)
+            prog = int(round((i+1)/len(img_fnames) * 100))
+            iter_cb(med_int, iter_imgs, prog)
+        if save_dir is not None:
+            for j, img in enumerate(imgs):
+                img_step_dir = os.path.join(save_dir, img_step[j])
+                setup_dirs(img_step_dir)
+                img_path = os.path.join(img_step_dir, str(i) + '.png')
+                plt.imsave(img_path, img, cmap='viridis')
     med_ints = np.array(med_ints)
-    if save_path is not None:
-        np.savetxt(save_path, med_ints, delimiter=',', header='t', comments='')
+    if save_dir is not None:
+        csv_path = os.path.join(save_dir, 'med_ints.csv')
+        np.savetxt(csv_path, med_ints, delimiter=',', header='median_intensity', comments='')
     return med_ints
 
 

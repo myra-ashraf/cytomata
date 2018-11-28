@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <link rel="icon" href="img/favicon.ico">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/index.css">
+
+    <script type="text/javascript" src="/eel.js"></script>
+    <script type="text/javascript">
+      async function check_found_imgs(img_dir) {
+        let n_imgs_found = await eel.check_found_imgs(img_dir)();
+        document.getElementById('num_imgs_found').innerHTML = ('Found ' + n_imgs_found + ' images');
+      }
+      async function guess_img_dir() {
+        let img_dir = await eel.guess_img_dir()();
+        document.getElementById('img_dir_form').value = img_dir;
+        check_found_imgs(img_dir);
+      }
+      async function guess_out_dir() {
+        let out_dir = await eel.guess_out_dir()();
+        document.getElementById('out_dir_form').value = out_dir;
+      }
+      eel.expose(update_img_results);
+      function update_img_results(img0, img1, img2, img3, img4, med_int, prog) {
+        $("#proc_img0").attr("src", "data:image/png;base64," + img0);
+        $("#proc_img1").attr("src", "data:image/png;base64," + img1);
+        $("#proc_img2").attr("src", "data:image/png;base64," + img2);
+        $("#proc_img3").attr("src", "data:image/png;base64," + img3);
+        $("#proc_img4").attr("src", "data:image/png;base64," + img4);
+        if (prog < 100) {
+          $('#proc_img_progress').css('width', prog + "%");
+          $('#proc_img_progress').text(prog + "%")
+        } else {
+          $('#proc_img_progress').css('width', prog + "%");
+          $('#proc_img_progress').text('DONE!');
+          $('#proc_img_progress').addClass('bg-success');
+          $('#protoccol_button').toggleClass('btn-danger btn-success');
+          $('#protoccol_button').toggleClass('proto-stop proto-start');
+          $('#protoccol_button').text("Start Protoccol");
+        }
+      }
+    </script>
+
+    <title>Cytomata</title>
+  </head>
+  <body class="py-3">
+    <div class="container-fluid d-flex flex-column h-100 col-9">
+      <div class="row px-0 pt-3">
+        <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+          <li class="nav-item">
+            <a class="nav-link active" id="pills-home-tab" data-toggle="pill" href="#pills-home" role="tab">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="pills-mic-tab" data-toggle="pill" href="#pills-mic" role="tab">Microscope</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" id="pills-proc-tab" data-toggle="pill" href="#pills-proc" role="tab">Processing</a>
+          </li>
+        </ul>
+      </div>
+      <div class="row card p-3 flex-grow-1 border-primary">
+        <div class="tab-content flex-grow-1" id="pills-tabContent">
+          <div class="tab-pane fade show active pyp-10" id="pills-home" role="tabpanel">
+            <div class="row justify-content-center">
+              <img class="" src="img/logo.png">
+            </div>
+            <div class="row justify-content-center mt-3">
+              <i>Make it happen.</i>
+              <!-- <a role="button" class="mx-2 btn btn-primary btn-lg" href="/microscope.html">Run Microscope</a>
+              <a role="button" class="mx-2 btn btn-success btn-lg" href="/img_proc.html">Process Images</a> -->
+            </div>
+          </div>
+          <div class="tab-pane fade" id="pills-mic" role="tabpanel">Microscope</div>
+          <div class="tab-pane fade" id="pills-proc" role="tabpanel">
+            <div class="row px-3">
+              <div class="col-4 mx-auto pl-3">
+                <h3>Settings</h3>
+              </div>
+              <div class="col-8 mx-auto pl-5">
+                <h3>Results</h3>
+              </div>
+            </div>
+            <div class="row px-3">
+              <div class="col-4 mx-auto pb-3 pr-3 pl-3">
+                <form>
+                  <div class="form-group">
+                    <label for="img_dir_form">Images Directory</label>
+                    <input type="text" class="form-control" id="img_dir_form" placeholder="Images Directory">
+                    <small id="num_imgs_found" class="form-text text-muted"></small>
+                  </div>
+                  <div class="form-group">
+                    <label for="out_dir_form">Output Directory</label>
+                    <input type="text" class="form-control" id="out_dir_form" placeholder="Output Directory">
+                  </div>
+                  <div class="form-group">
+                    <label for="protoccol_form">Protoccol</label>
+                    <select class="form-control" id="protoccol_form">
+                      <option value='0'>Median Frame Intensities</option>
+                      <option value='1'>Single Cell Trajectories</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label id= "bkg_sub_gauss_label" class="mb-0" for="bkg_sub_gauss_slider">Background Subtraction Gaussian (40)</label>
+                    <input id="bkg_sub_gauss_slider" type="range" class="custom-range mb-3" min="10" max="100" value="40">
+                  </div>
+                  <button id="protoccol_button" type="button" class="btn btn-success proto-start">Start Protoccol</button>
+                </form>
+              </div>
+              <div class="col-8 mx-auto pb-3 pr-3 pl-5">
+                <div id="results_div" style="display: none">
+                  <label>Progress</label>
+                  <div class="progress mb-3">
+                    <div id="proc_img_progress" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                  </div>
+                  <!-- <label class="mb-0" for="img_slider">Images</label>
+                  <input id="img_slider" type="range" class="custom-range" min="0" max="3" value="0"> -->
+                  <div class="row px-3 pt-1">
+                    <div class="col-4 p-1"><img id="proc_img0" src="" class="img-fluid"></div>
+                    <div class="col-4 p-1"><img id="proc_img1" src="" class="img-fluid"></div>
+                    <div class="col-4 p-1"><img id="proc_img2" src="" class="img-fluid"></div>
+                    <div class="col-4 p-1"><img id="proc_img3" src="" class="img-fluid"></div>
+                    <div class="col-8 p-1"><img id="proc_img4" src="" class="img-fluid"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/jquery-3.3.1.slim.min.js"></script>
+    <script src="js/popper.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script type="text/javascript">
+    guess_img_dir();
+    guess_out_dir();
+
+    $('#img_dir_form').on('change', function() {
+      let img_dir = $('#img_dir_form').val();
+      check_found_imgs(img_dir);
+    });
+
+    $('#bkg_sub_gauss_slider').on('change', function() {
+      let slider_val = $('#bkg_sub_gauss_slider').val();
+      $('#bkg_sub_gauss_label').text('Background Subtraction Gaussian (' + slider_val + ')');
+    });
+
+    $('#protoccol_button').on('click', function() {
+      if ($(this).hasClass('proto-start')) {
+        $('#results_div').show();
+        $('#proc_img_progress').css('width', '0%');
+        $('#proc_img_progress').text('');
+        $('#proc_img_progress').removeClass('bg-success');
+        $(this).toggleClass('btn-success btn-danger');
+        $(this).toggleClass('proto-start proto-stop');
+        $(this).text("Stop Protoccol");
+        let img_dir = $('#img_dir_form').val();
+        let out_dir = $('#out_dir_form').val();
+        let proto = $('#protoccol_form').val();
+        let param_gauss = $('#bkg_sub_gauss_slider').val();
+        let params = {
+          gauss: param_gauss,
+        };
+        eel.process_imgs_task(img_dir, out_dir, proto, params);
+      } else {
+        $('#results_div').hide();
+        $(this).toggleClass('btn-danger btn-success');
+        $(this).toggleClass('proto-stop proto-start');
+        $(this).text("Start Protoccol");
+        eel.kill_img_proc_task()
+      }
+    });
+    </script>
+  </body>
+</html>

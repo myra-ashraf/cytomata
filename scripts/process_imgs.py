@@ -32,19 +32,12 @@ if __name__ == '__main__':
     expt = 'linshan'
     ch = '2'
     img_dir = os.path.join(data_dir, expt, ch)
-    save_dir = os.path.join(data_dir, expt + '_' + ch + '_' + 'single_cell_results')
-    setup_dirs(save_dir)
-    trajs = images_to_ave_single_cell_intensities(img_dir, save_dir, regions_min_size=50)
-    plot_single_cell_trajectories(trajs, save_dir)
-    plot_single_cell_trajectories_ave(trajs, save_dir)
-    t_spans = [0, 62, 73, 98, 109, 134, 145, 170, 181, 206, 217, 244]
-    save_single_cell_data(img_dir, trajs, save_dir, calc_func=norm_auc, t_spans=t_spans)
-
-
-    # import pathlib
-    # import imageio
-    # import numpy as np
-    #
-    # # Glob the training data and load a single image path
-    # training_paths = pathlib.Path('../input/stage1_train').glob('*/images/*.png')
-    # training_sorted = sorted([x for x in training_paths])
+    img_names = list_fnames(img_dir)
+    print(len(img_names))
+    # save_dir = os.path.join(data_dir, expt + '_' + ch + '_' + 'single_cell_results')
+    # setup_dirs(save_dir)
+    # trajs = images_to_ave_single_cell_intensities(img_dir, save_dir, regions_min_size=50)
+    # plot_single_cell_trajectories(trajs, save_dir)
+    # plot_single_cell_trajectories_ave(trajs, save_dir)
+    # t_spans = [0, 62, 73, 98, 109, 134, 145, 170, 181, 206, 217, 244]
+    # save_single_cell_data(img_dir, trajs, save_dir, calc_func=norm_auc, t_spans=t_spans)
