@@ -44,6 +44,10 @@
           $('#protoccol_button').text("Start Protoccol");
         }
       }
+      eel.expose(is_proc_imgs_stopped);
+      function is_proc_imgs_stopped() {
+        return $('#protoccol_button').hasClass('proto-start');
+      }
     </script>
 
     <title>Cytomata</title>
@@ -117,14 +121,12 @@
                   <div class="progress mb-3">
                     <div id="proc_img_progress" class="progress-bar" role="progressbar" style="width: 0%"></div>
                   </div>
-                  <!-- <label class="mb-0" for="img_slider">Images</label>
-                  <input id="img_slider" type="range" class="custom-range" min="0" max="3" value="0"> -->
                   <div class="row px-3 pt-1">
-                    <div class="col-4 p-1"><img id="proc_img0" src="" class="img-fluid"></div>
-                    <div class="col-4 p-1"><img id="proc_img1" src="" class="img-fluid"></div>
-                    <div class="col-4 p-1"><img id="proc_img2" src="" class="img-fluid"></div>
-                    <div class="col-4 p-1"><img id="proc_img3" src="" class="img-fluid"></div>
-                    <div class="col-8 p-1"><img id="proc_img4" src="" class="img-fluid"></div>
+                    <div class="col-4 p-1"><label>Original</label><img id="proc_img0" src="" class="img-fluid"></div>
+                    <div class="col-4 p-1"><label>Denoised</label><img id="proc_img1" src="" class="img-fluid"></div>
+                    <div class="col-4 p-1"><label>Gaussian</label><img id="proc_img2" src="" class="img-fluid"></div>
+                    <div class="col-4 p-1"><label>Subtracted</label><img id="proc_img3" src="" class="img-fluid"></div>
+                    <div class="col-8 p-1"><label>Frame Intensities</label><img id="proc_img4" src="" class="img-fluid"></div>
                   </div>
                 </div>
               </div>
@@ -167,13 +169,12 @@
         let params = {
           gauss: param_gauss,
         };
-        eel.process_imgs_task(img_dir, out_dir, proto, params);
+        eel.process_imgs(img_dir, out_dir, proto, params);
       } else {
         $('#results_div').hide();
         $(this).toggleClass('btn-danger btn-success');
         $(this).toggleClass('proto-stop proto-start');
         $(this).text("Start Protoccol");
-        eel.kill_img_proc_task()
       }
     });
     </script>

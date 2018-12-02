@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     # Record Parameters
     setup_dirs(params['save_dir'])
-    with open(os.path.join(save_dir, 'params.json'), 'w') as fp:
+    with open(os.path.join(params['save_dir'], 'params.json'), 'w') as fp:
         json.dump(params, fp)
 
     # Schedule Actions

@@ -29,15 +29,13 @@ def norm_auc(frames, ints, t_spans):
 
 if __name__ == '__main__':
     data_dir = 'data'
-    expt = 'linshan'
-    ch = '2'
-    img_dir = os.path.join(data_dir, expt, ch)
-    img_names = list_fnames(img_dir)
-    print(len(img_names))
-    # save_dir = os.path.join(data_dir, expt + '_' + ch + '_' + 'single_cell_results')
-    # setup_dirs(save_dir)
-    # trajs = images_to_ave_single_cell_intensities(img_dir, save_dir, regions_min_size=50)
-    # plot_single_cell_trajectories(trajs, save_dir)
-    # plot_single_cell_trajectories_ave(trajs, save_dir)
+    expt = 'nate'
+    img_dir = os.path.join(data_dir, expt)
+    save_dir = os.path.join(data_dir, expt + '_' + 'single_cell_results')
+    setup_dirs(save_dir)
+    trajs = images_to_ave_single_cell_intensities(img_dir, save_dir, regions_min_size=50)
+    plot_single_cell_trajectories(trajs, save_dir)
+    plot_single_cell_trajectories_ave(trajs, save_dir)
     # t_spans = [0, 62, 73, 98, 109, 134, 145, 170, 181, 206, 217, 244]
     # save_single_cell_data(img_dir, trajs, save_dir, calc_func=norm_auc, t_spans=t_spans)
+    save_single_cell_data(img_dir, trajs, save_dir)

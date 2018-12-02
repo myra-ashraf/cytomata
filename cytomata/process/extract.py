@@ -52,7 +52,8 @@ def images_to_median_frame_intensities(img_dir, save_dir=None, gauss_sigma=50, i
             iter_imgs = imgs + [np.array(fig.canvas.renderer._renderer)]
             plt.close(fig)
             prog = int(round((i+1)/len(img_fnames) * 100))
-            iter_cb(med_int, iter_imgs, prog)
+            if iter_cb(med_int, iter_imgs, prog):
+                return med_ints
         if save_dir is not None:
             for j, img in enumerate(imgs):
                 img_step_dir = os.path.join(save_dir, img_step[j])
@@ -66,27 +67,26 @@ def images_to_median_frame_intensities(img_dir, save_dir=None, gauss_sigma=50, i
     return med_ints
 
 
-def get_regions(img, save_dir=None, gauss_sigma=45,
-    autocontrast=False, thres_block=45, thres_offset=0, peaks_min_dist=30, **kwargs):
+def get_regions(img, save_dir=None, gauss_sigma=30,
+    autocontrast=False, thres_block=25, thres_offset=-0.005, peaks_min_dist=25, **kwargs):
     img = img_as_float(img)
     sigma = estimate_sigma(img)
     den = denoise_nl_means(img, h=sigma, sigma=sigma, multichannel=False)
     ga0 = gaussian(den, sigma=gauss_sigma)
     sub = den - ga0
     sub[sub < 0] = 0
-    if autocontrast:
-        sub = equalize_adapthist(sub, clip_limit=0.005)
-    th = threshold_local(sub, block_size=thres_block, offset=thres_offset, method='mean')
-    thres = gaussian(sub, sigma=1) > th
+    cont = equalize_adapthist(sub, clip_limit=0.001)
+    th = threshold_local(cont, block_size=thres_block, offset=thres_offset, method='mean')
+    thres = dilation(erosion(gaussian(cont, sigma=1) > th, disk(5)), disk(4))
     labels, _ = ndi.label(thres)
-    dist = ndi.distance_transform_edt(sub)
+    dist = ndi.distance_transform_edt(cont)
     lmax = peak_local_max(image=dist, labels=labels,
         min_distance=peaks_min_dist, indices=False, exclude_border=False)
     markers, n = ndi.label(dilation(lmax, disk(3)))
     markers[~thres] = -1
-    rw = random_walker(sub, markers, beta=100, mode='bf')
+    rw = random_walker(cont, markers, beta=1000, mode='bf')
     rw[rw < 0] = 0
-    min_area = np.quantile([prop.area for prop in regionprops(rw)], 0.25)
+    min_area = np.quantile([prop.area for prop in regionprops(rw)], 0.10)
     regions = clear_border(remove_small_objects(rw, min_size=min_area), buffer_size=0)
     bouns = find_boundaries(regions)
     overlay = sub.copy()
