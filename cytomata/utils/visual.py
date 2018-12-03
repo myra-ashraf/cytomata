@@ -34,15 +34,16 @@ plt.rcParams['lines.linewidth'] = 3
 sns.set_palette(['#1E88E5', '#43A047', '#e53935', '#5E35B1', '#FFB300', '#00ACC1', '#3949AB', '#F4511E'])
 
 
-def plot(x, y, labels, xlabel, ylabel, title, color=None, save_path=None):
+def plot(x, y, xlabel, ylabel, title=None, labels=None, save_path=None):
     fig, ax = plt.subplots()
-    ax.plot(x, y, color=color)
+    ax.plot(x, y)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    labels = [labels] if type(labels) is str else labels
-    if labels:
+    if labels is not None:
+        labels = [labels] if type(labels) is str else labels
         ax.legend(labels=labels, loc='best')
-    ax.set_title(title, loc='left')
+    if title is not None:
+        ax.set_title(title, loc='left')
     if save_path is not None:
         fig.savefig(save_path, dpi=100, bbox_inches='tight')
     else:

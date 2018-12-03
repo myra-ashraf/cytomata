@@ -39,8 +39,8 @@
           $('#proc_img_progress').css('width', prog + "%");
           $('#proc_img_progress').text('DONE!');
           $('#proc_img_progress').addClass('bg-success');
-          $('#protoccol_button').toggleClass('btn-danger btn-success');
-          $('#protoccol_button').toggleClass('proto-stop proto-start');
+          $('#protoccol_button').toggleClass('btn-danger proto-stop', false);
+          $('#protoccol_button').toggleClass('proto-start btn-success', true);
           $('#protoccol_button').text("Start Protoccol");
         }
       }

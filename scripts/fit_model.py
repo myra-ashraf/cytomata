@@ -10,7 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
-from cytomata.process import FOPDT, Regulator
+from cytomata.process.model import FOPDT, Regulator
 
 
 # Load Data

@@ -1,0 +1,17 @@
+python -m eel run.py gui --hidden-import='pywt._extensions._cwt' --onefile
+
+from distutils.sysconfig import get_python_lib
+from os import path
+skimage_plugins = Tree(
+    path.join(get_python_lib(), "skimage","io","_plugins"),
+    prefix=path.join("skimage","io","_plugins"),
+    )
+
+coll = COLLECT(exe,
+               a.binaries,
+               a.zipfiles,
+               a.datas,
+               skimage_plugins,
+               strip=None,
+               upx=True,
+               name='foobar')

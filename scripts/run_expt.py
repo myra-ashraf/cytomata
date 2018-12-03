@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath('../'))
 
 import schedule
 
-from cytomata.interface import Microscope
+from cytomata.interface.microscope import Microscope
 from cytomata.utils.io import setup_dirs
 
 
