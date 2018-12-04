@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from skimage import img_as_ubyte
 from skimage.exposure import equalize_adapthist
 
-from cytomata.utils.io import list_fnames, setup_dirs
+from cytomata.utils.io import list_img_files, setup_dirs
 from cytomata.process.extract import images_to_median_frame_intensities
 
 
@@ -26,7 +26,7 @@ def guess_out_dir():
 @eel.expose
 def check_found_imgs(img_dir):
     try:
-        return len(list_fnames(img_dir))
+        return len(list_img_files(img_dir))
     except:
         return 0
 

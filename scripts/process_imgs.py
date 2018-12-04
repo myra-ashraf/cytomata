@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath('../'))
 import numpy as np
 import pandas as pd
 
-from cytomata.utils.io import list_fnames, setup_dirs
+from cytomata.utils.io import setup_dirs
 from cytomata.process.extract import (
     get_median_intensity,
     get_regions,

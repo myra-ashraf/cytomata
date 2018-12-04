@@ -6,9 +6,8 @@ sys.path.append(os.path.abspath('../'))
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from skimage.io import imread
 
-from cytomata.utils.io import list_fnames
+from cytomata.utils.io import list_img_files
 
 
 if __name__ == '__main__':
