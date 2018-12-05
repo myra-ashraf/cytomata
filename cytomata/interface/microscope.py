@@ -1,5 +1,6 @@
 import os
 import time
+import warnings
 from collections import defaultdict
 
 import numpy as np
@@ -179,7 +180,9 @@ class Microscope(object):
                 self.set_channel(ch)
                 img = self.take_snapshot()
                 img_path = os.path.join(self.save_dir, 'imgs', ch, str(i), str(self.count) + '.tif')
-                imsave(img_path, img)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    imsave(img_path, img)
             data_path = os.path.join(self.save_dir, str(i) + '.csv')
             header = ','.join(['t', 'x', 'y', 'z'])
             data = np.column_stack((self.ts[i], self.xs[i], self.ys[i], self.zs[i]))
