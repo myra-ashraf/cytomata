@@ -37,8 +37,8 @@ if __name__ == '__main__':
         't_total': 259200,
         't_exc_on': 43200,
         't_exc_off': 57600,
-        't_exc_width': 1,
-        't_exc_period': 30
+        't_exc_width': 5,
+        't_exc_period': 60
     }
 
     # Record Parameters
