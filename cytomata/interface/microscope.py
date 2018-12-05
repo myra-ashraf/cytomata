@@ -8,6 +8,7 @@ from skimage.io import imsave
 from skimage.filters import laplace, sobel_h, sobel_v
 
 import MMCorePy
+from cytomata.utils.io import setup_dirs
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -84,17 +85,6 @@ class Microscope(object):
     def take_snapshot(self):
         self.core.snapImage()
         return self.core.getImage()
-
-    def control_excitation(self, ch_dark, ch_exc, t_exc_on, t_exc_off, t_exc_width):
-        self.ut.append(time.time())
-        t = time.time() - self.ts[0][0]
-        if t > t_exc_on and t < t_exc_off:
-            self.us.append(1.0)
-            self.set_channel(ch_exc)
-            time.sleep(t_exc_width)
-            self.set_channel(ch_dark)
-        else:
-            self.us.append(0.0)
 
     def measure_focus(self, img, metric='lap'):
         if metric == 'var': # Variance of image
@@ -175,8 +165,7 @@ class Microscope(object):
             for ch in self.chs_img
             for i in range(len(self.coords))]
         for sample_dir in sample_dirs:
-            if not os.path.exists(sample_dir):
-                os.makedirs(sample_dir)
+            setup_dirs(sample_dir)
         best_pos, best_foc = self.autofocus()
         self.coords[:, 2] += (best_pos - self.coords[0, 2]) # Update all coords based on 1st coord
         for i, (x, y, z) in enumerate(self.coords):
@@ -190,7 +179,7 @@ class Microscope(object):
                 self.set_channel(ch)
                 img = self.take_snapshot()
                 img_path = os.path.join(self.save_dir, 'imgs', ch, str(i), str(self.count) + '.tif')
-                imsave(img_path, img, plugin='tifffile')
+                imsave(img_path, img)
             data_path = os.path.join(self.save_dir, str(i) + '.csv')
             header = ','.join(['t', 'x', 'y', 'z'])
             data = np.column_stack((self.ts[i], self.xs[i], self.ys[i], self.zs[i]))
