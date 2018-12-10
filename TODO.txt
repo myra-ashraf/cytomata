@@ -1,0 +1,2 @@
+1. Write tests for all modules
+2. Look into Usiigaci (mask-rcnn) and Trackpy for cell tracking instead of SORT

@@ -1,4 +1,7 @@
-# TODO: Replace SORT with non-GPL code (trackpy or usiigaci)
+from __future__ import absolute_import, division, print_function, unicode_literals
+from builtins import (ascii, bytes, chr, dict, filter, hex, input,
+    int, map, next, oct, open, pow, range, round, str, super, zip)
+
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from filterpy.kalman import KalmanFilter
