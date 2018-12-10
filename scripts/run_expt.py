@@ -26,7 +26,7 @@ if __name__ == '__main__':
     # Experiment Parameters
     params = {
         'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
-        'desc': '',
+        'desc': 'filter: ND8',
         'mag': 1,
         'chs_img': ['DIC', 'GFP'],
         'ch_dark': 'None',

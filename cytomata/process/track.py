@@ -1,3 +1,4 @@
+# TODO: Replace SORT with non-GPL code (trackpy or usiigaci)
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 from filterpy.kalman import KalmanFilter

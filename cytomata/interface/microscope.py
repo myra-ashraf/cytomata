@@ -4,7 +4,6 @@ import warnings
 from collections import defaultdict
 
 import numpy as np
-from skimage import img_as_float
 from skimage.io import imsave
 from skimage.filters import laplace, sobel_h, sobel_v
 
@@ -72,6 +71,12 @@ class Microscope(object):
             self.core.waitForDevice('TIZDrive')
         else:
             raise ValueError('Invalid axis arg in Microscope.shift_position(axis).')
+
+    def add_position(self):
+        x = self.get_position('x')
+        y = self.get_position('y')
+        z = self.get_position('z')
+        self.coords = np.vstack((self.coords, [x, y, z]))
 
     def set_channel(self, chname):
         if chname != self.core.getCurrentConfig('Channel'):
@@ -153,12 +158,6 @@ class Microscope(object):
             return best_pos, best_foc
         else:
             return z0, 0.0
-
-    def record_position(self):
-        x = self.get_position('x')
-        y = self.get_position('y')
-        z = self.get_position('z')
-        self.coords = np.vstack((self.coords, [x, y, z]))
 
     def record_data(self):
         sample_dirs = [

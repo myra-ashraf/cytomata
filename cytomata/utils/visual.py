@@ -1,12 +1,10 @@
 import os
-import time
 
 import cv2
-import numpy as np
-import pandas as pd
+import imageio
 import seaborn as sns
 import matplotlib.pyplot as plt
-from skimage import img_as_ubyte
+from skimage import img_as_ubyte, img_as_float
 
 from cytomata.utils.io import setup_dirs
 
@@ -34,7 +32,7 @@ plt.rcParams['lines.linewidth'] = 3
 sns.set_palette(['#1E88E5', '#43A047', '#e53935', '#5E35B1', '#FFB300', '#00ACC1', '#3949AB', '#F4511E'])
 
 
-def plot(x, y, xlabel, ylabel, title=None, labels=None, save_path=None):
+def plot(x, y, xlabel, ylabel, title=None, labels=None, show=True, save_path=None):
     fig, ax = plt.subplots()
     ax.plot(x, y)
     ax.set_xlabel(xlabel)
@@ -46,26 +44,29 @@ def plot(x, y, xlabel, ylabel, title=None, labels=None, save_path=None):
         ax.set_title(title, loc='left')
     if save_path is not None:
         fig.savefig(save_path, dpi=100, bbox_inches='tight')
-    else:
+    if show:
         plt.show()
     plt.close(fig)
 
 
-def imshow(img, title=None, save_path=None):
+def imshow(img, title=None, axes=False, colorbar=False, show=True, save_path=None):
     fig, ax = plt.subplots()
     ax.imshow(img)
     if title is not None:
         ax.set_title(title)
     ax.grid(False)
-    ax.axis('off')
+    if not axes:
+        ax.axis('off')
+    if colorbar:
+        fig.colorbar()
     if save_path is not None:
         fig.savefig(save_path, dpi=100, bbox_inches='tight')
-    else:
+    if show:
         plt.show()
     plt.close(fig)
 
 
-def frames_to_video(imgs, vid_path, fps):
+def imgs_to_mp4(imgs, vid_path, fps=10.0):
     for i, img in enumerate(imgs):
         img = img_as_ubyte(img)
         if i == 0:
@@ -78,17 +79,25 @@ def frames_to_video(imgs, vid_path, fps):
     video.release()
 
 
+def imgs_to_gif(imgs, gif_path):
+    with imageio.get_writer(gif_path, mode='I') as writer:
+        for img in imgs:
+            writer.append_data(img_as_float(img))
+
+
 class DynamicPlot(object):
     """"""
-    def __init__(self, x, y, labels, xlabel, ylabel, title, save_dir=None):
+    def __init__(self, x, y, xlabel, ylabel, title=None, labels=None, save_dir=None):
         self.save_dir = save_dir
         self.fig, self.ax = plt.subplots()
         self.lines = self.ax.plot(x, y)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
-        labels = [labels] if type(labels) is str else labels
-        fig.legend(labels=labels, loc='best')
-        ax.set_title(title, loc='left')
+        if labels is not None:
+            labels = [labels] if type(labels) is str else labels
+            ax.legend(labels=labels, loc='best')
+        if title is not None:
+            ax.set_title(title, loc='left')
         self.fig.canvas.draw()
         self.count = 0
         plt.show(block=False)

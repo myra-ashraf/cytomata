@@ -13,10 +13,12 @@ future==0.17.1
 gevent==1.3.7
 gevent-websocket==0.10.1
 greenlet==0.4.15
+imageio==2.4.1
 kiwisolver==1.0.1
 lmfit==0.9.12
 macholib==1.11
 matplotlib==3.0.2
+natsort==5.5.0
 networkx==2.2
 numpy==1.15.4
 opencv-python==3.4.4.19

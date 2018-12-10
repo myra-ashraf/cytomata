@@ -163,7 +163,7 @@ def plot_single_cell_trajectories_ave(trajs, save_dir, by_frame=True):
     plt.close()
 
 
-def save_single_cell_data(img_dir, trajs, save_dir, min_traj_length=100, calc_func=None, **kwargs):
+def save_single_cell_data(trajs, img_dir, save_dir, min_traj_length=100, calc_func=None, **kwargs):
     trajs = {id:info for id, info in trajs.items() if len(info['ints']) > min_traj_length}
     df = pd.DataFrame(columns=trajs.keys())
     for id, info in trajs.items():

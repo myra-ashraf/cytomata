@@ -5,9 +5,6 @@ import warnings
 from base64 import b64encode
 
 import cv2
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 from skimage import img_as_ubyte
 from skimage.exposure import equalize_adapthist
 
@@ -63,7 +60,7 @@ if __name__ == '__main__':
     options = {
         'mode': "chrome",
         'host': 'localhost',
-        'port': 8080,
+        'port': 8000,
         'chromeFlags': ["--start-fullscreen"]
     }
 
