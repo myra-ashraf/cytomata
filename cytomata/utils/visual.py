@@ -32,7 +32,7 @@ plt.rcParams['lines.linewidth'] = 3
 sns.set_palette(['#1E88E5', '#43A047', '#e53935', '#5E35B1', '#FFB300', '#00ACC1', '#3949AB', '#F4511E'])
 
 
-def plot(x, y, xlabel, ylabel, title=None, labels=None, show=True, save_path=None):
+def plot(x, y, xlabel, ylabel, title=None, labels=None, show=False, save_path=None):
     fig, ax = plt.subplots()
     ax.plot(x, y)
     ax.set_xlabel(xlabel)
@@ -49,7 +49,7 @@ def plot(x, y, xlabel, ylabel, title=None, labels=None, show=True, save_path=Non
     plt.close(fig)
 
 
-def imshow(img, title=None, axes=False, colorbar=False, show=True, save_path=None):
+def imshow(img, title=None, axes=False, colorbar=False, show=False, save_path=None):
     fig, ax = plt.subplots()
     ax.imshow(img)
     if title is not None:
@@ -66,7 +66,7 @@ def imshow(img, title=None, axes=False, colorbar=False, show=True, save_path=Non
     plt.close(fig)
 
 
-def imgs_to_mp4(imgs, vid_path, fps=10.0):
+def imgs_to_mp4(imgs, vid_path, fps=10):
     for i, img in enumerate(imgs):
         img = img_as_ubyte(img)
         if i == 0:
@@ -79,8 +79,8 @@ def imgs_to_mp4(imgs, vid_path, fps=10.0):
     video.release()
 
 
-def imgs_to_gif(imgs, gif_path):
-    with imageio.get_writer(gif_path, mode='I') as writer:
+def imgs_to_gif(imgs, gif_path, fps=10):
+    with imageio.get_writer(gif_path, mode='I', fps=fps) as writer:
         for img in imgs:
             writer.append_data(img_as_float(img))
 

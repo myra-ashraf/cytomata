@@ -20,7 +20,7 @@ from skimage.segmentation import random_walker, clear_border, find_boundaries
 
 from cytomata.process import track
 from cytomata.utils.io import setup_dirs
-from cytomata.utils.visual import plot, imshow
+from cytomata.utils.visual import plot
 
 
 def get_median_intensity(img, gauss_sigma=50):
@@ -198,8 +198,7 @@ def save_single_cell_data(trajs, img_dir, save_dir, min_traj_length=100, calc_fu
             calc_path = os.path.join(id_dir, 'calcs.csv')
             np.savetxt(calc_path, np.array(calc), delimiter=',', header='calc', comments='')
         traj_path = os.path.join(id_dir, 'traj_int.png')
-        plot(frames, ints, labels=None, xlabel='Frame',
-            ylabel='Ave Intensity', title='Trajectory #' + str(id), save_path=traj_path)
+        plot(frames, ints, 'Frame', 'Ave Intensity', title='Trajectory #' + str(id), save_path=traj_path)
         flint_path = os.path.join(id_dir, 'flint.csv')
         np.savetxt(flint_path, np.column_stack((frames, ints)), delimiter=',', header='frame,fl_int', comments='')
     plt.close('all')
