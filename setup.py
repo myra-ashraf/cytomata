@@ -50,7 +50,7 @@ setuptools.setup(
     license=cytomata.__license__,
     packages=setuptools.find_packages(exclude=['tests']),
     install_requires=[
-        'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image', 'scikit-learn',
-        'opencv-python', 'PyWavelets', 'schedule', 'lmfit', 'eel', 'filterpy'
+        'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image', 'pims', 'pypiwin32'
+        'opencv-python', 'PyWavelets', 'schedule', 'lmfit', 'eel', 'filterpy', 'tornado'
     ]
 )
