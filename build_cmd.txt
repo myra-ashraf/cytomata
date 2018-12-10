@@ -1,5 +1,5 @@
-python -m eel run.py gui --onefile --noconsole
-pyinstaller run.spec
+python -m eel cytomata.py gui --onefile --noconsole
+pyinstaller cytomata.spec
 
 
 # -*- mode: python -*-
@@ -14,7 +14,7 @@ skimage_plugins = Tree(
 block_cipher = None
 
 
-a = Analysis(['run.py'],
+a = Analysis(['cytomata.py'],
              pathex=['C:\\Users\\solar\\cytomata'],
              binaries=[],
              datas=[('C:\\Users\\solar\\anaconda3\\envs\\cy\\lib\\site-packages\\eel\\eel.js', 'eel'), ('gui', 'gui')],
@@ -35,7 +35,7 @@ exe = EXE(pyz,
           a.datas,
           skimage_plugins,
           [],
-          name='run',
+          name='cytomata',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
