@@ -130,7 +130,7 @@ class Microscope(object):
         self.set_position('z', pos0)
         return positions, focuses
 
-    def autofocus(self, step=-2.0, min_step=0.3, max_iter=7, bounds=[-100.0, 50.0]):
+    def autofocus(self, step=-1.0, min_step=0.2, max_iter=7, bounds=[-100.0, 50.0]):
         if self.ch_af is not None and self.algo_af is not None:
             self.set_channel(self.ch_af)
             z0 = self.coords[0, 2]

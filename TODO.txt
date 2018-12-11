@@ -1,2 +1,17 @@
-1. Write tests for all modules
-2. Look into Usiigaci (mask-rcnn) and Trackpy for cell tracking instead of SORT
+0. Pre-processing function to convert light induction expt data to per second format
+1. Fit model to data
+2. Validate model with unseen data
+3. Optimize light pattern
+4. Run new experiment with unseen light pattern to confirm
+5. Implement PID and MPC
+6. Try using PID and MPC to control light induction
+7. Implement PPO
+8. Try training PPO on ODE model
+9. Try using PPO to control light induction
+10. Implement one/few-shot learning to generalize to new systems/conditions
+
+0. Write tests for all modules
+1. Look into Usiigaci (mask-rcnn) and Trackpy for cell tracking instead of SORT
+2. Improve autofocus algorithm
+    Take slope of focus level into account
+    Specify "offset" to target different focal planes of a cell
