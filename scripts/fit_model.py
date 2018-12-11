@@ -14,27 +14,30 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
-from cytomata.process.model import FOPDT, Regulator
+from cytomata.process.extract import images_to_median_frame_intensities
+from cytomata.process.extract import interpolate_to_seconds
+from cytomata.process.model import FOPDT, Regulator, Khammash
 
 
 # Load Data
-df = pd.read_csv('data00.csv')
-tp = df['t'].values
-up = df['u'].values
-yp = df['y'].values
-# df = pd.read_csv('data.csv')
-# tp = df['time'].values/3600
-# yp = df['fluo'].values*10
-# up = df['light'].values
-# yf = interp1d(tp, yp)
+data_dir = 'data'
+u_path = os.path.join(data_dir, 'u.csv')
+df = pd.read_csv(u_path)
+tu = df['time'].values/3600
+u = df['input'].values
 # up = np.array([0]*5 + ([1]*1 + [0]*29) * 3857)
-# tp = np.array(range(0, 115715))/3600
-# yp = np.array([yf(t) for t in tp])
-# pd.DataFrame({'t': tp, 'u': up, 'y': yp}).to_csv('data.csv')
+ty_path = os.path.join(data_dir, '0.csv')
+ty = pd.read_csv(ty_path)['t'].values/3600
+img_dir = os.path.join(data_dir, 'imgs', 'GFP')
+y = images_to_median_frame_intensities(img_dir, save_dir=None, gauss_sigma=40)
+yf = interp1d(ty, y)
+y = np.array([yf(t) for t in tu])
+cleaned_data_path = os.path.join(data_dir, 'data.csv')
+pd.DataFrame({'t': tu, 'u': u, 'y': y}).to_csv(cleaned_data_path)
 
 # Fit Model
-regulator = Regulator()
-regulator.fit_model(tp=tp, up=up, yp=yp, method='nelder', method_kwargs={})
+model = Khammash()
+model.fit(tp=tu, up=u, yp=y, method='nelder', method_kwargs={})
 #
 # # Optimize Pattern
 # def residual(params):
