@@ -10,6 +10,7 @@ from collections import defaultdict
 import numpy as np
 from skimage.io import imsave
 from skimage.filters import laplace, sobel_h, sobel_v
+from scipy.optimize import minimize_scalar
 
 import MMCorePy
 from cytomata.utils.io import setup_dirs
@@ -130,7 +131,7 @@ class Microscope(object):
         self.set_position('z', pos0)
         return positions, focuses
 
-    def autofocus(self, step=-1.0, min_step=0.2, max_iter=7, bounds=[-100.0, 50.0]):
+    def autofocus(self, step=-1.0, min_step=0.2, max_iter=7, bounds=[-100.0, 100.0]):
         if self.ch_af is not None and self.algo_af is not None:
             self.set_channel(self.ch_af)
             z0 = self.coords[0, 2]
@@ -155,7 +156,14 @@ class Microscope(object):
                     iter += 1
                 best_foc = max(focuses)
                 best_pos = positions[focuses.index(max(focuses))]
-            else:  # Reset stage position to initial position
+            elif self.algo_af == 'brent':  # Brent's Method
+                def residual(z):
+                    self.set_position('z', z):
+                    return -self.sample_focus()[1]
+                minimize_scalar(residual, method='bounded',
+                    bounds=(z0 + bounds[0], z0 + bounds[1]))
+                best_pos, best_foc = self.sample_focus()
+            else:  # Just reset to initial position
                 best_pos = z0
                 best_foc = 0.0
         if (best_pos > z0 + bounds[0] and best_pos < z0 + bounds[1]):
