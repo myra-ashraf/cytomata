@@ -15,11 +15,11 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
 from cytomata.process.extract import images_to_median_frame_intensities
-from cytomata.process.extract import interpolate_to_seconds
 from cytomata.process.model import FOPDT, Regulator, Khammash
 
 
 # Load Data
+# Need time, input, output arrays to be same length/timescale
 data_dir = 'data'
 u_path = os.path.join(data_dir, 'u.csv')
 df = pd.read_csv(u_path)
