@@ -3,6 +3,7 @@ asteval==0.9.13
 bottle==0.12.15
 bottle-websocket==0.2.9
 certifi==2018.10.15
+cffi==1.11.5
 cloudpickle==0.6.1
 cycler==0.10.0
 dask==1.0.0
