@@ -33,7 +33,7 @@ if __name__ == '__main__':
     print(time.time() - t1)
 
     # Images to MP4
-    imgs = pims.open(os.path.join('data/imgs/DIC/0', '*'))
+    imgs = pims.open(os.path.join('data/imgs/DIC/0', '*.tiff'))
     imgs_to_mp4(imgs, vid_path='result.mp4', fps=10)
 
     # Images to GIF

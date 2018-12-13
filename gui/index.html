@@ -26,7 +26,7 @@
         document.getElementById('out_dir_form').value = out_dir;
       }
       eel.expose(update_img_results);
-      function update_img_results(img0, img1, img2, img3, img4, med_int, prog) {
+      function update_img_results(img0, img1, img2, img3, img4, ave_int, prog) {
         $("#proc_img0").attr("src", "data:image/png;base64," + img0);
         $("#proc_img1").attr("src", "data:image/png;base64," + img1);
         $("#proc_img2").attr("src", "data:image/png;base64," + img2);
@@ -104,7 +104,7 @@
                   <div class="form-group">
                     <label for="protoccol_form">Protoccol</label>
                     <select class="form-control" id="protoccol_form">
-                      <option value='0'>Median Frame Intensities</option>
+                      <option value='0'>Ave Frame Intensities</option>
                       <option value='1'>Single Cell Trajectories</option>
                     </select>
                   </div>

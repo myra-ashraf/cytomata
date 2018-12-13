@@ -17,7 +17,6 @@ sns.set_style('whitegrid')
 plt.rcParams['image.cmap'] = 'viridis'
 plt.rcParams['figure.figsize'] = 12, 8
 plt.rcParams['text.color'] = '#212121'
-plt.rcParams['axes.titlesize'] = 28
 plt.rcParams['axes.titleweight'] = 'bold'
 plt.rcParams['axes.titlesize'] = 28
 plt.rcParams['axes.titlepad'] = 18

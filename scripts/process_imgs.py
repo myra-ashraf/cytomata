@@ -11,7 +11,7 @@ import pandas as pd
 
 from cytomata.utils.io import setup_dirs
 from cytomata.process.extract import (
-    images_to_median_frame_intensities,
+    images_to_ave_frame_intensities,
     images_to_ave_single_cell_intensities,
     plot_single_cell_trajectories,
     plot_single_cell_trajectories_ave,
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     # Global Frame Analysis
     save_dir = os.path.join('data', dataset + '_' + 'global_frame_analysis')
     setup_dirs(save_dir)
-    images_to_median_frame_intensities(img_dir, save_dir, gauss_sigma=40, iter_cb=None)
+    images_to_ave_frame_intensities(img_dir, save_dir, gauss_sigma=40, iter_cb=None)
     # Single Cell Analysis
     save_dir = os.path.join('data', dataset + '_' + 'single_cell_analysis')
     setup_dirs(save_dir)

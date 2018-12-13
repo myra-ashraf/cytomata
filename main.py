@@ -13,7 +13,7 @@ from skimage import img_as_ubyte
 from skimage.exposure import equalize_adapthist
 
 from cytomata.utils.io import list_img_files, setup_dirs
-from cytomata.process.extract import images_to_median_frame_intensities
+from cytomata.process.extract import images_to_ave_frame_intensities
 
 
 @eel.expose
@@ -46,15 +46,15 @@ def img_to_b64(img, touchup=False):
 def process_imgs(img_dir, out_dir, proto, params):
     setup_dirs(out_dir)
     if proto == '0':
-        def iter_cb(med_int, imgs, prog):
+        def iter_cb(ave_int, imgs, prog):
             img0 = img_to_b64(imgs[0], touchup=True)
             img1 = img_to_b64(imgs[1], touchup=True)
             img2 = img_to_b64(imgs[2], touchup=True)
             img3 = img_to_b64(imgs[3], touchup=True)
             img4 = img_to_b64(imgs[4], touchup=False)
-            eel.update_img_results(img0, img1, img2, img3, img4, med_int, prog)
+            eel.update_img_results(img0, img1, img2, img3, img4, ave_int, prog)
             return eel.is_proc_imgs_stopped()()
-        images_to_median_frame_intensities(
+        images_to_ave_frame_intensities(
             img_dir, out_dir, int(params['gauss']), iter_cb
         )
 

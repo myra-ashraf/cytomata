@@ -12,7 +12,11 @@ import lmfit as lm
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
-plt.rcParams['figure.figsize'] = 8, 6
+plt.rcParams['figure.figsize'] = 12, 12
+plt.rcParams['axes.titlepad'] = 0
+plt.rcParams['axes.titlesize'] = 16
+plt.rcParams['axes.labelsize'] = 16
+plt.rcParams['axes.labelpad'] = 0
 
 from cytomata.utils.io import setup_dirs
 from cytomata.utils.gym import Env, Box, Discrete
@@ -77,7 +81,7 @@ class FOPDT(Env):
             print('SSE: ' + str(sse))
             print(params.valuesdict())
 
-    def fit_model(self, tp, up, yp, K0=None, tau0=None, theta0=None, method='powell', prg_plot=True):
+    def fit(self, tp, up, yp, K0=None, tau0=None, theta0=None, method='powell', prg_plot=True):
         self.prg_plot = prg_plot
         self.tp = tp
         self.up = up
@@ -183,7 +187,7 @@ class Regulator(Env):
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir)
 
-    def fit_model(self, tp, up, yp, y0=None, method='powell', method_kwargs={}):
+    def fit(self, tp, up, yp, y0=None, method='powell', method_kwargs={}):
         self.fit_figs_dir = os.path.join(self.save_dir, 'fit_figs')
         if not os.path.exists(self.fit_figs_dir):
             os.makedirs(self.fit_figs_dir)
@@ -377,7 +381,7 @@ class Khammash(Env):
         self.save_dir = save_dir
         setup_dirs(save_dir)
 
-    def fit_model(self, tp, up, yp, y0=None, method='powell', method_kwargs={}):
+    def fit(self, tp, up, yp, y0=None, method='powell', method_kwargs={}):
         self.fit_figs_dir = os.path.join(self.save_dir, 'fit_figs')
         setup_dirs(self.fit_figs_dir)
         self.method = method
@@ -470,7 +474,7 @@ class Khammash(Env):
         plt.plot(self.tp, self.y['T'], label='TF_on')
         plt.plot(self.tp, self.y['M'], label='mRNA')
         plt.plot(self.tp, self.y['P'], label='Protein')
-        title = 'SSE: ' + str(np.format_float_scientific(sse, precision=3))
+        title = 'SSE: ' + str(np.format_float_scientific(sse, precision=3)) + '\n'
         for i, (k, v) in enumerate(params.valuesdict().items()):
             title += ' | '+ k +': ' + str(np.round(v, 3))
             if i > 0 and i % 4 == 0:

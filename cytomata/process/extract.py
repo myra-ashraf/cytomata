@@ -4,6 +4,7 @@ from builtins import (ascii, bytes, chr, dict, filter, hex, input,
 
 import os
 import json
+import warnings
 from collections import defaultdict
 
 import pims
@@ -12,7 +13,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from scipy import ndimage as ndi
-from skimage import img_as_float
+from skimage import img_as_float, img_as_uint
 from skimage.io import imsave
 from skimage.exposure import equalize_adapthist
 from skimage.measure import regionprops
@@ -27,51 +28,58 @@ from cytomata.utils.io import setup_dirs
 from cytomata.utils.visual import plot
 
 
-def get_median_intensity(img, gauss_sigma=50):
+def get_ave_intensity(img, gauss_sigma=40):
     img = img_as_float(img)
     sigma = estimate_sigma(img)
     den = denoise_nl_means(img, h=sigma, sigma=sigma, multichannel=False)
     gau = gaussian(den, sigma=gauss_sigma)
     sub = den - gau
     sub[sub < 0] = 0
-    med_int = np.median(sub[sub.nonzero()])
+    ave_int = np.mean(sub[sub.nonzero()])
     imgs = [img, den, gau, sub]
-    return med_int, imgs
+    return ave_int, imgs
 
 
-def images_to_median_frame_intensities(img_dir, save_dir=None, gauss_sigma=40, iter_cb=None):
-    med_ints = []
+def images_to_ave_frame_intensities(img_dir, save_dir=None, gauss_sigma=40, iter_cb=None):
+    ave_ints = []
     img_step = {0: 'original', 1: 'denoised', 2: 'gaussian', 3: 'subtracted'}
-    imgs = pims.open(os.path.join(img_dir, '*'))
+    for img_type in ['tiff', 'tif', 'png', 'jpg', 'jpeg', 'gif']:
+        try:
+            imgs = pims.open(os.path.join(img_dir, '*.' + img_type))
+            break
+        except:
+            continue
     for i, img in enumerate(imgs):
         img = img_as_float(img)
-        med_int, imgs = get_median_intensity(img, gauss_sigma)
-        med_ints.append(med_int)
+        ave_int, imgs = get_ave_intensity(img, gauss_sigma)
+        ave_ints.append(ave_int)
         if save_dir is not None:
             for j, img in enumerate(imgs):
                 img_step_dir = os.path.join(save_dir, img_step[j])
                 setup_dirs(img_step_dir)
-                img_path = os.path.join(img_step_dir, str(i) + '.tif')
+                img_path = os.path.join(img_step_dir, str(i) + '.tiff')
                 # plt.imsave(img_path, img, cmap='viridis')
-                imsave(img_path, img)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    imsave(img_path, img_as_uint(img))
         if iter_cb is not None:
             fig, ax = plt.subplots(figsize=(16, 8))
-            ax.plot(range(len(med_ints)), med_ints)
+            ax.plot(range(len(ave_ints)), ave_ints)
             ax.set_xlabel('Frame')
-            ax.set_ylabel('Median Intensity')
+            ax.set_ylabel('Ave Intensity')
             fig.tight_layout(pad=0)
             fig.canvas.draw()
             iter_imgs = imgs + [np.array(fig.canvas.renderer._renderer)]
             plt.close(fig)
             prog = int(round((i+1)/len(img_fnames) * 100))
-            if iter_cb(med_int, iter_imgs, prog):
+            if iter_cb(ave_int, iter_imgs, prog):
                 break
     if save_dir is not None:
-        plot_path = os.path.join(save_dir, 'med_ints.png')
-        plot(range(len(med_ints)), med_ints, 'Frames', 'Median Intensity', save_path=plot_path)
-        csv_path = os.path.join(save_dir, 'med_ints.csv')
-        np.savetxt(csv_path, np.array(med_ints), delimiter=',', header='median_intensity', comments='')
-    return med_ints
+        plot_path = os.path.join(save_dir, 'ave_ints.png')
+        plot(range(len(ave_ints)), ave_ints, 'Frames', 'Ave Intensity', save_path=plot_path)
+        csv_path = os.path.join(save_dir, 'ave_ints.csv')
+        np.savetxt(csv_path, np.array(ave_ints), delimiter=',', header='ave_intensity', comments='')
+    return ave_ints
 
 
 def get_regions(img, save_dir=None, gauss_sigma=30,
@@ -106,14 +114,21 @@ def get_regions(img, save_dir=None, gauss_sigma=30,
             setup_dirs(res_dir)
             img_path = os.path.join(res_dir, str(len(os.listdir(res_dir))) + '.png')
             # plt.imsave(img_path, step_img, cmap='viridis')
-            imsave(img_path, step_img)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                imsave(img_path, img_as_uint(step_img))
     return dict(zip(step_names, step_imgs))
 
 
 def images_to_ave_single_cell_intensities(img_dir, save_dir=None, **reg_params):
     tracker = track.Sort(max_age=3, min_hits=1)
     trajs = defaultdict(defaultdict(dict).copy)
-    imgs = pims.open(os.path.join(img_dir, '*'))
+    for img_type in ['tiff', 'tif', 'png', 'jpg', 'jpeg', 'gif']:
+        try:
+            imgs = pims.open(os.path.join(img_dir, '*.' + img_type))
+            break
+        except:
+            continue
     for i, img in enumerate(imgs):
         img = img_as_float(img)
         regions_dir = os.path.join(save_dir, 'regions')
@@ -175,7 +190,12 @@ def save_single_cell_data(trajs, img_dir, save_dir, min_traj_length=100, calc_fu
             df.loc[frame, id] = fint
     df.sort_index(inplace=True)
     df.to_csv(os.path.join(save_dir, 'frames_ints.csv'), index=False)
-    imgs = pims.open(os.path.join(img_dir, '*'))
+    for img_type in ['tiff', 'tif', 'png', 'jpg', 'jpeg', 'gif']:
+        try:
+            imgs = pims.open(os.path.join(img_dir, '*.' + img_type))
+            break
+        except:
+            continue
     for id, info in trajs.items():
         traj_dir = os.path.join(save_dir, 'traj')
         id_dir = os.path.join(traj_dir, str(id))

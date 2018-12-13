@@ -14,31 +14,47 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
-from cytomata.process.extract import images_to_median_frame_intensities
+from cytomata.process.extract import images_to_ave_frame_intensities
 from cytomata.process.model import FOPDT, Regulator, Khammash
 
 
-# Load Data
-# Need time, input, output arrays to be same length/timescale
-data_dir = 'data'
-u_path = os.path.join(data_dir, 'u.csv')
-df = pd.read_csv(u_path)
-tu = df['time'].values/3600
-u = df['input'].values
-# up = np.array([0]*5 + ([1]*1 + [0]*29) * 3857)
-ty_path = os.path.join(data_dir, '0.csv')
-ty = pd.read_csv(ty_path)['t'].values/3600
-img_dir = os.path.join(data_dir, 'imgs', 'GFP')
-y = images_to_median_frame_intensities(img_dir, save_dir=None, gauss_sigma=40)
-yf = interp1d(ty, y)
-y = np.array([yf(t) for t in tu])
-cleaned_data_path = os.path.join(data_dir, 'data.csv')
-pd.DataFrame({'t': tu, 'u': u, 'y': y}).to_csv(cleaned_data_path)
+expt = '20181112-transf-30hrs-1sec30sec-nd8-4hrs'
+data_dir = os.path.join(os.path.expanduser('~'), 'data', expt)
 
-# Fit Model
+## Pre-process Data
+# u_path = os.path.join(data_dir, 'u.csv')
+# df_u = pd.read_csv(u_path)
+# ut = []
+# uv = []
+# for i, row in df_u.iterrows():
+#     ut += [row['t'] + i for i in range(30)]
+#     uv += [row['u']] + 29*[0]
+# ut = np.array(ut) - ut[0]
+# y_path = os.path.join(data_dir, '0.csv')
+# df_y = pd.read_csv(y_path)
+# yt = df_y['t'].values - df_y['t'].values[0]
+# img_dir = os.path.join(data_dir, 'imgs', 'GFP', '0')
+# proc_imgs_dir = os.path.join(data_dir, 'processed_imgs')
+# yv = images_to_ave_frame_intensities(img_dir, save_dir=proc_imgs_dir, gauss_sigma=50)
+# yf = interp1d(yt, yv, fill_value='extrapolate')
+# yv = np.array([yf(t) for t in ut])
+# ut /= 3600
+# yv /= yv[0]
+# cleaned_data_path = os.path.join(data_dir, 'processed.csv')
+# pd.DataFrame({'t': ut, 'u': uv, 'y': yv}).to_csv(cleaned_data_path, encoding='utf-8', index=False)
+
+## Load Data
+data_path = os.path.join(data_dir, 'processed.csv')
+df = pd.read_csv(data_path)
+t = df['t'].values
+u = df['u'].values
+y = df['y'].values
+
+## Fit Model
 model = Khammash()
-model.fit(tp=tu, up=u, yp=y, method='nelder', method_kwargs={})
-#
+model.fit(tp=t, up=u, yp=y, method='powell', method_kwargs={})
+
+
 # # Optimize Pattern
 # def residual(params):
 #     light = params['light']
