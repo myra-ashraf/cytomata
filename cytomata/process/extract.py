@@ -4,6 +4,7 @@ from builtins import (ascii, bytes, chr, dict, filter, hex, input,
 
 import os
 import json
+import shutil
 import warnings
 from collections import defaultdict
 
@@ -24,7 +25,7 @@ from skimage.restoration import denoise_nl_means, estimate_sigma
 from skimage.segmentation import random_walker, clear_border, find_boundaries
 
 from cytomata.process import track
-from cytomata.utils.io import setup_dirs
+from cytomata.utils.io import setup_dirs, pims_open
 from cytomata.utils.visual import plot
 
 
@@ -40,20 +41,18 @@ def get_ave_intensity(img, gauss_sigma=40):
     return ave_int, imgs
 
 
-def images_to_ave_frame_intensities(img_dir, save_dir=None, gauss_sigma=40, iter_cb=None):
+def images_to_ave_frame_intensities(img_dir,
+    save_dir=None, gauss_sigma=40, iter_cb=None, overwrite=True):
     ave_ints = []
     img_step = {0: 'original', 1: 'denoised', 2: 'gaussian', 3: 'subtracted'}
-    for img_type in ['tiff', 'tif', 'png', 'jpg', 'jpeg', 'gif']:
-        try:
-            imgs = pims.open(os.path.join(img_dir, '*.' + img_type))
-            break
-        except:
-            continue
+    imgs = pims_open(img_dir)
     for i, img in enumerate(imgs):
         img = img_as_float(img)
         ave_int, proc_imgs = get_ave_intensity(img, gauss_sigma)
         ave_ints.append(ave_int)
         if save_dir is not None:
+            if overwrite and os.path.exists(save_dir):
+                shutil.rmtree(save_dir)
             for j, proc_img in enumerate(proc_imgs):
                 img_step_dir = os.path.join(save_dir, img_step[j])
                 setup_dirs(img_step_dir)
@@ -82,8 +81,8 @@ def images_to_ave_frame_intensities(img_dir, save_dir=None, gauss_sigma=40, iter
     return ave_ints
 
 
-def get_regions(img, save_dir=None, gauss_sigma=30,
-    autocontrast=False, thres_block=25, thres_offset=-0.005, peaks_min_dist=25, **kwargs):
+def get_regions(img, save_dir=None, gauss_sigma=30, autocontrast=False,
+    thres_block=25, thres_offset=-0.005, peaks_min_dist=25, **kwargs):
     img = img_as_float(img)
     sigma = estimate_sigma(img)
     den = denoise_nl_means(img, h=sigma, sigma=sigma, multichannel=False)
@@ -106,7 +105,8 @@ def get_regions(img, save_dir=None, gauss_sigma=30,
     bouns = find_boundaries(regions)
     overlay = sub.copy()
     overlay[bouns] = np.percentile(overlay, 99.99)
-    step_names = ['original', 'denoised', 'subtracted', 'thresholded', 'peaks', 'regions', 'overlay']
+    step_names = ['original', 'denoised', 'subtracted',
+        'thresholded', 'peaks', 'regions', 'overlay']
     step_imgs = [img, den, sub, thres, markers, regions, overlay]
     if save_dir is not None:
         for i, (step_name, step_img) in enumerate(zip(step_names, step_imgs)):
@@ -120,20 +120,18 @@ def get_regions(img, save_dir=None, gauss_sigma=30,
     return dict(zip(step_names, step_imgs))
 
 
-def images_to_ave_single_cell_intensities(img_dir, save_dir=None, **reg_params):
+def images_to_single_cell_trajectories(img_dir, save_dir=None, **reg_params):
     tracker = track.Sort(max_age=3, min_hits=1)
     trajs = defaultdict(defaultdict(dict).copy)
-    for img_type in ['tiff', 'tif', 'png', 'jpg', 'jpeg', 'gif']:
-        try:
-            imgs = pims.open(os.path.join(img_dir, '*.' + img_type))
-            break
-        except:
-            continue
+    imgs = pims_open(img_dir)
     for i, img in enumerate(imgs):
         img = img_as_float(img)
-        regions_dir = os.path.join(save_dir, 'regions')
-        setup_dirs(regions_dir)
-        res = get_regions(img, regions_dir, **reg_params)
+        if save_dir is not None:
+            regions_dir = os.path.join(save_dir, 'regions')
+            setup_dirs(regions_dir)
+            res = get_regions(img, regions_dir, **reg_params)
+        else:
+            res = get_regions(img, **reg_params)
         ints = np.array([prop.mean_intensity
             for prop in regionprops(res['regions'], res['subtracted'])])
         dets = np.array([prop.bbox for prop in regionprops(res['regions'])])
@@ -149,13 +147,17 @@ def images_to_ave_single_cell_intensities(img_dir, save_dir=None, **reg_params):
             trajs[id]['dets'][i] = list(dets[ind])
             trajs[id]['trks'][i] = list(trk[0:4])
             trajs[id]['ints'][i] = ints[ind]
-    with open(os.path.join(save_dir, 'trajs.json'), 'w') as fp:
-        json.dump(trajs, fp)
+    if save_dir is not None:
+        with open(os.path.join(save_dir, 'trajs.json'), 'w') as fp:
+            json.dump(trajs, fp)
     return trajs
 
 
-def plot_single_cell_trajectories(trajs, save_dir, min_traj_length=100):
-    trajs = {id:info for id, info in trajs.items() if len(info['ints']) > min_traj_length}
+def filter_trajectories(trajs, min_traj_length=100):
+    return {id:info for id, info in trajs.items() if len(info['ints']) > min_traj_length}
+
+
+def plot_single_cell_trajectories(trajs, save_dir):
     for frames_ints in [info['ints'] for info in trajs.values()]:
         fnums, fints = zip(*frames_ints.items())
         plt.plot(fnums, fints)
@@ -167,7 +169,7 @@ def plot_single_cell_trajectories(trajs, save_dir, min_traj_length=100):
     plt.close()
 
 
-def plot_single_cell_trajectories_ave(trajs, save_dir, by_frame=True):
+def plot_ave_cell_trajectory(trajs, save_dir, by_frame=True):
     trajs_frames_ints = pd.DataFrame([info['ints'] for info in trajs.values()])
     traj_ave = trajs_frames_ints.mean(axis=0)
     traj_std = trajs_frames_ints.std(axis=0)
@@ -182,26 +184,24 @@ def plot_single_cell_trajectories_ave(trajs, save_dir, by_frame=True):
     plt.close()
 
 
-def save_single_cell_data(trajs, img_dir, save_dir, min_traj_length=100, calc_func=None, **kwargs):
-    trajs = {id:info for id, info in trajs.items() if len(info['ints']) > min_traj_length}
+def save_all_traj_data(trajs, save_dir):
     df = pd.DataFrame(columns=trajs.keys())
     for id, info in trajs.items():
         for frame, fint in info['ints'].items():
             df.loc[frame, id] = fint
     df.sort_index(inplace=True)
     df.to_csv(os.path.join(save_dir, 'frames_ints.csv'), index=False)
-    for img_type in ['tiff', 'tif', 'png', 'jpg', 'jpeg', 'gif']:
-        try:
-            imgs = pims.open(os.path.join(img_dir, '*.' + img_type))
-            break
-        except:
-            continue
+
+
+def save_each_traj_data(trajs, img_dir, save_dir):
+    imgs = pims_open(img_dir)
     for id, info in trajs.items():
         traj_dir = os.path.join(save_dir, 'traj')
         id_dir = os.path.join(traj_dir, str(id))
         setup_dirs(id_dir)
         frames = []
         ints = []
+        # Trajectory images with bounding boxes
         for i, (tframe, tbbox) in enumerate(info['trks'].items()):
             fig, ax = plt.subplots()
             flint = info['ints'][tframe]
@@ -217,12 +217,24 @@ def save_single_cell_data(trajs, img_dir, save_dir, min_traj_length=100, calc_fu
                 plt.savefig(os.path.join(traj_dir, str(id) + '.png'), bbox_inches='tight')
             plt.savefig(os.path.join(id_dir, str(tframe) + '.png'), bbox_inches='tight')
             plt.close(fig)
-        if calc_func is not None:
-            calc = calc_func(frames, ints, **kwargs)
-            calc_path = os.path.join(id_dir, 'calcs.csv')
-            np.savetxt(calc_path, np.array(calc), delimiter=',', header='calc', comments='')
+        # Single trajectory graph plus raw data
         traj_path = os.path.join(id_dir, 'traj_int.png')
-        plot(frames, ints, 'Frame', 'Ave Intensity', title='Trajectory #' + str(id), save_path=traj_path)
+        plot(frames, ints, 'Frame', 'Ave Intensity',
+            title='Trajectory #' + str(id), save_path=traj_path)
         flint_path = os.path.join(id_dir, 'flint.csv')
-        np.savetxt(flint_path, np.column_stack((frames, ints)), delimiter=',', header='frame,fl_int', comments='')
+        np.savetxt(flint_path, np.column_stack((frames, ints)),
+            delimiter=',', header='frame,fl_int', comments='')
     plt.close('all')
+
+
+def run_single_cell_analysis(img_dir,
+    save_dir, min_traj_length=100, overwrite=True, **reg_params):
+    if overwrite and os.path.exists(save_dir):
+        shutil.rmtree(save_dir)
+    setup_dirs(save_dir)
+    trajs = images_to_single_cell_trajectories(img_dir, save_dir, **reg_params)
+    trajs_filtered = filter_trajectories(trajs, min_traj_length)
+    plot_single_cell_trajectories(trajs_filtered, save_dir)
+    plot_ave_cell_trajectory(trajs, save_dir, by_frame=True)
+    save_all_traj_data(trajs_filtered, save_dir)
+    save_each_traj_data(trajs, img_dir, save_dir)
