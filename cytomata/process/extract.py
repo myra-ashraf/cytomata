@@ -51,17 +51,17 @@ def images_to_ave_frame_intensities(img_dir, save_dir=None, gauss_sigma=40, iter
             continue
     for i, img in enumerate(imgs):
         img = img_as_float(img)
-        ave_int, imgs = get_ave_intensity(img, gauss_sigma)
+        ave_int, proc_imgs = get_ave_intensity(img, gauss_sigma)
         ave_ints.append(ave_int)
         if save_dir is not None:
-            for j, img in enumerate(imgs):
+            for j, proc_img in enumerate(proc_imgs):
                 img_step_dir = os.path.join(save_dir, img_step[j])
                 setup_dirs(img_step_dir)
                 img_path = os.path.join(img_step_dir, str(i) + '.tiff')
-                # plt.imsave(img_path, img, cmap='viridis')
+                # plt.imsave(img_path, proc_img, cmap='viridis')
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    imsave(img_path, img_as_uint(img))
+                    imsave(img_path, img_as_uint(proc_img))
         if iter_cb is not None:
             fig, ax = plt.subplots(figsize=(16, 8))
             ax.plot(range(len(ave_ints)), ave_ints)
@@ -69,9 +69,9 @@ def images_to_ave_frame_intensities(img_dir, save_dir=None, gauss_sigma=40, iter
             ax.set_ylabel('Ave Intensity')
             fig.tight_layout(pad=0)
             fig.canvas.draw()
-            iter_imgs = imgs + [np.array(fig.canvas.renderer._renderer)]
+            iter_imgs = proc_imgs + [np.array(fig.canvas.renderer._renderer)]
             plt.close(fig)
-            prog = int(round((i+1)/len(img_fnames) * 100))
+            prog = int(round((i+1)/len(imgs) * 100))
             if iter_cb(ave_int, iter_imgs, prog):
                 break
     if save_dir is not None:
