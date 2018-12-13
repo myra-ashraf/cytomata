@@ -9,7 +9,7 @@ Setup Conda Environment
         'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image', 'pims',
         'opencv-python', 'schedule', 'lmfit', 'eel', 'filterpy', 'tornado', 'pyinstaller'
         Or you can just run:
-        pip install -r requirements.txt
+        pip install -r requirements.txt --ignore-installed
 
 PyInstaller OS-Specific Requirements:
     Notably, you need to pip install pypiwin32 if using Windows.
