@@ -12,13 +12,9 @@
 0. Write tests for all modules
 1. Look into Usiigaci (mask-rcnn) and Trackpy for cell tracking instead of SORT
 2. Improve autofocus algorithm
-    Test brent's method
     Specify "offset" to target different focal planes of a cell
     Implement CNN for autofocusing
-3. Maybe use natsort + skimageio instead of PIMS
-4. Delete directories when restarting for setup_dirs
 4. Autogenerate gifs/mp4s for ave frame/single cell processes
 5. URGENT: why are there sudden illumination changes throughout timelapse this past month?
     = Test time lapse with no autofocus movement
     = Test time lapse with heater off
-    = Test time lapse with the 35mm holder ring
