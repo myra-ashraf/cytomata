@@ -1,7 +1,3 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import (ascii, bytes, chr, dict, filter, hex, input,
-    int, map, next, oct, open, pow, range, round, str, super, zip)
-
 import os
 import time
 import warnings
@@ -131,7 +127,7 @@ class Microscope(object):
         self.set_position('z', pos0)
         return positions, focuses
 
-    def autofocus(self, step=-1.0, min_step=0.2, max_iter=7, bounds=[-100.0, 100.0]):
+    def autofocus(self, step=-1.0, min_step=0.2, max_iter=5, bounds=[-50.0, 50.0]):
         if self.ch_af is not None and self.algo_af is not None:
             self.set_channel(self.ch_af)
             z0 = self.coords[0, 2]
@@ -158,11 +154,21 @@ class Microscope(object):
                 best_pos = positions[focuses.index(max(focuses))]
             elif self.algo_af == 'brent':  # Brent's Method
                 def residual(z):
-                    self.set_position('z', z):
-                    return -self.sample_focus()[1]
-                minimize_scalar(residual, method='bounded',
-                    bounds=(z0 + bounds[0], z0 + bounds[1]))
-                best_pos, best_foc = self.sample_focus()
+                    self.set_position('z', z)
+                    foc = self.sample_focus()[1]
+                    print(foc)
+                    return -foc
+                zi = self.get_position('z')
+                zl = np.max([zi - 5, z0 + bounds[0]])
+                zu = np.min([zi + 5, z0 + bounds[1]])
+                print(zl, zu)
+                result = minimize_scalar(residual, method='bounded',
+                    bounds=(zl, zu), options={'maxiter': max_iter, 'xatol': 3.0})
+                print('num_evals: ' + str(result.nfev))
+                print('best_z: ' + str(result.x))
+                print('best_foc: ' + str(-result.fun))
+                print(result.message)
+                best_pos, best_foc = result.x, -result.fun
             else:  # Just reset to initial position
                 best_pos = z0
                 best_foc = 0.0

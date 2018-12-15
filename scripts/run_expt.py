@@ -1,8 +1,5 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
-from builtins import (ascii, bytes, chr, dict, filter, hex, input,
-    int, map, next, oct, open, pow, range, round, str, super, zip)
-
 import os
+import io
 import sys
 import time
 import json
@@ -30,23 +27,25 @@ if __name__ == '__main__':
     # Experiment Parameters
     params = {
         'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
-        'desc': 'filter: ND8',
+        'desc': 'ND8',
         'mag': 1,
         'chs_img': ['DIC', 'GFP'],
         'ch_dark': 'None',
         'ch_exc': 'Induction-460nm',
         'ch_af': 'DIC',
-        'algo_af': 'hc',
+        'algo_af': 'brent',
         't_img_period': 300,
-        't_total': 259200,
+        't_total': 86400,
         't_exc_on': 43200,
         't_exc_off': 57600,
-        't_exc_width': 5,
-        't_exc_period': 60
+        't_exc_width': 1,
+        't_exc_period': 30
     }
 
     # Record Parameters
     setup_dirs(params['save_dir'])
+    # with io.open(os.path.join(params['save_dir'], 'params.json'), 'w', encoding="utf-8") as fp:
+    #     fp.write(unicode(json.dumps(params, ensure_ascii=False)))
     with open(os.path.join(params['save_dir'], 'params.json'), 'w') as fp:
         json.dump(params, fp)
 
