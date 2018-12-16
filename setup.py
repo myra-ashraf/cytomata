@@ -51,7 +51,6 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=['tests']),
     install_requires=[
         'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image', 'opencv-python',
-        'imageio', 'gevent', 'eel', 'tornado', 'natsort', 'schedule', 'lmfit', 'filterpy', 'pims',
-        'pyinstaller', 'pypiwin32'
+        'imageio', 'gevent', 'eel', 'tornado', 'natsort', 'schedule', 'lmfit', 'filterpy',
     ]
 )

@@ -4,59 +4,71 @@ import shutil
 import warnings
 from collections import defaultdict
 
-import pims
+import imageio
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from scipy import ndimage as ndi
 from skimage import img_as_float, img_as_uint
-from skimage.io import imsave
+from skimage.io import imread, imsave
 from skimage.exposure import equalize_adapthist
 from skimage.measure import regionprops
 from skimage.feature import peak_local_max
 from skimage.filters import threshold_local, gaussian
-from skimage.morphology import disk, dilation, erosion, remove_small_objects
+from skimage.morphology import disk, dilation, erosion, remove_small_objects, white_tophat
 from skimage.restoration import denoise_nl_means, estimate_sigma
 from skimage.segmentation import random_walker, clear_border, find_boundaries
 
 from cytomata.process import track
-from cytomata.utils.io import setup_dirs, pims_open
+from cytomata.utils.io import list_img_files, setup_dirs
 from cytomata.utils.visual import plot
 
 
-def get_ave_intensity(img, gauss_sigma=40):
+def get_ave_intensity(img, block=151, offset=0):
     img = img_as_float(img)
+    # sigma = estimate_sigma(img)
+    # den = denoise_nl_means(img, h=sigma, sigma=sigma, multichannel=False)
+    # op = opening(den, disk(10))
+    # gau = gaussian(op, sigma=20)
+    # sub = den - gau
+    # sub[sub < 0] = 0
     sigma = estimate_sigma(img)
-    den = denoise_nl_means(img, h=sigma, sigma=sigma, multichannel=False)
-    gau = gaussian(den, sigma=gauss_sigma)
-    sub = den - gau
-    sub[sub < 0] = 0
-    ave_int = np.mean(sub[sub.nonzero()])
-    imgs = [img, den, gau, sub]
+    bkg = threshold_local(img, block_size=block, method='gaussian')
+    sub = img - bkg
+    den = sub.copy()
+    # sigma = estimate_sigma(sub)
+    # den = denoise_nl_means(sub, h=sigma, sigma=sigma, multichannel=False) - sigma*offset
+    den[den < 0.0] = 0.0
+    ave_int = 0.0
+    if np.count_nonzero(den) > 0:
+        ave_int = np.mean(den[den.nonzero()])
+    imgs = [img, bkg, sub, den]
     return ave_int, imgs
 
 
 def images_to_ave_frame_intensities(img_dir,
-    save_dir=None, gauss_sigma=40, iter_cb=None, overwrite=True):
+    save_dir=None, block=151, offset=0, iter_cb=None, overwrite=True):
+    if overwrite and save_dir is not None and os.path.exists(save_dir):
+        shutil.rmtree(save_dir)
     ave_ints = []
-    img_step = {0: 'original', 1: 'denoised', 2: 'gaussian', 3: 'subtracted'}
-    imgs = pims_open(img_dir)
-    for i, img in enumerate(imgs):
-        img = img_as_float(img)
-        ave_int, proc_imgs = get_ave_intensity(img, gauss_sigma)
+    img_step = {0: 'original', 1: 'background', 2: 'subtracted', 3: 'denoised'}
+    imgfs = list_img_files(img_dir)
+    for i, imgf in enumerate(imgfs):
+        img = imread(imgf)
+        ave_int, proc_imgs = get_ave_intensity(img, block, offset)
         ave_ints.append(ave_int)
         if save_dir is not None:
-            if overwrite and os.path.exists(save_dir):
-                shutil.rmtree(save_dir)
             for j, proc_img in enumerate(proc_imgs):
-                img_step_dir = os.path.join(save_dir, img_step[j])
+                img_step_dir = os.path.join(save_dir, str(j) + '_' + img_step[j])
                 setup_dirs(img_step_dir)
                 img_path = os.path.join(img_step_dir, str(i) + '.tiff')
-                # plt.imsave(img_path, proc_img, cmap='viridis')
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    imsave(img_path, img_as_uint(proc_img))
+                if j < len(proc_imgs) - 1:
+                    plt.imsave(img_path, proc_img, cmap='viridis')
+                else:
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        imsave(img_path, img_as_uint(proc_img))
         if iter_cb is not None:
             fig, ax = plt.subplots(figsize=(16, 8))
             ax.plot(range(len(ave_ints)), ave_ints)
@@ -66,7 +78,7 @@ def images_to_ave_frame_intensities(img_dir,
             fig.canvas.draw()
             iter_imgs = proc_imgs + [np.array(fig.canvas.renderer._renderer)]
             plt.close(fig)
-            prog = int(round((i+1)/len(imgs) * 100))
+            prog = int(round((i+1)/len(imgfs) * 100))
             if iter_cb(ave_int, iter_imgs, prog):
                 break
     if save_dir is not None:
@@ -109,19 +121,21 @@ def get_regions(img, save_dir=None, gauss_sigma=30, autocontrast=False,
             res_dir = os.path.join(save_dir, str(i) + '_' + step_name)
             setup_dirs(res_dir)
             img_path = os.path.join(res_dir, str(len(os.listdir(res_dir))) + '.png')
-            # plt.imsave(img_path, step_img, cmap='viridis')
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                imsave(img_path, img_as_uint(step_img))
+            if step_name != 'subtracted' or step_name != 'regions':
+                plt.imsave(img_path, step_img, cmap='viridis')
+            else:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    imsave(img_path, img_as_uint(step_img))
     return dict(zip(step_names, step_imgs))
 
 
 def images_to_single_cell_trajectories(img_dir, save_dir=None, **reg_params):
     tracker = track.Sort(max_age=3, min_hits=1)
     trajs = defaultdict(defaultdict(dict).copy)
-    imgs = pims_open(img_dir)
-    for i, img in enumerate(imgs):
-        img = img_as_float(img)
+    imgfs = list_img_files(img_dir)
+    for i, imgf in enumerate(imgfs):
+        img = imread(imgf)
         if save_dir is not None:
             regions_dir = os.path.join(save_dir, 'regions')
             setup_dirs(regions_dir)
@@ -190,7 +204,7 @@ def save_all_traj_data(trajs, save_dir):
 
 
 def save_each_traj_data(trajs, img_dir, save_dir):
-    imgs = pims_open(img_dir)
+    imgfs = list_img_files(img_dir)
     for id, info in trajs.items():
         traj_dir = os.path.join(save_dir, 'traj')
         id_dir = os.path.join(traj_dir, str(id))
@@ -203,7 +217,7 @@ def save_each_traj_data(trajs, img_dir, save_dir):
             flint = info['ints'][tframe]
             frames.append(tframe)
             ints.append(flint)
-            ax.imshow(imgs[tframe])
+            ax.imshow(imread(imgfs[tframe]))
             ax.axis('off')
             rect = Rectangle((tbbox[1], tbbox[0]), tbbox[3] - tbbox[1],
                 tbbox[2] - tbbox[0], fill=False, edgecolor=info['color'], linewidth=1)

@@ -7,21 +7,10 @@ from natsort import natsorted
 
 
 def list_img_files(dir):
-    return [fn for fn in natsorted(os.listdir(dir), key=lambda y: y.lower())
+    return [os.path.join(dir, fn) for fn in natsorted(os.listdir(dir), key=lambda y: y.lower())
         if imghdr.what(os.path.join(dir, fn)) in ['tiff', 'jpeg', 'png', 'gif']]
 
 
 def setup_dirs(dirs):
     if not os.path.exists(dirs):
         os.makedirs(dirs)
-
-def pims_open(dir):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        for ext in ['.tiff', '.tif', '.png', '.jpg', '.jpeg', '.gif', '']:
-            try:
-                imgs = pims.open(os.path.join(img_dir, '*' + ext))
-                break
-            except:
-                continue
-    return imgs

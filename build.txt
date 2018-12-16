@@ -6,8 +6,8 @@ Setup Conda Environment
     C. Change directory to cytomata root directory (do rest of steps under this directory)
         cd path/to/cytomata
     D. Pip install needed python libraries
-        'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image', 'pims',
-        'opencv-python', 'schedule', 'lmfit', 'eel', 'filterpy', 'tornado', 'pyinstaller'
+        'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image', 'opencv-python',
+        'natsort', 'schedule', 'lmfit', 'eel', 'filterpy', 'tornado', 'pyinstaller'
         Or you can just run:
         pip install -r requirements.txt --ignore-installed
 
