@@ -14,5 +14,5 @@ html, body {
 
 .tab-content {
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: visible;
 }

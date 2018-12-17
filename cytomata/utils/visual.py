@@ -2,6 +2,7 @@ import os
 
 import cv2
 import imageio
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from skimage import img_as_ubyte, img_as_float
@@ -9,60 +10,76 @@ from skimage import img_as_ubyte, img_as_float
 from cytomata.utils.io import setup_dirs
 
 
-sns.set_style('whitegrid')
-plt.rcParams['image.cmap'] = 'viridis'
-plt.rcParams['figure.figsize'] = 12, 8
-plt.rcParams['text.color'] = '#212121'
-plt.rcParams['axes.titleweight'] = 'bold'
-plt.rcParams['axes.titlesize'] = 28
-plt.rcParams['axes.titlepad'] = 18
-plt.rcParams['axes.spines.top'] = False
-plt.rcParams['axes.spines.right'] = False
-plt.rcParams['axes.labelsize'] = 22
-plt.rcParams['axes.labelpad'] = 10
-plt.rcParams['axes.labelcolor'] = '#212121'
-plt.rcParams['axes.labelweight'] = 600
-plt.rcParams['axes.linewidth'] = 2
-plt.rcParams['axes.edgecolor'] = '#212121'
-plt.rcParams['xtick.labelsize'] = 18
-plt.rcParams['ytick.labelsize'] = 18
-plt.rcParams['legend.fontsize'] = 18
-plt.rcParams['lines.linewidth'] = 3
-sns.set_palette(['#1E88E5', '#43A047', '#e53935', '#5E35B1', '#FFB300', '#00ACC1', '#3949AB', '#F4511E'])
+custom_palette = [
+    '#1E88E5', '#43A047', '#e53935',
+    '#5E35B1', '#FFB300', '#00ACC1',
+    '#3949AB', '#F4511E', '#D81B60']
+custom_styles = {
+    'image.cmap': 'viridis',
+    'figure.figsize': (12, 8),
+    'text.color': '#212121',
+    'axes.titleweight': 'bold',
+    'axes.titlesize': 28,
+    'axes.titlepad': 18,
+    'axes.spines.top': False,
+    'axes.spines.right': False,
+    'axes.labelsize': 22,
+    'axes.labelpad': 10,
+    'axes.labelcolor': '#212121',
+    'axes.labelweight': 600,
+    'axes.linewidth': 2,
+    'axes.edgecolor': '#212121',
+    'xtick.labelsize': 18,
+    'ytick.labelsize': 18,
+    'legend.fontsize': 18,
+    'lines.linewidth': 3
+}
 
 
-def plot(x, y, xlabel, ylabel, title=None, labels=None, show=False, save_path=None):
-    fig, ax = plt.subplots()
-    ax.plot(x, y)
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    if labels is not None:
-        labels = [labels] if type(labels) is str else labels
-        ax.legend(labels=labels, loc='best')
-    if title is not None:
-        ax.set_title(title, loc='left')
-    if save_path is not None:
-        fig.savefig(save_path, dpi=100, bbox_inches='tight')
-    if show:
-        plt.show()
-    plt.close(fig)
+def plot(x, y, xlabel=None, ylabel=None, title=None, labels=None, show=False,
+    figsize=custom_styles['figure.figsize'], legend_loc='best', save_path=None):
+    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.plot(x, y)
+        if xlabel is not None:
+            ax.set_xlabel(xlabel)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel)
+        if labels is not None:
+            labels = [labels] if type(labels) is str else labels
+            ax.legend(labels=labels, loc=legend_loc)
+        if title is not None:
+            ax.set_title(title, loc='left')
+        fig.canvas.draw()
+        img = np.array(fig.canvas.renderer._renderer)
+        if save_path is not None:
+            fig.savefig(save_path, dpi=100, bbox_inches='tight')
+        if show:
+            plt.show()
+        plt.close(fig)
+        return img
 
 
-def imshow(img, title=None, axes=False, colorbar=False, show=False, save_path=None):
-    fig, ax = plt.subplots()
-    ax.imshow(img)
-    if title is not None:
-        ax.set_title(title)
-    ax.grid(False)
-    if not axes:
-        ax.axis('off')
-    if colorbar:
-        fig.colorbar()
-    if save_path is not None:
-        fig.savefig(save_path, dpi=100, bbox_inches='tight')
-    if show:
-        plt.show()
-    plt.close(fig)
+def imshow(img, title=None, axes=False, colorbar=True, show=False, save_path=None):
+    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+        fig, ax = plt.subplots()
+        axim = ax.imshow(img)
+        if title is not None:
+            ax.set_title(title)
+        ax.grid(False)
+        if not axes:
+            ax.axis('off')
+        if colorbar:
+            cb = fig.colorbar(axim, pad=0.01)
+            cb.outline.set_linewidth(0)
+        fig.canvas.draw()
+        img = np.array(fig.canvas.renderer._renderer)
+        if save_path is not None:
+            fig.savefig(save_path, dpi=100, bbox_inches='tight')
+        if show:
+            plt.show()
+        plt.close(fig)
+        return img
 
 
 def imgs_to_mp4(imgs, vid_path, fps=10):

@@ -26,12 +26,11 @@
         document.getElementById('out_dir_form').value = out_dir;
       }
       eel.expose(update_img_results);
-      function update_img_results(img0, img1, img2, img3, img4, ave_int, prog) {
+      function update_img_results(img0, img1, img2, img3, prog) {
         $("#proc_img0").attr("src", "data:image/png;base64," + img0);
         $("#proc_img1").attr("src", "data:image/png;base64," + img1);
         $("#proc_img2").attr("src", "data:image/png;base64," + img2);
         $("#proc_img3").attr("src", "data:image/png;base64," + img3);
-        $("#proc_img4").attr("src", "data:image/png;base64," + img4);
         if (prog < 100) {
           $('#proc_img_progress').css('width', prog + "%");
           $('#proc_img_progress').text(prog + "%")
@@ -54,7 +53,7 @@
   </head>
   <body class="py-3">
     <div class="container-fluid d-flex flex-column h-100 col-9">
-      <div class="row px-0 pt-3">
+      <div class="row px-0 py-1">
         <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
           <li class="nav-item">
             <a class="nav-link active" id="pills-home-tab" data-toggle="pill" href="#pills-home" role="tab">Home</a>
@@ -79,7 +78,7 @@
               <a role="button" class="mx-2 btn btn-success btn-lg" href="/img_proc.html">Process Images</a> -->
             </div>
           </div>
-          <div class="tab-pane fade" id="pills-mic" role="tabpanel">Microscope</div>
+          <div class="tab-pane fade" id="pills-mic" role="tabpanel">Under Construction: Microscope</div>
           <div class="tab-pane fade" id="pills-proc" role="tabpanel">
             <div class="row px-3">
               <div class="col-4 mx-auto pl-3">
@@ -109,8 +108,12 @@
                     </select>
                   </div>
                   <div class="form-group">
-                    <label id= "bkg_sub_gauss_label" class="mb-0" for="bkg_sub_gauss_slider">Background Subtraction Gaussian (40)</label>
-                    <input id="bkg_sub_gauss_slider" type="range" class="custom-range mb-3" min="10" max="100" value="40">
+                    <label id= "thres_block_label" class="" for="thres_block_slider">Background Subtraction Smoothing (301)</label>
+                    <input id="thres_block_slider" type="range" class="custom-range mb-3" min="101" max="601" step="50" value="301">
+                  </div>
+                  <div class="form-group">
+                    <label id= "sub_offset_label" class="mb-0" for="sub_offset_slider">Background Subtraction Offset (0.0)</label>
+                    <input id="sub_offset_slider" type="range" class="custom-range mb-3" min="-2.0" max="2.0" step="0.1" value="0.0">
                   </div>
                   <button id="protoccol_button" type="button" class="btn btn-success proto-start">Start Protoccol</button>
                 </form>
@@ -123,10 +126,9 @@
                   </div>
                   <div class="row px-3 pt-1">
                     <div class="col-4 p-1"><label>Original</label><img id="proc_img0" src="" class="img-fluid"></div>
-                    <div class="col-4 p-1"><label>Denoised</label><img id="proc_img1" src="" class="img-fluid"></div>
-                    <div class="col-4 p-1"><label>Gaussian</label><img id="proc_img2" src="" class="img-fluid"></div>
-                    <div class="col-4 p-1"><label>Subtracted</label><img id="proc_img3" src="" class="img-fluid"></div>
-                    <div class="col-8 p-1"><label>Frame Intensities</label><img id="proc_img4" src="" class="img-fluid"></div>
+                    <div class="col-8 p-1"><img id="proc_img1" src="" class="img-fluid"></div>
+                    <div class="col-4 p-1"><label>Result</label><img id="proc_img2" src="" class="img-fluid"></div>
+                    <div class="col-8 p-1"><img id="proc_img3" src="" class="img-fluid"></div>
                   </div>
                 </div>
               </div>
@@ -148,9 +150,14 @@
       check_found_imgs(img_dir);
     });
 
-    $('#bkg_sub_gauss_slider').on('change', function() {
-      let slider_val = $('#bkg_sub_gauss_slider').val();
-      $('#bkg_sub_gauss_label').text('Background Subtraction Gaussian (' + slider_val + ')');
+    $('#thres_block_slider').on('change', function() {
+      let slider_val = $('#thres_block_slider').val();
+      $('#thres_block_label').text('Background Subtraction Threshold (' + slider_val + ')');
+    });
+
+    $('#sub_offset_slider').on('change', function() {
+      let slider_val = $('#sub_offset_slider').val();
+      $('#sub_offset_label').text('Background Subtraction Offset (' + slider_val + ')');
     });
 
     $('#protoccol_button').on('click', function() {
@@ -165,9 +172,11 @@
         let img_dir = $('#img_dir_form').val();
         let out_dir = $('#out_dir_form').val();
         let proto = $('#protoccol_form').val();
-        let param_gauss = $('#bkg_sub_gauss_slider').val();
+        let param_thres_block = $('#thres_block_slider').val();
+        let param_sub_offset = $('#sub_offset_slider').val();
         let params = {
-          gauss: param_gauss,
+          thres_block: param_thres_block,
+          sub_offset: param_sub_offset,
         };
         eel.process_imgs(img_dir, out_dir, proto, params);
       } else {

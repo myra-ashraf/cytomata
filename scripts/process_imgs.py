@@ -37,19 +37,20 @@ if __name__ == '__main__':
     img_dir = os.path.join('data', dataset)
     ## Global Frame Analysis
     save_dir = os.path.join('data', dataset + '_' + 'global_frame_analysis')
-    images_to_ave_frame_intensities(img_dir, save_dir, block=151, offset=0)
-    # imgfs = list_img_files(img_dir)
-    # img = img_as_float(imread(imgfs[25]))
-    # bkg = threshold_local(img, block_size=101, method='gaussian')
-    # sub = img - bkg
-    # sigma = estimate_sigma(sub)
-    # den = denoise_nl_means(sub, h=sigma, sigma=sigma, multichannel=False) - sigma*(0.0)
-    # den[den < 0.0] = 0.0
-    # plt.imshow(den)
-    # plt.plot(img[236, :])
-    # plt.plot(bkg[236, :])
-    # plt.plot(sub[236, :])
-    # plt.plot(den[236, :])
+    # images_to_ave_frame_intensities(img_dir, save_dir, block=151, offset=0)
+    imgfs = list_img_files(img_dir)
+    img = img_as_float(imread(imgfs[25]))
+    bkg = threshold_local(img, block_size=201, method='gaussian')
+    sub = img - bkg
+    sigma = estimate_sigma(sub)
+    den = denoise_nl_means(sub, h=sigma, sigma=sigma, multichannel=False) - sigma*(0.0)
+    den[den < 0.0] = 0.0
+    print(len(img))
+    # imshow(img, show=True)
+    # plt.plot(img[95, :])
+    # plt.plot(bkg[95, :])
+    # plt.plot(sub[95, :])
+    # plt.plot(den[95, :])
     # plt.show()
 
     # images_to_ave_frame_intensities(img_dir, save_dir, gauss_sigma=40, iter_cb=None)
