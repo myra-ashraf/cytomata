@@ -22,6 +22,10 @@ def guess_out_dir():
     return os.path.join(os.path.expanduser('~'), 'Documents', 'output')
 
 @eel.expose
+def check_dir_exists(dir):
+    return os.path.exists(dir)
+
+@eel.expose
 def check_found_imgs(img_dir):
     try:
         return len(list_img_files(img_dir))
@@ -52,9 +56,9 @@ def process_imgs(img_dir, out_dir, proto, params):
             img3 = img_to_b64(imgs[3], touchup=False)
             eel.update_img_results(img0, img1, img2, img3, prog)
             return eel.is_proc_imgs_stopped()()
-        images_to_ave_frame_intensities(
-            img_dir, out_dir, int(params['thres_block']), float(params['sub_offset']), iter_cb
-        )
+        images_to_ave_frame_intensities(img_dir=img_dir, save_dir=out_dir,
+            block=int(params['thres_block']), offset=float(params['sub_offset']),
+            denoise=params['denoise'], stylize=params['stylize'], iter_cb=iter_cb, overwrite=True)
 
 
 if __name__ == '__main__':
@@ -62,7 +66,7 @@ if __name__ == '__main__':
     options = {
         'mode': "chrome",
         'host': 'localhost',
-        'port': 8000,
+        'port': 8080,
         'chromeFlags': ["--start-fullscreen"]
     }
 

@@ -14,7 +14,6 @@ from skimage.morphology import disk, opening, white_tophat
 
 from cytomata.utils.io import setup_dirs, list_img_files
 from cytomata.process.extract import (
-    get_ave_intensity,
     images_to_ave_frame_intensities,
     run_single_cell_analysis,
     )

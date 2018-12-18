@@ -16,15 +16,28 @@
         let n_imgs_found = await eel.check_found_imgs(img_dir)();
         document.getElementById('num_imgs_found').innerHTML = ('Found ' + n_imgs_found + ' images');
       }
+
+      async function check_dir_exists(dir) {
+        let exists = await eel.check_dir_exists(dir)();
+        if (exists) {
+          document.getElementById('out_dir_exists').innerHTML = ('Directory already exists and will be overwritten!');
+        } else {
+          document.getElementById('out_dir_exists').innerHTML = ('');
+        }
+      }
+
       async function guess_img_dir() {
         let img_dir = await eel.guess_img_dir()();
         document.getElementById('img_dir_form').value = img_dir;
         check_found_imgs(img_dir);
       }
+
       async function guess_out_dir() {
         let out_dir = await eel.guess_out_dir()();
         document.getElementById('out_dir_form').value = out_dir;
+        check_dir_exists(out_dir);
       }
+
       eel.expose(update_img_results);
       function update_img_results(img0, img1, img2, img3, prog) {
         $("#proc_img0").attr("src", "data:image/png;base64," + img0);
@@ -32,10 +45,10 @@
         $("#proc_img2").attr("src", "data:image/png;base64," + img2);
         $("#proc_img3").attr("src", "data:image/png;base64," + img3);
         if (prog < 100) {
-          $('#proc_img_progress').css('width', prog + "%");
-          $('#proc_img_progress').text(prog + "%")
+          $('#proc_img_progress').css('width', Math.floor(prog) + "%");
+          $('#proc_img_progress').text(Math.floor(prog) + "%")
         } else {
-          $('#proc_img_progress').css('width', prog + "%");
+          $('#proc_img_progress').css('width', "100" + "%");
           $('#proc_img_progress').text('DONE!');
           $('#proc_img_progress').addClass('bg-success');
           $('#protoccol_button').toggleClass('btn-danger proto-stop', false);
@@ -53,7 +66,7 @@
   </head>
   <body class="py-3">
     <div class="container-fluid d-flex flex-column h-100 col-9">
-      <div class="row px-0 py-1">
+      <div class="row px-0 mb-2">
         <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
           <li class="nav-item">
             <a class="nav-link active" id="pills-home-tab" data-toggle="pill" href="#pills-home" role="tab">Home</a>
@@ -78,18 +91,11 @@
               <a role="button" class="mx-2 btn btn-success btn-lg" href="/img_proc.html">Process Images</a> -->
             </div>
           </div>
-          <div class="tab-pane fade" id="pills-mic" role="tabpanel">Under Construction: Microscope</div>
+          <!-- <div class="tab-pane fade" id="pills-mic" role="tabpanel">Under Construction: Microscope</div> -->
           <div class="tab-pane fade" id="pills-proc" role="tabpanel">
             <div class="row px-3">
-              <div class="col-4 mx-auto pl-3">
+              <div class="col-4 pb-3 pr-3 pl-3">
                 <h3>Settings</h3>
-              </div>
-              <div class="col-8 mx-auto pl-5">
-                <h3>Results</h3>
-              </div>
-            </div>
-            <div class="row px-3">
-              <div class="col-4 mx-auto pb-3 pr-3 pl-3">
                 <form>
                   <div class="form-group">
                     <label for="img_dir_form">Images Directory</label>
@@ -99,32 +105,43 @@
                   <div class="form-group">
                     <label for="out_dir_form">Output Directory</label>
                     <input type="text" class="form-control" id="out_dir_form" placeholder="Output Directory">
+                    <small id="out_dir_exists" class="form-text text-danger"></small>
                   </div>
                   <div class="form-group">
                     <label for="protoccol_form">Protoccol</label>
                     <select class="form-control" id="protoccol_form">
                       <option value='0'>Ave Frame Intensities</option>
-                      <option value='1'>Single Cell Trajectories</option>
+                      <option value='1'>Single Cell Intensities</option>
                     </select>
                   </div>
-                  <div class="form-group">
-                    <label id= "thres_block_label" class="" for="thres_block_slider">Background Subtraction Smoothing (301)</label>
-                    <input id="thres_block_slider" type="range" class="custom-range mb-3" min="101" max="601" step="50" value="301">
+                  <div class="py-2">
+                    <div class="custom-control custom-checkbox custom-control-inline">
+                      <input type="checkbox" class="custom-control-input" id="denoise_checkbox">
+                      <label class="custom-control-label" for="denoise_checkbox">Perform Denoising</label>
+                    </div>
+                    <div class="custom-control custom-checkbox custom-control-inline">
+                      <input type="checkbox" class="custom-control-input" id="stylize_checkbox">
+                      <label class="custom-control-label" for="stylize_checkbox">Apply Pseudo-Color</label>
+                    </div>
                   </div>
                   <div class="form-group">
-                    <label id= "sub_offset_label" class="mb-0" for="sub_offset_slider">Background Subtraction Offset (0.0)</label>
-                    <input id="sub_offset_slider" type="range" class="custom-range mb-3" min="-2.0" max="2.0" step="0.1" value="0.0">
+                    <label id= "thres_block_label" class="mt-2" for="thres_block_slider">Background Subtraction Smoothing (201)</label>
+                    <input id="thres_block_slider" type="range" class="custom-range mb-2" min="1" max="1001" step="50" value="201">
+                  </div>
+                  <div class="form-group">
+                    <label id= "sub_offset_label" class="mb-0" for="sub_offset_slider">Background Subtraction Offset (1.0)</label>
+                    <input id="sub_offset_slider" type="range" class="custom-range mb-2" min="-2.0" max="2.0" step="0.1" value="1.0">
                   </div>
                   <button id="protoccol_button" type="button" class="btn btn-success proto-start">Start Protoccol</button>
                 </form>
               </div>
-              <div class="col-8 mx-auto pb-3 pr-3 pl-5">
-                <div id="results_div" style="display: none">
-                  <label>Progress</label>
-                  <div class="progress mb-3">
+              <div class="col-8 pb-3 pl-3">
+                <div class="invisible pt-1" id="results_div">
+                  <h3>Results</h3>
+                  <div class="progress mb-1">
                     <div id="proc_img_progress" class="progress-bar" role="progressbar" style="width: 0%"></div>
                   </div>
-                  <div class="row px-3 pt-1">
+                  <div class="row p-0 m-0">
                     <div class="col-4 p-1"><label>Original</label><img id="proc_img0" src="" class="img-fluid"></div>
                     <div class="col-8 p-1"><img id="proc_img1" src="" class="img-fluid"></div>
                     <div class="col-4 p-1"><label>Result</label><img id="proc_img2" src="" class="img-fluid"></div>
@@ -150,9 +167,14 @@
       check_found_imgs(img_dir);
     });
 
+    $('#out_dir_form').on('change', function() {
+      let out_dir = $('#out_dir_form').val();
+      check_dir_exists(out_dir);
+    });
+
     $('#thres_block_slider').on('change', function() {
       let slider_val = $('#thres_block_slider').val();
-      $('#thres_block_label').text('Background Subtraction Threshold (' + slider_val + ')');
+      $('#thres_block_label').text('Background Subtraction Smoothing (' + slider_val + ')');
     });
 
     $('#sub_offset_slider').on('change', function() {
@@ -162,7 +184,7 @@
 
     $('#protoccol_button').on('click', function() {
       if ($(this).hasClass('proto-start')) {
-        $('#results_div').show();
+        $('#results_div').toggleClass('invisible', 'visible');
         $('#proc_img_progress').css('width', '0%');
         $('#proc_img_progress').text('');
         $('#proc_img_progress').removeClass('bg-success');
@@ -174,13 +196,17 @@
         let proto = $('#protoccol_form').val();
         let param_thres_block = $('#thres_block_slider').val();
         let param_sub_offset = $('#sub_offset_slider').val();
+        let param_denoise = $('#denoise_checkbox').prop('checked');
+        let param_stylize = $('#stylize_checkbox').prop('checked');
         let params = {
           thres_block: param_thres_block,
           sub_offset: param_sub_offset,
+          denoise: param_denoise,
+          stylize: param_stylize
         };
         eel.process_imgs(img_dir, out_dir, proto, params);
       } else {
-        $('#results_div').hide();
+        $('#results_div').toggleClass('invisible', 'visible');
         $(this).toggleClass('btn-danger btn-success');
         $(this).toggleClass('proto-stop proto-start');
         $(this).text("Start Protoccol");

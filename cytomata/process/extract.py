@@ -25,67 +25,104 @@ from cytomata.utils.io import list_img_files, setup_dirs
 from cytomata.utils.visual import plot
 
 
-def get_ave_intensity(img, block=201, offset=0, debug_row=None):
+def get_ave_intensity(img, block=201, offset=0, denoise=True, debug_row=None):
     img = img_as_float(img)
-    bkg = threshold_local(img, block_size=block, method='gaussian')
+    sigma = estimate_sigma(img)
+    bkg = threshold_local(img, block_size=block, method='gaussian') + sigma*offset
     sub = img - bkg
-    # sub = sub - sigma*offset
     sigma = estimate_sigma(sub)
-    den = denoise_nl_means(sub, h=sigma, sigma=sigma, multichannel=False) + sigma*offset
     sub[sub < 0.0] = 0.0
-    den[den < 0.0] = 0.0
+    sub = sub - np.amin(sub)
     ave_int = 0.0
-    if np.count_nonzero(den) > 0:
-        ave_int = np.mean(den[den.nonzero()])
-    imgs = [img, bkg, sub, den]
-    if debug_row is None:
-        debug_row = int(np.argmax(np.var(sub, axis=1)))
-    prof0 = plot(range(len(img)), np.column_stack((img[debug_row, :], bkg[debug_row, :])),
-        xlabel='Image Column', ylabel='Pixel Intensity', title='Pixel Profile for Row ' + str(debug_row),
+    den = None
+    if not denoise:
+        fin = sub
+        if np.count_nonzero(sub) > 0:
+            ave_int = np.mean(sub[sub.nonzero()])
+        if debug_row is None:
+            debug_row = int(np.argmax(np.var(sub, axis=1)))
+    else:
+        den = denoise_nl_means(sub, h=sigma, sigma=sigma, multichannel=False)
+        den[den < 0.0] = 0.0
+        den = den - np.amin(den)
+        fin = den
+        if np.count_nonzero(den) > 0:
+            ave_int = np.mean(den[den.nonzero()])
+        if debug_row is None:
+            debug_row = int(np.argmax(np.var(den, axis=1)))
+    sub_prof = plot(range(len(img)), np.column_stack((img[debug_row, :], bkg[debug_row, :])),
+        xlabel='Image Column', ylabel='Pixel Intensity', title='Intensity Profile for Row ' + str(debug_row),
         labels=['Original', 'Background'], legend_loc='upper left', figsize=(11, 6))
-    prof1 = plot(range(len(img)), np.column_stack((sub[debug_row, :], den[debug_row, :])),
-        xlabel='Image Column', ylabel='Pixel Intensity', title='Pixel Profile for Row ' + str(debug_row),
-        labels=['Subtracted', 'Denoised'], legend_loc='upper left', figsize=(11, 6))
-    profs = [prof0, prof1]
-    return ave_int, imgs, profs
+    fin_prof = plot(range(len(fin)), fin[debug_row, :],
+        xlabel='Image Column', ylabel='Pixel Intensity', title='Intensity Profile for Row ' + str(debug_row),
+        labels=['Final'], legend_loc='upper left', figsize=(11, 6))
+    results = {'ave_int': ave_int, 'ori_img': img, 'bkg_img': bkg, 'sub_img': sub,
+        'den_img': den, 'fin_img': fin, 'sub_prof': sub_prof, 'fin_prof': fin_prof}
+    return results
 
 
-def images_to_ave_frame_intensities(img_dir,
-    save_dir=None, block=201, offset=0, iter_cb=None, overwrite=True):
-    if overwrite and save_dir is not None and os.path.exists(save_dir):
-        shutil.rmtree(save_dir)
+def images_to_ave_frame_intensities(img_dir, save_dir=None, block=201,
+    offset=0, denoise=True, stylize=False, iter_cb=None, overwrite=True):
+    if save_dir is not None:
+        if overwrite and os.path.exists(save_dir):
+            shutil.rmtree(save_dir)
+        ori_img_dir = os.path.join(save_dir, '0-original')
+        setup_dirs(ori_img_dir)
+        bkg_img_dir = os.path.join(save_dir, '1-background')
+        setup_dirs(bkg_img_dir)
+        sub_img_dir = os.path.join(save_dir, '2-subtracted')
+        setup_dirs(sub_img_dir)
+        if denoise:
+            den_img_dir = os.path.join(save_dir, '3-denoised')
+            setup_dirs(den_img_dir)
+        sub_prof_dir = os.path.join(save_dir, 'subtr_profile')
+        setup_dirs(sub_prof_dir)
+        fin_prof_dir = os.path.join(save_dir, 'final_profile')
+        setup_dirs(fin_prof_dir)
     ave_ints = []
-    img_step = {0: 'original', 1: 'background', 2: 'subtracted',
-        3: 'denoised', 4: 'profile_orig_bkg', 5: 'profile_sub_den'}
     imgfs = list_img_files(img_dir)
     for i, imgf in enumerate(imgfs):
-        img = imread(imgf)
-        ave_int, proc_imgs, profs = get_ave_intensity(img, block, offset)
-        ave_ints.append(ave_int)
+        results = get_ave_intensity(imread(imgf), block=block, offset=offset, denoise=denoise)
+        ave_ints.append(results['ave_int'])
         if save_dir is not None:
-            for j, pimg in enumerate(proc_imgs + profs):
-                img_step_dir = os.path.join(save_dir, str(j) + '_' + img_step[j])
-                setup_dirs(img_step_dir)
-                img_path = os.path.join(img_step_dir, str(i) + '.png')
-                if j < 3:
-                    plt.imsave(img_path, pimg, cmap='viridis')
-                elif j == 3:
-                    img_path = os.path.join(img_step_dir, str(i) + '.tiff')
-                    with warnings.catch_warnings():
-                        warnings.simplefilter("ignore")
-                        imsave(img_path, img_as_uint(pimg))
-                else:
-                    imsave(img_path, pimg)
+            imsave(os.path.join(sub_prof_dir, str(i) + '.png'), results['sub_prof'])
+            imsave(os.path.join(fin_prof_dir, str(i) + '.png'), results['fin_prof'])
+            if stylize:
+                plt.imsave(os.path.join(ori_img_dir, str(i) + '.png'),
+                    results['ori_img'], cmap='viridis')
+                plt.imsave(os.path.join(bkg_img_dir, str(i) + '.png'),
+                    results['bkg_img'], cmap='viridis')
+                plt.imsave(os.path.join(sub_img_dir, str(i) + '.png'),
+                    results['sub_img'], cmap='viridis')
+                if denoise:
+                    plt.imsave(os.path.join(den_img_dir, str(i) + '.png'),
+                        results['den_img'], cmap='viridis')
+            else:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    imsave(os.path.join(ori_img_dir, str(i) + '.tiff'),
+                        img_as_uint(results['ori_img']))
+                    imsave(os.path.join(bkg_img_dir, str(i) + '.tiff'),
+                        img_as_uint(results['bkg_img']))
+                    imsave(os.path.join(sub_img_dir, str(i) + '.tiff'),
+                        img_as_uint(results['sub_img']))
+                    if denoise:
+                        imsave(os.path.join(den_img_dir, str(i) + '.tiff'),
+                            img_as_uint(results['den_img']))
         if iter_cb is not None:
             plt_int = plot(range(len(ave_ints)), ave_ints,
-                xlabel='Frame', title='Ave Frame Intensity', figsize=(11, 6))
-            iter_imgs = [proc_imgs[0], profs[0], proc_imgs[-1], plt_int]
-            prog = int(round((i+1)/len(imgfs) * 100))
-            if iter_cb(iter_imgs, prog):
+                xlabel='Frame', title='Ave Frame Intensity (Nonzero Pixels)', figsize=(11, 6))
+            iter_imgs = [results['ori_img'], results['sub_prof'], results['fin_img'], plt_int]
+            progress = (i + 1)/len(imgfs) * 100
+            if iter_cb(iter_imgs, progress):
                 break
     if save_dir is not None:
-        plot_path = os.path.join(save_dir, 'ave_ints.png')
-        plot(range(len(ave_ints)), ave_ints, 'Frames', save_path=plot_path)
+        plot(range(len(ave_ints)), ave_ints,
+            xlabel='Frame', ylabel='Ave Intensity (Nonzero Pixels)',
+            save_path= os.path.join(save_dir, 'ave_ints.png'))
+        plot(range(len(ave_ints)), ave_ints/ave_ints[0],
+            xlabel='Frame', ylabel='Fold Change',
+            save_path= os.path.join(save_dir, 'fold_change.png'))
         csv_path = os.path.join(save_dir, 'ave_ints.csv')
         np.savetxt(csv_path, np.array(ave_ints), delimiter=',', header='ave_intensity', comments='')
     return ave_ints

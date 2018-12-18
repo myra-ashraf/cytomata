@@ -9,8 +9,7 @@
 9. Try using PPO to control light induction
 10. Implement one/few-shot learning to generalize to new systems/conditions
 
-1. Improve background subtraction method (gaussian gets too skewed)
+1. Look into Usiigaci (mask-rcnn) and Trackpy for cell tracking instead of SORT
 2. Write tests for all modules
-3. Look into Usiigaci (mask-rcnn) and Trackpy for cell tracking instead of SORT
-4. Improve autofocus algorithm
+3. Improve autofocus algorithm
     Implement CNN for autofocusing
