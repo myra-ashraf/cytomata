@@ -48,13 +48,15 @@ def process_imgs(img_dir, out_dir, proto, params):
     setup_dirs(out_dir)
     if proto == '0':
         def iter_cb(imgs, prog):
-            irow = int(np.argmax(np.var(imgs[2], axis=1)))
+            irow = int(np.argmax(np.var(imgs[0], axis=1)))
             imgs[0][irow, :] = np.amax(imgs[0])
             img0 = img_to_b64(imgs[0], touchup=True)
             img1 = img_to_b64(imgs[1], touchup=False)
             img2 = img_to_b64(imgs[2], touchup=True)
             img3 = img_to_b64(imgs[3], touchup=False)
-            eel.update_img_results(img0, img1, img2, img3, prog)
+            int_ranges = [np.round(np.amin(imgs[0]), 5), np.round(np.amax(imgs[0]), 5),
+                np.round(np.amin(imgs[2]), 5), np.round(np.amax(imgs[2]), 5)]
+            eel.update_img_results(img0, img1, img2, img3, int_ranges, prog)
             return eel.is_proc_imgs_stopped()()
         images_to_ave_frame_intensities(img_dir=img_dir, save_dir=out_dir,
             block=int(params['thres_block']), offset=float(params['sub_offset']),

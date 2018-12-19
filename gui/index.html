@@ -39,11 +39,13 @@
       }
 
       eel.expose(update_img_results);
-      function update_img_results(img0, img1, img2, img3, prog) {
+      function update_img_results(img0, img1, img2, img3, iranges, prog) {
         $("#proc_img0").attr("src", "data:image/png;base64," + img0);
         $("#proc_img1").attr("src", "data:image/png;base64," + img1);
         $("#proc_img2").attr("src", "data:image/png;base64," + img2);
         $("#proc_img3").attr("src", "data:image/png;base64," + img3);
+        $('#img0_label').text('Original (' + iranges[0] + ' - ' + iranges[1] + ')');
+        $('#img2_label').text('Result (' + iranges[2] + ' - ' + iranges[3] + ')');
         if (prog < 100) {
           $('#proc_img_progress').css('width', Math.floor(prog) + "%");
           $('#proc_img_progress').text(Math.floor(prog) + "%")
@@ -71,9 +73,9 @@
           <li class="nav-item">
             <a class="nav-link active" id="pills-home-tab" data-toggle="pill" href="#pills-home" role="tab">Home</a>
           </li>
-          <li class="nav-item">
+          <!-- <li class="nav-item">
             <a class="nav-link" id="pills-mic-tab" data-toggle="pill" href="#pills-mic" role="tab">Microscope</a>
-          </li>
+          </li> -->
           <li class="nav-item">
             <a class="nav-link" id="pills-proc-tab" data-toggle="pill" href="#pills-proc" role="tab">Processing</a>
           </li>
@@ -125,12 +127,12 @@
                     </div>
                   </div>
                   <div class="form-group">
-                    <label id= "thres_block_label" class="mt-2" for="thres_block_slider">Background Subtraction Smoothing (201)</label>
+                    <label id= "thres_block_label" class="mt-2" for="thres_block_slider">Background Smoothing (201)</label>
                     <input id="thres_block_slider" type="range" class="custom-range mb-2" min="1" max="1001" step="50" value="201">
                   </div>
                   <div class="form-group">
-                    <label id= "sub_offset_label" class="mb-0" for="sub_offset_slider">Background Subtraction Offset (1.0)</label>
-                    <input id="sub_offset_slider" type="range" class="custom-range mb-2" min="-2.0" max="2.0" step="0.1" value="1.0">
+                    <label id= "sub_offset_label" class="mb-0" for="sub_offset_slider">Background Offset (1.0)</label>
+                    <input id="sub_offset_slider" type="range" class="custom-range mb-2" min="-3.0" max="3.0" step="0.1" value="1.0">
                   </div>
                   <button id="protoccol_button" type="button" class="btn btn-success proto-start">Start Protoccol</button>
                 </form>
@@ -142,9 +144,9 @@
                     <div id="proc_img_progress" class="progress-bar" role="progressbar" style="width: 0%"></div>
                   </div>
                   <div class="row p-0 m-0">
-                    <div class="col-4 p-1"><label>Original</label><img id="proc_img0" src="" class="img-fluid"></div>
+                    <div class="col-4 p-1"><label id='img0_label'>Original</label><img id="proc_img0" src="" class="img-fluid"></div>
                     <div class="col-8 p-1"><img id="proc_img1" src="" class="img-fluid"></div>
-                    <div class="col-4 p-1"><label>Result</label><img id="proc_img2" src="" class="img-fluid"></div>
+                    <div class="col-4 p-1"><label id='img2_label'>Result</label><img id="proc_img2" src="" class="img-fluid"></div>
                     <div class="col-8 p-1"><img id="proc_img3" src="" class="img-fluid"></div>
                   </div>
                 </div>
@@ -174,17 +176,18 @@
 
     $('#thres_block_slider').on('change', function() {
       let slider_val = $('#thres_block_slider').val();
-      $('#thres_block_label').text('Background Subtraction Smoothing (' + slider_val + ')');
+      $('#thres_block_label').text('Background Smoothing (' + slider_val + ')');
     });
 
     $('#sub_offset_slider').on('change', function() {
       let slider_val = $('#sub_offset_slider').val();
-      $('#sub_offset_label').text('Background Subtraction Offset (' + slider_val + ')');
+      $('#sub_offset_label').text('Background Offset (' + slider_val + ')');
     });
 
     $('#protoccol_button').on('click', function() {
       if ($(this).hasClass('proto-start')) {
-        $('#results_div').toggleClass('invisible', 'visible');
+        $('#results_div').toggleClass('visible', true);
+        $('#results_div').toggleClass('invisible', false);
         $('#proc_img_progress').css('width', '0%');
         $('#proc_img_progress').text('');
         $('#proc_img_progress').removeClass('bg-success');
@@ -206,7 +209,8 @@
         };
         eel.process_imgs(img_dir, out_dir, proto, params);
       } else {
-        $('#results_div').toggleClass('invisible', 'visible');
+        $('#results_div').toggleClass('visible', false);
+        $('#results_div').toggleClass('invisible', true);
         $(this).toggleClass('btn-danger btn-success');
         $(this).toggleClass('proto-stop proto-start');
         $(this).text("Start Protoccol");

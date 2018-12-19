@@ -15,10 +15,10 @@ def control_excitation(mscope, ch_dark, ch_exc, t_exc_on, t_exc_off, t_exc_width
     t = time.time() - mscope.ts[0][0]
     mscope.ut += [time.time() + i for i in range(t_exc_period)]
     if t > t_exc_on and t < t_exc_off:
-        mscope.us += [1.0] * t_exc_width + [0] * (t_exc_period - t_exc_width)
         mscope.set_channel(ch_exc)
         time.sleep(t_exc_width)
         mscope.set_channel(ch_dark)
+        mscope.us += [1.0] * t_exc_width + [0] * (t_exc_period - t_exc_width)
     else:
         mscope.us += [0.0] * t_exc_period
 
@@ -27,7 +27,7 @@ if __name__ == '__main__':
     # Experiment Parameters
     params = {
         'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
-        'desc': 'ND8',
+        'desc': 'ND8-exposure200-gain1',
         'mag': 1,
         'chs_img': ['DIC', 'GFP'],
         'ch_dark': 'None',

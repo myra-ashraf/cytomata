@@ -32,19 +32,19 @@ def norm_auc(frames, ints, t_spans):
 
 
 if __name__ == '__main__':
-    dataset = 'nate'
-    img_dir = os.path.join('data', dataset)
+    # dataset = 'nate'
+    # img_dir = os.path.join('data', dataset)
     ## Global Frame Analysis
-    save_dir = os.path.join('data', dataset + '_' + 'global_frame_analysis')
+    # save_dir = os.path.join('data', dataset + '_' + 'global_frame_analysis')
     # images_to_ave_frame_intensities(img_dir, save_dir, block=151, offset=0)
-    imgfs = list_img_files(img_dir)
-    img = img_as_float(imread(imgfs[25]))
-    bkg = threshold_local(img, block_size=201, method='gaussian')
-    sub = img - bkg
-    sigma = estimate_sigma(sub)
-    den = denoise_nl_means(sub, h=sigma, sigma=sigma, multichannel=False) - sigma*(0.0)
-    den[den < 0.0] = 0.0
-    print(len(img))
+    # imgfs = list_img_files(img_dir)
+    # img = img_as_float(imread(imgfs[25]))
+    # bkg = threshold_local(img, block_size=201, method='gaussian')
+    # sub = img - bkg
+    # sigma = estimate_sigma(sub)
+    # den = denoise_nl_means(sub, h=sigma, sigma=sigma, multichannel=False) - sigma*(0.0)
+    # den[den < 0.0] = 0.0
+    # print(len(img))
     # imshow(img, show=True)
     # plt.plot(img[95, :])
     # plt.plot(bkg[95, :])
@@ -60,3 +60,10 @@ if __name__ == '__main__':
     #     calc_func=norm_auc, t_spans=t_spans)
     # run_single_cell_analysis(img_dir,
     #     save_dir, min_traj_length=100, overwrite=True, **reg_params)
+
+    csv_file = 'data/expts_12-16.csv'
+    df = pd.read_csv(csv_file)
+    y1 = df['no_light']
+    y2 = df['light']
+    x = range(len(y1))
+    plot(x, np.column_stack((y1, y2)), xlabel='Frame', ylabel='Ave Intensity', labels=['no light', '1sec/30sec frames(0-72)'], save_path='data/expts_12-16.png')
