@@ -1,3 +1,4 @@
+0. Collect required training data
 1. Fit model to data
 2. Validate model with unseen data - 5sec/60sec
 3. Optimize light pattern
@@ -9,7 +10,12 @@
 9. Try using PPO to control light induction
 10. Implement one/few-shot learning to generalize to new systems/conditions
 
-1. Look into Usiigaci (mask-rcnn) and Trackpy for cell tracking instead of SORT
-2. Write tests for all modules
-3. Improve autofocus algorithm
-    Implement CNN for autofocusing
+0. DIC every 5min
+1. DIC+GFP every 10min
+2. DIC+GFP every 5min | const. 460nm induction
+3. DIC+GFP every 5min | 1sec/60sec 460nm induction
+
+0. Remove extremes before local thresholding for background subtraction
+1. Adapt Usiigaci (mask-rcnn) and Trackpy for cell tracking instead of SORT
+2. Adapt Google's deep learning based autofocusing
+3. Write tests for all modules
