@@ -15,7 +15,7 @@ from skimage.io import imread, imsave
 from skimage.exposure import equalize_adapthist
 from skimage.measure import regionprops
 from skimage.feature import peak_local_max
-from skimage.filters import threshold_local, gaussian
+from skimage.filters import threshold_local, gaussian, rank
 from skimage.morphology import disk, dilation, erosion, remove_small_objects, white_tophat
 from skimage.restoration import denoise_nl_means, estimate_sigma
 from skimage.segmentation import random_walker, clear_border, find_boundaries
@@ -28,36 +28,28 @@ from cytomata.utils.visual import plot
 def get_ave_intensity(img, block=201, offset=0, denoise=True, debug_row=None):
     img = img_as_float(img)
     sigma = estimate_sigma(img)
-    if debug_row is None:
-        debug_row = int(np.argmax(np.var(img, axis=1)))
+    bkg = threshold_local(img, block_size=block, method='gaussian', offset=-sigma*offset)
+    sub = img - bkg
     if denoise:
-        den = denoise_nl_means(img, h=sigma, sigma=sigma, multichannel=False)
-        sigma = estimate_sigma(den)
-        bkg = threshold_local(den, block_size=block, method='gaussian', offset=-sigma*offset)
-        sub = den - bkg
-        bkg_prof = plot(range(len(img)), np.column_stack((den[debug_row, :], bkg[debug_row, :])),
-            xlabel='Image Column', ylabel='Pixel Intensity',
-            title='Intensity Profile Img[' + str(debug_row) + ', :]',
-            labels=['Denoised', 'Background'], legend_loc='upper left', figsize=(11, 6))
-    else:
-        den = None
-        bkg = threshold_local(img, block_size=block, method='gaussian', offset=-sigma*offset)
-        sub = img - bkg
-        bkg_prof = plot(range(len(img)), np.column_stack((img[debug_row, :], bkg[debug_row, :])),
-            xlabel='Image Column', ylabel='Pixel Intensity',
-            title='Intensity Profile Img[' + str(debug_row) + ', :]',
-            labels=['Original', 'Background'], legend_loc='upper left', figsize=(11, 6))
+        sigma = estimate_sigma(sub)
+        sub = denoise_nl_means(sub, h=sigma, sigma=sigma, multichannel=False)
     sub[sub < 0.0] = 0.0
     sub = sub - np.amin(sub)
     ave_int = 0.0
     if np.count_nonzero(sub) > 0:
         ave_int = np.mean(sub[sub.nonzero()])
+    if debug_row is None:
+        debug_row = int(np.argmax(np.var(img, axis=1)))
+    bkg_prof = plot(range(len(img)), np.column_stack((img[debug_row, :], bkg[debug_row, :])),
+        xlabel='Image Column', ylabel='Pixel Intensity',
+        title='Intensity Profile Img[' + str(debug_row) + ', :]',
+        labels=['Original', 'Background'], legend_loc='upper left', figsize=(11, 6))
     sub_prof = plot(range(len(img)), sub[debug_row, :],
         xlabel='Image Column', ylabel='Pixel Intensity',
         title='Intensity Profile Img[' + str(debug_row) + ', :]',
         labels=['Subtracted'], legend_loc='upper left', figsize=(11, 6))
-    results = {'ave_int': ave_int, 'ori_img': img, 'den_img': den, 'bkg_img': bkg,
-        'sub_img': sub, 'bkg_prof': bkg_prof, 'sub_prof': sub_prof}
+    results = {'ori_img': img, 'bkg_img': bkg, 'sub_img': sub,
+        'ave_int': ave_int, 'bkg_prof': bkg_prof, 'sub_prof': sub_prof}
     return results
 
 
@@ -68,18 +60,10 @@ def images_to_ave_frame_intensities(img_dir, save_dir=None, block=201,
             shutil.rmtree(save_dir)
         ori_img_dir = os.path.join(save_dir, '0-original')
         setup_dirs(ori_img_dir)
-        if denoise:
-            den_img_dir = os.path.join(save_dir, '1-denoised')
-            setup_dirs(den_img_dir)
-            bkg_img_dir = os.path.join(save_dir, '2-background')
-            setup_dirs(bkg_img_dir)
-            sub_img_dir = os.path.join(save_dir, '3-subtracted')
-            setup_dirs(sub_img_dir)
-        else:
-            bkg_img_dir = os.path.join(save_dir, '1-background')
-            setup_dirs(bkg_img_dir)
-            sub_img_dir = os.path.join(save_dir, '2-subtracted')
-            setup_dirs(sub_img_dir)
+        bkg_img_dir = os.path.join(save_dir, '1-background')
+        setup_dirs(bkg_img_dir)
+        sub_img_dir = os.path.join(save_dir, '2-subtracted')
+        setup_dirs(sub_img_dir)
         bkg_prof_dir = os.path.join(save_dir, 'bkg_profile')
         setup_dirs(bkg_prof_dir)
         sub_prof_dir = os.path.join(save_dir, 'sub_profile')
@@ -95,9 +79,6 @@ def images_to_ave_frame_intensities(img_dir, save_dir=None, block=201,
             if stylize:
                 plt.imsave(os.path.join(ori_img_dir, str(i) + '.png'),
                     results['ori_img'], cmap='viridis')
-                if denoise:
-                    plt.imsave(os.path.join(den_img_dir, str(i) + '.png'),
-                    results['den_img'], cmap='viridis')
                 plt.imsave(os.path.join(bkg_img_dir, str(i) + '.png'),
                     results['bkg_img'], cmap='viridis')
                 plt.imsave(os.path.join(sub_img_dir, str(i) + '.png'),
@@ -107,9 +88,6 @@ def images_to_ave_frame_intensities(img_dir, save_dir=None, block=201,
                     warnings.simplefilter("ignore")
                     imsave(os.path.join(ori_img_dir, str(i) + '.tiff'),
                         img_as_uint(results['ori_img']))
-                    if denoise:
-                        imsave(os.path.join(den_img_dir, str(i) + '.tiff'),
-                            img_as_uint(results['den_img']))
                     imsave(os.path.join(bkg_img_dir, str(i) + '.tiff'),
                         img_as_uint(results['bkg_img']))
                     imsave(os.path.join(sub_img_dir, str(i) + '.tiff'),
@@ -125,9 +103,10 @@ def images_to_ave_frame_intensities(img_dir, save_dir=None, block=201,
         plot(range(len(ave_ints)), ave_ints,
             xlabel='Frame', ylabel='Ave Intensity (Nonzero Pixels)',
             save_path= os.path.join(save_dir, 'ave_ints.png'))
-        plot(range(len(ave_ints)), np.array(ave_ints)/ave_ints[0],
-            xlabel='Frame', ylabel='Fold Change',
-            save_path= os.path.join(save_dir, 'fold_change.png'))
+        if ave_ints[0] > 0:
+            plot(range(len(ave_ints)), np.array(ave_ints)/ave_ints[0],
+                xlabel='Frame', ylabel='Fold Change',
+                save_path= os.path.join(save_dir, 'fold_change.png'))
         csv_path = os.path.join(save_dir, 'ave_ints.csv')
         np.savetxt(csv_path, np.array(ave_ints), delimiter=',', header='ave_intensity', comments='')
     return ave_ints

@@ -67,7 +67,7 @@ if __name__ == '__main__':
     y2 = df['light']
     y2[85:105] = np.nan
     y2.interpolate(method='linear', inplace=True)
-    y3 = y2/y1
+    y3 = y2 - y1
     x = range(len(y1))
     plot(x, np.column_stack((y1, y2)), xlabel='Frame', ylabel='Ave Intensity', labels=['Light 1sec/30sec', 'No Light'], save_path='data/expts_12-16.png')
-    plot(x, y3, xlabel='Frame', ylabel='Ave Intensity', title='Light/(No Light)', save_path='data/expts_12-16-norm-div.png')
+    plot(x, y3, xlabel='Frame', ylabel='Ave Intensity', title='Light - (No Light)', save_path='data/expts_12-16-norm-sub.png')
