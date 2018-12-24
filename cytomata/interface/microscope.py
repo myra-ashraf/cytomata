@@ -171,10 +171,10 @@ class Microscope(object):
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     imsave(img_path, img)
-            x_path = os.path.join(self.save_dir, str(i) + '.csv')
+            x_path = os.path.join(self.save_dir, 'x' + str(i) + '.csv')
             x_data = np.column_stack((self.xt[i], self.xx[i], self.xy[i], self.xz[i]))
             np.savetxt(x_path, x_data, delimiter=',', header='t,x,y,z', comments='')
-            u_path = os.path.join(self.save_dir, 'u.csv')
+            u_path = os.path.join(self.save_dir, 'u' + str(i) + '.csv')
             u_data = np.column_stack((self.ut[i], self.uu[i]))
             np.savetxt(u_path, u_data, delimiter=',', header='t,u', comments='')
 
@@ -183,7 +183,6 @@ class Microscope(object):
             self.set_position('xy', (x, y))
             self.set_position('z', z)
             t = time.time() - self.t0
-            self.ut[i] += [t + i for i in range(t_exc_period)]
             if t > t_exc_on and t < t_exc_off:
                 self.set_channel(ch_exc)
                 time.sleep(t_exc_width)
@@ -191,6 +190,7 @@ class Microscope(object):
                 self.uu[i] += [1.0] * t_exc_width + [0.0] * (t_exc_period - t_exc_width)
             else:
                 self.uu[i] += [0.0] * t_exc_period
+            self.ut[i] += list(np.arange(t, t+t_exc_period, 1))
 
     def add_task(self, func, tstart, tstop, tstep, **kwargs):
         tstart += self.t0
