@@ -15,7 +15,7 @@ from skimage.io import imread, imsave
 from skimage.exposure import equalize_adapthist
 from skimage.measure import regionprops
 from skimage.feature import peak_local_max
-from skimage.filters import threshold_local, gaussian, rank
+from skimage.filters import threshold_local, gaussian, median
 from skimage.morphology import disk, dilation, erosion, remove_small_objects, white_tophat
 from skimage.restoration import denoise_nl_means, estimate_sigma
 from skimage.segmentation import random_walker, clear_border, find_boundaries
@@ -31,13 +31,15 @@ def get_ave_intensity(img, block=201, offset=0, denoise=True, debug_row=None):
     bkg = threshold_local(img, block_size=block, method='gaussian', offset=-sigma*offset)
     sub = img - bkg
     if denoise:
-        sigma = estimate_sigma(sub)
-        sub = denoise_nl_means(sub, h=sigma, sigma=sigma, multichannel=False)
+        sub = ndi.median_filter(sub, size=5)
+        # sigma = estimate_sigma(sub)
+        # sub = denoise_nl_means(sub, h=sigma, sigma=sigma, multichannel=False)
     sub[sub < 0.0] = 0.0
     sub = sub - np.amin(sub)
     ave_int = 0.0
-    if np.count_nonzero(sub) > 0:
-        ave_int = np.mean(sub[sub.nonzero()])
+    no_edge = sub[10:-10, 10:-10]
+    if np.count_nonzero(no_edge) > 0:
+        ave_int = np.mean(no_edge[no_edge.nonzero()])
     if debug_row is None:
         debug_row = int(np.argmax(np.var(img, axis=1)))
     bkg_prof = plot(range(len(img)), np.column_stack((img[debug_row, :], bkg[debug_row, :])),
