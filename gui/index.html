@@ -125,6 +125,7 @@
                       <input type="checkbox" class="custom-control-input" id="stylize_checkbox">
                       <label class="custom-control-label" for="stylize_checkbox">Apply Pseudo-Color</label>
                     </div>
+                    <small id="warn_den_sty" class="form-text text-muted"></small>
                   </div>
                   <div class="form-group">
                     <label id= "thres_block_label" class="mt-2" for="thres_block_slider">Background Smoothing (201)</label>
@@ -182,6 +183,14 @@
     $('#sub_offset_slider').on('change', function() {
       let slider_val = $('#sub_offset_slider').val();
       $('#sub_offset_label').text('Background Offset (' + slider_val + ')');
+    });
+
+    $('#denoise_checkbox, #stylize_checkbox').on('change', function() {
+      if ($('#denoise_checkbox').prop('checked') || $('#stylize_checkbox').prop('checked')) {
+        $('#warn_den_sty').text('Denoising/coloring not recommended for *quantitative* results.');
+      } else {
+        $('#warn_den_sty').text('');
+      }
     });
 
     $('#protoccol_button').on('click', function() {
