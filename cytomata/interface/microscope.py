@@ -136,12 +136,15 @@ class Microscope(object):
             def residual(z):
                 self.set_position('z', z)
                 foc = self.sample_focus()[1]
+                print('z: ' + str(z))
+                print('f: ' + str(foc))
                 return -foc
             zi = self.get_position('z')
-            zl = np.max([zi - 5, z0 + bounds_af[0]])
-            zu = np.min([zi + 5, z0 + bounds_af[1]])
+            zl = np.max([zi + bounds_af[0], z0 - 50.0])
+            zu = np.min([zi + bounds_af[1], z0 + 50.0])
+            print('--autofocus--')
             result = minimize_scalar(residual, method='bounded',
-                bounds=(zl, zu), options={'maxiter': max_iter_af, 'xatol': 3.0})
+                bounds=(zl, zu), options={'maxiter': max_iter_af, 'xatol': 2.0})
             best_pos, best_foc = result.x, -result.fun
         else:  # Reset Position
             best_pos = z0

@@ -20,7 +20,7 @@ if __name__ == '__main__':
         'chs_img': ['DIC', 'GFP'],
         'ch_af': 'DIC',
         'algo_af': 'brent',
-        'bounds_af': [-5.0, 5.0],
+        'bounds_af': [-3.0, 3.0],
         'max_iter_af': 5,
         't_exc_on': 0,
         't_exc_off': 21600,
