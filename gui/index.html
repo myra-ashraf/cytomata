@@ -53,14 +53,14 @@
           $('#proc_img_progress').css('width', "100" + "%");
           $('#proc_img_progress').text('DONE!');
           $('#proc_img_progress').addClass('bg-success');
-          $('#protoccol_button').toggleClass('btn-danger proto-stop', false);
-          $('#protoccol_button').toggleClass('proto-start btn-success', true);
-          $('#protoccol_button').text("Start Protoccol");
+          $('#protocol_button').toggleClass('btn-danger proto-stop', false);
+          $('#protocol_button').toggleClass('proto-start btn-success', true);
+          $('#protocol_button').text("Start Protocol");
         }
       }
       eel.expose(is_proc_imgs_stopped);
       function is_proc_imgs_stopped() {
-        return $('#protoccol_button').hasClass('proto-start');
+        return $('#protocol_button').hasClass('proto-start');
       }
     </script>
 
@@ -110,8 +110,8 @@
                     <small id="out_dir_exists" class="form-text text-danger"></small>
                   </div>
                   <div class="form-group">
-                    <label for="protoccol_form">Protoccol</label>
-                    <select class="form-control" id="protoccol_form">
+                    <label for="protocol_form">Protocol</label>
+                    <select class="form-control" id="protocol_form">
                       <option value='0'>Ave Frame Intensities</option>
                       <option value='1'>Single Cell Intensities</option>
                     </select>
@@ -135,7 +135,17 @@
                     <label id= "sub_offset_label" class="mb-0" for="sub_offset_slider">Background Offset (1.0)</label>
                     <input id="sub_offset_slider" type="range" class="custom-range mb-2" min="-3.0" max="3.0" step="0.1" value="1.0">
                   </div>
-                  <button id="protoccol_button" type="button" class="btn btn-success proto-start">Start Protoccol</button>
+                  <div id="sc_track_settings" style="display: none;">
+                    <div class="form-group">
+                      <label id= "det_sens_label" class="mb-0" for="det_sens_slider">Region Detection Sensitivity (25)</label>
+                      <input id="det_sens_slider" type="range" class="custom-range mb-2" min="10" max="60" step="1" value="25">
+                    </div>
+                    <div class="form-group">
+                      <label id= "traj_len_label" class="mb-0" for="traj_len_slider">Minimum Trajectory Length (100)</label>
+                      <input id="traj_len_slider" type="range" class="custom-range mb-2" min="0" max="500" step="10" value="100">
+                    </div>
+                  </div>
+                  <button id="protocol_button" type="button" class="btn btn-success proto-start">Start Protocol</button>
                 </form>
               </div>
               <div class="col-8 pb-3 pl-3">
@@ -175,6 +185,15 @@
       check_dir_exists(out_dir);
     });
 
+    $('#protocol_form').on('change', function() {
+      let proto = $('#protocol_form').val();
+      if (proto == 1) {
+        $('#sc_track_settings').show();
+      } else {
+        $('#sc_track_settings').hide();
+      }
+    });
+
     $('#thres_block_slider').on('change', function() {
       let slider_val = $('#thres_block_slider').val();
       $('#thres_block_label').text('Background Smoothing (' + slider_val + ')');
@@ -185,6 +204,16 @@
       $('#sub_offset_label').text('Background Offset (' + slider_val + ')');
     });
 
+    $('#det_sens_slider').on('change', function() {
+      let slider_val = $('#det_sens_slider').val();
+      $('#det_sens_label').text('Region Detection Sensitivity (' + slider_val + ')');
+    });
+
+    $('#traj_len_slider').on('change', function() {
+      let slider_val = $('#traj_len_slider').val();
+      $('#traj_len_label').text('Minimum Trajectory Length (' + slider_val + ')');
+    });
+
     $('#denoise_checkbox, #stylize_checkbox').on('change', function() {
       if ($('#denoise_checkbox').prop('checked') || $('#stylize_checkbox').prop('checked')) {
         $('#warn_den_sty').text('Denoising/coloring not recommended for *quantitative* results.');
@@ -193,7 +222,7 @@
       }
     });
 
-    $('#protoccol_button').on('click', function() {
+    $('#protocol_button').on('click', function() {
       if ($(this).hasClass('proto-start')) {
         $('#results_div').toggleClass('visible', true);
         $('#results_div').toggleClass('invisible', false);
@@ -202,17 +231,21 @@
         $('#proc_img_progress').removeClass('bg-success');
         $(this).toggleClass('btn-success btn-danger');
         $(this).toggleClass('proto-start proto-stop');
-        $(this).text("Stop Protoccol");
+        $(this).text("Stop Protocol");
         let img_dir = $('#img_dir_form').val();
         let out_dir = $('#out_dir_form').val();
-        let proto = $('#protoccol_form').val();
+        let proto = $('#protocol_form').val();
         let param_thres_block = $('#thres_block_slider').val();
         let param_sub_offset = $('#sub_offset_slider').val();
+        let param_det_sens = $('#det_sens_slider').val();
+        let param_traj_len = $('#traj_len_slider').val();
         let param_denoise = $('#denoise_checkbox').prop('checked');
         let param_stylize = $('#stylize_checkbox').prop('checked');
         let params = {
           thres_block: param_thres_block,
           sub_offset: param_sub_offset,
+          det_sens: param_det_sens,
+          traj_len: param_traj_len,
           denoise: param_denoise,
           stylize: param_stylize
         };
@@ -222,7 +255,7 @@
         $('#results_div').toggleClass('invisible', true);
         $(this).toggleClass('btn-danger btn-success');
         $(this).toggleClass('proto-stop proto-start');
-        $(this).text("Start Protoccol");
+        $(this).text("Start Protocol");
       }
     });
     </script>

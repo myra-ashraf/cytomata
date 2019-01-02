@@ -10,7 +10,7 @@ from skimage import img_as_ubyte
 from skimage.exposure import equalize_adapthist
 
 from cytomata.utils.io import list_img_files, setup_dirs
-from cytomata.process.extract import images_to_ave_frame_intensities
+from cytomata.process.extract import run_frame_ave_analysis, run_single_cell_analysis
 
 
 @eel.expose
@@ -45,22 +45,26 @@ def img_to_b64(img, touchup=False):
 
 @eel.expose
 def process_imgs(img_dir, out_dir, proto, params):
-    setup_dirs(out_dir)
+    def iter_cb(imgs, prog):
+        irow = int(np.argmax(np.var(imgs[0], axis=1)))
+        imgs[0][irow, :] = np.amax(imgs[0])
+        img0 = img_to_b64(imgs[0], touchup=True)
+        img1 = img_to_b64(imgs[1], touchup=False)
+        img2 = img_to_b64(imgs[2], touchup=True)
+        img3 = img_to_b64(imgs[3], touchup=False)
+        int_ranges = [np.round(np.amin(imgs[0]), 5), np.round(np.amax(imgs[0]), 5),
+            np.round(np.amin(imgs[2]), 5), np.round(np.amax(imgs[2]), 5)]
+        eel.update_img_results(img0, img1, img2, img3, int_ranges, prog)
+        return eel.is_proc_imgs_stopped()()
     if proto == '0':
-        def iter_cb(imgs, prog):
-            irow = int(np.argmax(np.var(imgs[0], axis=1)))
-            imgs[0][irow, :] = np.amax(imgs[0])
-            img0 = img_to_b64(imgs[0], touchup=True)
-            img1 = img_to_b64(imgs[1], touchup=False)
-            img2 = img_to_b64(imgs[2], touchup=True)
-            img3 = img_to_b64(imgs[3], touchup=False)
-            int_ranges = [np.round(np.amin(imgs[0]), 5), np.round(np.amax(imgs[0]), 5),
-                np.round(np.amin(imgs[2]), 5), np.round(np.amax(imgs[2]), 5)]
-            eel.update_img_results(img0, img1, img2, img3, int_ranges, prog)
-            return eel.is_proc_imgs_stopped()()
-        images_to_ave_frame_intensities(img_dir=img_dir, save_dir=out_dir,
+        run_frame_ave_analysis(img_dir=img_dir, save_dir=out_dir,
             block=int(params['thres_block']), offset=float(params['sub_offset']),
             denoise=params['denoise'], stylize=params['stylize'], iter_cb=iter_cb, overwrite=True)
+    elif proto == '1':
+        run_single_cell_analysis(img_dir, save_dir=out_dir, block=int(params['thres_block']),
+            offset=float(params['sub_offset']), min_peaks_dist=int(params['det_sens']),
+            min_traj_len=int(params['traj_len']), denoise=params['denoise'],
+            stylize=params['stylize'], iter_cb=iter_cb, overwrite=True)
 
 
 if __name__ == '__main__':

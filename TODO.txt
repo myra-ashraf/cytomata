@@ -11,7 +11,7 @@
 10. Implement one/few-shot learning to generalize to new systems/conditions
 
 0. DIC every 5min
-1. DIC+GFP every 10min
+1. DIC+GFP every 10min | 1sec/30sec 460nm induction
 2. DIC+GFP every 5min | const. 460nm induction
 3. DIC+GFP every 5min | 1sec/60sec 460nm induction
 
@@ -19,3 +19,8 @@
 1. Adapt Usiigaci (mask-rcnn) and Trackpy for cell tracking instead of SORT
 2. Adapt Google's deep learning based autofocusing
 3. Write tests for all modules
+
+0. ori_img
+1. bkg_prof
+2. bnd_img
+3. traj_plot

@@ -10,7 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
-from cytomata.process.extract import images_to_ave_frame_intensities
+from cytomata.process.extract import run_frame_ave_analysis
 from cytomata.process.model import FOPDT, Regulator, Khammash
 
 
@@ -31,7 +31,7 @@ data_dir = os.path.join(os.path.expanduser('~'), 'data', expt)
 # yt = df_y['t'].values - df_y['t'].values[0]
 # img_dir = os.path.join(data_dir, 'imgs', 'GFP', '0')
 # proc_imgs_dir = os.path.join(data_dir, 'processed_imgs')
-# yv = images_to_ave_frame_intensities(img_dir, save_dir=proc_imgs_dir, gauss_sigma=50)
+# yv = run_frame_ave_analysis(img_dir, save_dir=proc_imgs_dir, gauss_sigma=50)
 # yf = interp1d(yt, yv, fill_value='extrapolate')
 # yv = np.array([yf(t) for t in ut])
 # ut /= 3600

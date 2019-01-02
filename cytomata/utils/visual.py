@@ -36,11 +36,14 @@ custom_styles = {
 }
 
 
-def plot(x, y, xlabel=None, ylabel=None, title=None, labels=None, show=False,
+def plot(x, y=None, xlabel=None, ylabel=None, title=None, labels=None, show=False,
     figsize=custom_styles['figure.figsize'], legend_loc='best', save_path=None):
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, ax = plt.subplots(figsize=figsize)
-        ax.plot(x, y)
+        if y is not None:
+            ax.plot(x, y)
+        else:
+            ax.plot(x)
         if xlabel is not None:
             ax.set_xlabel(xlabel)
         if ylabel is not None:

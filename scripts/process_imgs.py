@@ -6,6 +6,7 @@ sys.path.append(os.path.abspath('../'))
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 from skimage import img_as_float
 from skimage.io import imread
 from skimage.filters import gaussian, threshold_local
@@ -14,10 +15,10 @@ from skimage.morphology import disk, opening, white_tophat
 
 from cytomata.utils.io import setup_dirs, list_img_files
 from cytomata.process.extract import (
-    images_to_ave_frame_intensities,
+    run_frame_ave_analysis,
     run_single_cell_analysis,
     )
-from cytomata.utils.visual import imshow, plot
+from cytomata.utils.visual import imshow, plot, custom_styles, custom_palette
 
 
 def norm_auc(frames, ints, t_spans):
@@ -36,7 +37,7 @@ if __name__ == '__main__':
     # img_dir = os.path.join('data', dataset)
     ## Global Frame Analysis
     # save_dir = os.path.join('data', dataset + '_' + 'global_frame_analysis')
-    # images_to_ave_frame_intensities(img_dir, save_dir, block=151, offset=0)
+    # run_frame_ave_analysis(img_dir, save_dir, block=151, offset=0)
     # imgfs = list_img_files(img_dir)
     # img = img_as_float(imread(imgfs[25]))
     # bkg = threshold_local(img, block_size=201, method='gaussian')
@@ -52,7 +53,7 @@ if __name__ == '__main__':
     # plt.plot(den[95, :])
     # plt.show()
 
-    # images_to_ave_frame_intensities(img_dir, save_dir, gauss_sigma=40, iter_cb=None)
+    # run_frame_ave_analysis(img_dir, save_dir, gauss_sigma=40, iter_cb=None)
     ## Single Cell Analysis
     # save_dir = os.path.join('data', dataset + '_' + 'single_cell_analysis')
     # t_spans = [0, 62, 73, 98, 109, 134, 145, 170, 181, 206, 217, 244]
@@ -61,13 +62,24 @@ if __name__ == '__main__':
     # run_single_cell_analysis(img_dir,
     #     save_dir, min_traj_length=100, overwrite=True, **reg_params)
 
-    csv_file = 'data/expts_12-16.csv'
+    csv_file = 'data/gfp_channel_effect.csv'
     df = pd.read_csv(csv_file)
-    y1 = df['no_light']
-    y2 = df['light']
-    y2[85:105] = np.nan
-    y2.interpolate(method='linear', inplace=True)
-    y3 = y2 - y1
-    x = range(len(y1))
-    plot(x, np.column_stack((y1, y2)), xlabel='Frame', ylabel='Ave Intensity', labels=['Light 1sec/30sec', 'No Light'], save_path='data/expts_12-16.png')
-    plot(x, y3, xlabel='Frame', ylabel='Ave Intensity', title='Light - (No Light)', save_path='data/expts_12-16-norm-sub.png')
+    n5 = df['5min_nolight']
+    l5 = df['5min_light']
+    n10 = df['10min_nolight']
+    l10 = df['10min_light']
+    l5[85:105] = np.nan
+    l5.interpolate(method='linear', inplace=True)
+    y1 = l5 - n5
+    y1 = y1[::2]
+    y2 = l10 - n10
+    x1 = range(len(y1))
+    x2 = range(len(y2))
+    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+        fig, ax = plt.subplots(figsize=(12, 8))
+        ax.plot(x1, y1)
+        ax.plot(x2, y2)
+        ax.set_xlabel('Frame')
+        ax.set_ylabel('Ave Frame Intensity')
+        ax.legend(labels=['5min', '10min'], loc='best')
+        plt.show()

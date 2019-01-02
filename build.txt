@@ -7,7 +7,7 @@ Setup Conda Environment
         cd path/to/cytomata
     D. Pip install needed python libraries
         'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image', 'opencv-python',
-        'natsort', 'schedule', 'lmfit', 'eel', 'filterpy', 'tornado', 'pyinstaller'
+        'natsort', 'lmfit', 'eel', 'filterpy', 'tornado', 'pyinstaller'
         Or you can just run:
         pip install -r requirements.txt --ignore-installed
 
