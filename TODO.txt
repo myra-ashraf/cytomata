@@ -16,6 +16,7 @@
 3. DIC+GFP every 5min | 1sec/60sec 460nm induction
 
 0. Remove extremes before local thresholding for background subtraction
+0. Try rescaled gaussian subtraction method from Sci Report paper
 1. Adapt Usiigaci (mask-rcnn) and Trackpy for cell tracking instead of SORT
 2. Adapt Google's deep learning based autofocusing
 3. Write tests for all modules

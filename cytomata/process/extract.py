@@ -130,7 +130,11 @@ def detect_regions(img, block=201, offset=1.0, denoise=False, min_peaks_dist=25)
     markers[~thr] = -1
     rw = random_walker(den, markers, beta=1000, mode='bf')
     rw[rw < 0] = 0
-    min_area = np.quantile([prop.area for prop in regionprops(rw)], 0.10)
+    areas = [prop.area for prop in regionprops(rw)]
+    if areas:
+        min_area = np.quantile(areas, 0.10)
+    else:
+        min_area = 0
     reg = clear_border(remove_small_objects(rw, min_size=min_area), buffer_size=0)
     bnd = den.copy()
     bnd[find_boundaries(reg)] = np.percentile(bnd, 99.99)

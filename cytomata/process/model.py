@@ -18,6 +18,76 @@ from cytomata.utils.io import setup_dirs
 from cytomata.utils.gym import Env, Box, Discrete
 
 
+class FRC(Env):
+    """
+    """
+    metadata = {'render.modes': ['human']}
+
+    def __init__(self, params=None):
+        self.action_space = Discrete(2)
+        self.observation_space = Box(
+            low=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            high=np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]),
+            dtype=np.float32)
+        self.reward_range = (-np.inf, np.inf)
+        self.params = params
+
+    def model(self, t, y):
+        u = self.uf(t)
+        [Ni, Na, P1i, P1a, P2i, P2a, M1, M2] = y
+        kNa = self.params['kNa']
+        kNi = self.params['kNi']
+        kP1a = self.params['kP1a']
+        kP1i = self.params['kP1i']
+        kP2a = self.params['kP2a']
+        kP2i = self.params['kP2i']
+        kM1f = self.params['kM1f']
+        kM1r = self.params['kM1r']
+        kM2f = self.params['kM2f']
+        kM2r = self.params['kM2r']
+        dNi = kNi*Na - kNa*u*Ni
+        dNa = kNa*u*Ni - kNi*Na + kM1r*M1 + kM2r*M2 - kM1f*Na*P1a - kM2f*Na*P2a
+        dP1i = kP1i*P1a - kP1a*u*P1i
+        dP1a = kP1a*u*P1i - kP1i*P1a + kM1r*M1 - kM1f*Na*P1a
+        dP2i = kP2i*P2a - kP2a*u*P2i
+        dP2a = kP2a*u*P2i - kP2i*P2a + kM2r*M2 - kM2f*Na*P2a
+        dM1 = kM1f*Na*P1a - kM1r*M1
+        dM2 = kM2f*Na*P2a - kM2r*M2
+        return [dNi, dNa, dP1i, dP1a, dP2i, dP2a, dM1, dM2]
+
+    def simulate(self, t, u, y0):
+        self.uf = interp1d(t, u)
+        result = solve_ivp(
+            fun=lambda t, y: self.model(t, y),
+            t_span=[t[0], t[-1]], y0=y0, t_eval=t, method='LSODA')
+        return result.y
+
+    def reset(self, y0, dt, n, reward_func):
+        y0 = None
+        return y0
+
+    def step(self, action):
+        obs = None
+        reward = None
+        done = None
+        info = None
+        return obs, reward, done, info
+
+    def seed(self, seed):
+        self.rng = np.random.RandomState()
+        self.rng.seed(seed)
+
+    def render(self, mode='human'):
+        if mode == 'human':
+            self.display = True
+        else:
+            raise ValueError
+
+    def close(self):
+        self.display = False
+        plt.close()
+
+
 class FOPDT(Env):
     """
     First Order Plus Dead Time Approximation.
@@ -158,77 +228,41 @@ class FOPDT(Env):
         plt.close()
 
 
-class Regulator(Env):
+class FrequencyResonance(Env):
     """
-    An inducible gene expression model based on regulation of a
-    transcription activator between inactive and active states.
     """
     metadata = {'render.modes': ['human']}
 
     def __init__(self, params=None):
         self.action_space = Discrete(2)
         self.observation_space = Box(
-            low=np.array([0.0, 0.0, 0.0]),
-            high=np.array([np.inf, np.inf, np.inf]),
+            low=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            high=np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]),
             dtype=np.float32)
         self.reward_range = (-np.inf, np.inf)
-        self.display = False
-        self.y = defaultdict(list)
         self.params = params
-        self.sse_fit = [1e12]
-        self.time_fit = [time.time()]
-        self.top_params = None
-        self.clock = time.time()
-        self.save_dir = os.path.join('logs', time.strftime('%Y%m%d-%H%M%S'))
-        if not os.path.exists(self.save_dir):
-            os.makedirs(self.save_dir)
 
-    def fit(self, tp, up, yp, y0=None, method='powell', method_kwargs={}):
-        self.fit_figs_dir = os.path.join(self.save_dir, 'fit_figs')
-        if not os.path.exists(self.fit_figs_dir):
-            os.makedirs(self.fit_figs_dir)
-        self.method = method
-        self.tp = tp
-        self.up = up
-        self.yp = yp
-        if y0:
-            self.y0 = y0
-        elif len(self.yp.shape) == 1:
-            self.y0 = [0.0, 0.0, self.yp[0]]
-        else:
-            self.y0 = self.yp[0]
-        params = lm.Parameters()
-        params.add('k_r', value=1, min=0, max=20)
-        params.add('k_i', value=1, min=0, max=20)
-        params.add('k_a', value=1, min=0, max=20)
-        params.add('k_b', value=1, min=0, max=20)
-        params.add('k_d', value=1, min=0, max=20)
-        params.add('a', value=1, min=0, max=20)
-        params.add('b', value=1, min=0, max=20)
-        params.add('n', value=1, min=0, max=10)
-        params.add('K', value=1, min=0, max=20)
-        self.opt_results = lm.minimize(
-            self.residual, params, method=method, iter_cb=self.progress,
-            nan_policy='propagate', **method_kwargs
-        )
-        self.close()
-        sse_path = os.path.join(self.save_dir, 'sse.csv')
-        sse_data = np.column_stack((self.time_fit, self.sse_fit))
-        np.savetxt(sse_path, sse_data, delimiter=',', header='t,sse')
-        self.params = self.opt_results.params.valuesdict()
-        os.system('cls' if os.name == 'nt' else 'clear')
-        print(lm.report_fit(self.opt_results))
-
-    def residual(self, params):
-        self.params = params
-        y = self.simulate(self.tp, self.up, self.y0)
-        self.y['I'] = np.nan_to_num(y[0])
-        self.y['A'] = np.nan_to_num(y[1])
-        self.y['P'] = np.nan_to_num(y[2])
-        if len(self.yp.shape) == 1:
-            return self.y['P'] - self.yp
-        else:
-            return y - self.yp
+    def model(self, t, y):
+        u = self.uf(t)
+        [LCBc, LCBn, NCVc, NCVn, AC, POI] = y
+        kf1 = self.params['kf1']
+        kr1 = self.params['kr1']
+        kf2 = self.params['kf2']
+        kr2 = self.params['kr2']
+        kf3 = self.params['kf3']
+        kr3 = self.params['kr3']
+        ka = self.params['ka']
+        kb = self.params['kb']
+        kc = self.params['kc']
+        n = self.params['n']
+        kd = self.params['kd']
+        dLCBc = kr1*LCBn - kf1*u*LCBc
+        dLCBn = kf1*u*LCBc - kr1*LCBn + kr3*AC
+        dNCVc = kr2*NCVn - kf2*NCVc
+        dNCVn = kf2*NCVc - kr2*NCVn + kr3*AC
+        dAC = kf3*u*(LCBn + NCVn) - kr3*AC
+        dPOI = ka + kb*(AC**n/(kc**n + AC**n)) - kd*POI
+        return [dLCBc, dLCBn, dNCVc, dNCVn, dAC, dPOI]
 
     def simulate(self, t, u, y0):
         self.uf = interp1d(t, u)
@@ -237,60 +271,168 @@ class Regulator(Env):
             t_span=[t[0], t[-1]], y0=y0, t_eval=t, method='LSODA')
         return result.y
 
-    def model(self, t, y):
-        I, A, P = y
-        k_r = self.params['k_r']
-        k_i = self.params['k_i']
-        k_a = self.params['k_a']
-        k_b = self.params['k_b']
-        k_d = self.params['k_d']
-        a = self.params['a']
-        b = self.params['b']
-        n = self.params['n']
-        K = self.params['K']
-        u = self.uf(t)
-        dIdt = k_r + k_i*A - (k_a*u + k_b + k_d)*I
-        dAdt = (k_a*u + k_b)*I - (k_i + k_d)*A
-        dPdt = b + a*(A**n/(K**n + A**n)) - k_d*P
-        return [dIdt, dAdt, dPdt]
+    def reset(self, y0, dt, n, reward_func):
+        y0 = None
+        return y0
 
-    def progress(self, params, iter, resid):
-        sse = np.sum(resid**2)
-        if sse < self.sse_fit[-1]:
-            self.sse_fit.append(sse)
-            self.time_fit.append(time.time())
-            self.top_params = self.params.valuesdict()
-            top_data = {'method': self.method, 'iter': iter, 'sse': sse,
-                'time': time.strftime('%Y%m%d-%H%M%S')}
-            for k, v in self.top_params.items():
-                top_data[k] = v
-            top_path = os.path.join(self.save_dir, 'params.json')
-            with open(top_path, 'w') as fp:
-                json.dump(top_data, fp)
-        plt.clf()
-        if len(self.yp.shape) == 1:
-            plt.plot(self.tp, self.yp)
+    def step(self, action):
+        obs = None
+        reward = None
+        done = None
+        info = None
+        return obs, reward, done, info
+
+    def seed(self, seed):
+        self.rng = np.random.RandomState()
+        self.rng.seed(seed)
+
+    def render(self, mode='human'):
+        if mode == 'human':
+            self.display = True
         else:
-            for i in range(self.yp.shape[1]):
-                plt.plot(self.tp, self.yp[:, i], label='p' + str(i))
-        plt.plot(self.tp, self.y['I'], label='I')
-        plt.plot(self.tp, self.y['A'], label='A')
-        plt.plot(self.tp, self.y['P'], label='P')
-        title = 'SSE: ' + str(np.format_float_scientific(sse, precision=3))
-        for i, (k, v) in enumerate(params.valuesdict().items()):
-            title += ' | '+ k +': ' + str(np.round(v, 3))
-            if i > 0 and i % 4 == 0:
-                title += '\n'
-        plt.title(title)
-        plt.ylabel('Output')
-        plt.xlabel('Time')
-        plt.legend(loc='best')
-        if iter % 10 == 0:
-            fig_path = os.path.join(self.fit_figs_dir, str(iter) + '.png')
-            plt.savefig(fig_path)
-        plt.pause(1e-6)
-        if time.time() - self.clock > 43200:
-            return True
+            raise ValueError
+
+    def close(self):
+        self.display = False
+        plt.close()
+
+
+class Lintad(Env):
+    """
+    An blue light inducible gene expression model based on nuclear shuttling
+    and dimerization of a transcription regulator pair.
+    """
+    metadata = {'render.modes': ['human']}
+
+    def __init__(self, params=None):
+        self.action_space = Discrete(2)
+        self.observation_space = Box(
+            low=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            high=np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]),
+            dtype=np.float32)
+        self.reward_range = (-np.inf, np.inf)
+        self.params = params
+        # self.y = defaultdict(list)
+        # self.display = False
+        # self.sse_fit = [1e12]
+        # self.time_fit = [time.time()]
+        # self.top_params = None
+        # self.clock = time.time()
+        # self.save_dir = os.path.join('logs', time.strftime('%Y%m%d-%H%M%S'))
+        # setup_dirs(self.save_dir)
+
+    def model(self, t, y):
+        u = self.uf(t)
+        [LCBc, LCBn, NCVc, NCVn, AC, POI] = y
+        kf1 = self.params['kf1']
+        kr1 = self.params['kr1']
+        kf2 = self.params['kf2']
+        kr2 = self.params['kr2']
+        kf3 = self.params['kf3']
+        kr3 = self.params['kr3']
+        ka = self.params['ka']
+        kb = self.params['kb']
+        kc = self.params['kc']
+        n = self.params['n']
+        kd = self.params['kd']
+        dLCBc = kr1*LCBn - kf1*u*LCBc
+        dLCBn = kf1*u*LCBc - kr1*LCBn + kr3*AC
+        dNCVc = kr2*NCVn - kf2*NCVc
+        dNCVn = kf2*NCVc - kr2*NCVn + kr3*AC
+        dAC = kf3*u*(LCBn + NCVn) - kr3*AC
+        dPOI = ka + kb*(AC**n/(kc**n + AC**n)) - kd*POI
+        return [dLCBc, dLCBn, dNCVc, dNCVn, dAC, dPOI]
+
+    def simulate(self, t, u, y0):
+        self.uf = interp1d(t, u)
+        result = solve_ivp(
+            fun=lambda t, y: self.model(t, y),
+            t_span=[t[0], t[-1]], y0=y0, t_eval=t, method='LSODA')
+        return result.y
+
+    # def fit(self, tp, up, yp, y0=None, method='powell', method_kwargs={}):
+    #     self.fit_figs_dir = os.path.join(self.save_dir, 'fit_figs')
+    #     setup_dirs(self.fit_figs_dir)
+    #     self.method = method
+    #     self.tp = tp
+    #     self.up = up
+    #     self.yp = yp
+    #     if y0:
+    #         self.y0 = y0
+    #     elif len(self.yp.shape) == 1:
+    #         self.y0 = [0.0, 0.0, self.yp[0]]
+    #     else:
+    #         self.y0 = self.yp[0]
+    #     params = lm.Parameters()
+    #     params.add('k_r', value=1, min=0, max=20)
+    #     params.add('k_i', value=1, min=0, max=20)
+    #     params.add('k_a', value=1, min=0, max=20)
+    #     params.add('k_b', value=1, min=0, max=20)
+    #     params.add('k_d', value=1, min=0, max=20)
+    #     params.add('a', value=1, min=0, max=20)
+    #     params.add('b', value=1, min=0, max=20)
+    #     params.add('n', value=1, min=0, max=10)
+    #     params.add('K', value=1, min=0, max=20)
+    #     self.opt_results = lm.minimize(
+    #         self.residual, params, method=method, iter_cb=self.progress,
+    #         nan_policy='propagate', **method_kwargs
+    #     )
+    #     self.close()
+    #     sse_path = os.path.join(self.save_dir, 'sse.csv')
+    #     sse_data = np.column_stack((self.time_fit, self.sse_fit))
+    #     np.savetxt(sse_path, sse_data, delimiter=',', header='t,sse')
+    #     self.params = self.opt_results.params.valuesdict()
+    #     os.system('cls' if os.name == 'nt' else 'clear')
+    #     print(lm.report_fit(self.opt_results))
+    #
+    # def residual(self, params):
+    #     self.params = params
+    #     y = self.simulate(self.tp, self.up, self.y0)
+    #     self.y['I'] = np.nan_to_num(y[0])
+    #     self.y['A'] = np.nan_to_num(y[1])
+    #     self.y['P'] = np.nan_to_num(y[2])
+    #     if len(self.yp.shape) == 1:
+    #         return self.y['P'] - self.yp
+    #     else:
+    #         return y - self.yp
+    #
+    # def progress(self, params, iter, resid):
+    #     sse = np.sum(resid**2)
+    #     if sse < self.sse_fit[-1]:
+    #         self.sse_fit.append(sse)
+    #         self.time_fit.append(time.time())
+    #         self.top_params = self.params.valuesdict()
+    #         top_data = {'method': self.method, 'iter': iter, 'sse': sse,
+    #             'time': time.strftime('%Y%m%d-%H%M%S')}
+    #         for k, v in self.top_params.items():
+    #             top_data[k] = v
+    #         top_path = os.path.join(self.save_dir, 'params.json')
+    #         with open(top_path, 'w') as fp:
+    #             json.dump(top_data, fp)
+    #     plt.clf()
+    #     if len(self.yp.shape) == 1:
+    #         plt.plot(self.tp, self.yp)
+    #     else:
+    #         for i in range(self.yp.shape[1]):
+    #             plt.plot(self.tp, self.yp[:, i], label='p' + str(i))
+    #     plt.plot(self.tp, self.y['I'], label='I')
+    #     plt.plot(self.tp, self.y['A'], label='A')
+    #     plt.plot(self.tp, self.y['P'], label='P')
+    #     title = 'SSE: ' + str(np.format_float_scientific(sse, precision=3))
+    #     for i, (k, v) in enumerate(params.valuesdict().items()):
+    #         title += ' | '+ k +': ' + str(np.round(v, 3))
+    #         if i > 0 and i % 4 == 0:
+    #             title += '\n'
+    #     plt.title(title)
+    #     plt.ylabel('Output')
+    #     plt.xlabel('Time')
+    #     plt.legend(loc='best')
+    #     if iter % 10 == 0:
+    #         fig_path = os.path.join(self.fit_figs_dir, str(iter) + '.png')
+    #         plt.savefig(fig_path)
+    #     plt.pause(1e-6)
+    #     if time.time() - self.clock > 43200:
+    #         return True
 
     def reset(self, y0, dt, n, reward_func):
         # self.n = n
@@ -337,7 +479,7 @@ class Regulator(Env):
         return obs, reward, done, info
 
     def seed(self, seed):
-        self.rng = rng = np.random.RandomState()
+        self.rng = np.random.RandomState()
         self.rng.seed(seed)
 
     def render(self, mode='human'):

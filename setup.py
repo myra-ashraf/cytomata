@@ -49,8 +49,12 @@ setuptools.setup(
     url=cytomata.__website__,
     license=cytomata.__license__,
     packages=setuptools.find_packages(exclude=['tests']),
+    dependency_links=[
+        'https://github.com/tensorpack/tensorpack/tarball/master#egg=tensorpack-0.9.0.1'
+    ],
     install_requires=[
         'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image', 'opencv-python',
-        'imageio', 'gevent', 'eel', 'tornado', 'natsort', 'lmfit', 'filterpy',
+        'gevent', 'eel', 'pyinstaller', 'tornado', 'natsort', 'lmfit', 'filterpy', 'imgaug',
+        'jupyter', 'keras', 'tensorflow-gpu'
     ]
 )
