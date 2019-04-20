@@ -37,7 +37,7 @@ custom_styles = {
 
 
 def plot(x, y=None, xlabel=None, ylabel=None, title=None, labels=None, show=False,
-    figsize=custom_styles['figure.figsize'], legend_loc='best', save_path=None):
+    figsize=custom_styles['figure.figsize'], legend_loc='best', save_path=None, ylim=None):
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, ax = plt.subplots(figsize=figsize)
         if y is not None:
@@ -53,6 +53,8 @@ def plot(x, y=None, xlabel=None, ylabel=None, title=None, labels=None, show=Fals
             ax.legend(labels=labels, loc=legend_loc)
         if title is not None:
             ax.set_title(title, loc='left')
+        if ylim is not None:
+            ax.set_ylim(ylim)
         fig.canvas.draw()
         img = np.array(fig.canvas.renderer._renderer)
         if save_path is not None:

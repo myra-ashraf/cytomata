@@ -88,6 +88,171 @@ class FRC(Env):
         plt.close()
 
 
+class TwoSystem(Env):
+    """
+    """
+    metadata = {'render.modes': ['human']}
+
+    def __init__(self, params=None):
+        self.action_space = Discrete(2)
+        self.observation_space = Box(
+            low=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            high=np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]),
+            dtype=np.float32)
+        self.reward_range = (-np.inf, np.inf)
+        self.params = params
+
+    def model(self, t, y):
+        u = self.uf(t)
+        [Ni, Na, P1i, P1a, P2i, P2a, T1, R1, T2] = y
+        kNa = self.params['kNa']
+        kNi = self.params['kNi']
+        kP1a = self.params['kP1a']
+        kP1i = self.params['kP1i']
+        kP2a = self.params['kP2a']
+        kP2i = self.params['kP2i']
+        kT1f = self.params['kT1f']
+        kT1r = self.params['kT1r']
+        kR1f = self.params['kR1f']
+        kR1r = self.params['kR1r']
+        kT1a = self.params['kT1a']
+        kT1b = self.params['kT1b']
+        n1 = self.params['n1']
+        kd1 = self.params['kd1']
+        kR1a = self.params['kR1a']
+        kR1b = self.params['kR1b']
+        n2 = self.params['n2']
+        dNi = kNi*Na - kNa*u*Ni
+        dNa = kNa*u*Ni - kNi*Na + kT1r*T1 + kR1r*R1 - kT1f*Na*P1a - kR1f*Na*P2a
+        dP1i = kP1i*P1a - kP1a*u*P1i
+        dP1a = kP1a*u*P1i - kP1i*P1a + kT1r*T1 - kT1f*Na*P1a
+        dP2i = kP2i*P2a - kP2a*u*P2i
+        dP2a = kP2a*u*P2i - kP2i*P2a + kR1r*R1 - kR1f*Na*P2a
+        dT1 = kT1f*Na*P1a - kT1r*T1
+        dR1 = kR1f*Na*P2a - kR1r*R1
+        dT2 = (kT1a*T1**n1)/(kT1b**n1 + T1**n1) - (kR1a*R1**n2)/(kR1b**n2 + R1**n2)
+        return [dNi, dNa, dP1i, dP1a, dP2i, dP2a, dT1, dR1, dT2]
+
+    def simulate(self, t, u, y0):
+        self.uf = interp1d(t, u)
+        result = solve_ivp(
+            fun=lambda t, y: self.model(t, y),
+            t_span=[t[0], t[-1]], y0=y0, t_eval=t, method='RK45')
+        return result.y
+
+    def reset(self, y0, dt, n, reward_func):
+        y0 = None
+        return y0
+
+    def step(self, action):
+        obs = None
+        reward = None
+        done = None
+        info = None
+        return obs, reward, done, info
+
+    def seed(self, seed):
+        self.rng = np.random.RandomState()
+        self.rng.seed(seed)
+
+    def render(self, mode='human'):
+        if mode == 'human':
+            self.display = True
+        else:
+            raise ValueError
+
+    def close(self):
+        self.display = False
+        plt.close()
+
+
+class ThreeSystem(Env):
+    """
+    """
+    metadata = {'render.modes': ['human']}
+
+    def __init__(self, params=None):
+        self.action_space = Discrete(2)
+        self.observation_space = Box(
+            low=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            high=np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]),
+            dtype=np.float32)
+        self.reward_range = (-np.inf, np.inf)
+        self.params = params
+
+    def model(self, t, y):
+        u = self.uf(t)
+        [Ni, Na, P1i, P1a, P2i, P2a, P3i, P3a, T1, R1, R2, T2] = y
+        kNa = self.params['kNa']
+        kNi = self.params['kNi']
+        kP1a = self.params['kP1a']
+        kP1i = self.params['kP1i']
+        kP2a = self.params['kP2a']
+        kP2i = self.params['kP2i']
+        kP3a = self.params['kP3a']
+        kP3i = self.params['kP3i']
+        kT1f = self.params['kT1f']
+        kT1r = self.params['kT1r']
+        kR1f = self.params['kR1f']
+        kR1r = self.params['kR1r']
+        kR2f = self.params['kR2f']
+        kR2r = self.params['kR2r']
+        kT1a = self.params['kT1a']
+        kT1b = self.params['kT1b']
+        n1 = self.params['n1']
+        kR1a = self.params['kR1a']
+        kR1b = self.params['kR1b']
+        n2 = self.params['n2']
+        kR2a = self.params['kR2a']
+        kR2b = self.params['kR2b']
+        n3 = self.params['n3']
+        dNi = kNi*Na - kNa*u*Ni
+        dNa = kNa*u*Ni - kNi*Na + kT1r*T1 + kR1r*R1 + kR2r*R2 - kT1f*Na*P1a - kR1f*Na*P2a - kR2f*Na*P3a
+        dP1i = kP1i*P1a - kP1a*u*P1i
+        dP1a = kP1a*u*P1i - kP1i*P1a + kT1r*T1 - kT1f*Na*P1a
+        dP2i = kP2i*P2a - kP2a*u*P2i
+        dP2a = kP2a*u*P2i - kP2i*P2a + kR1r*R1 - kR1f*Na*P2a
+        dP3i = kP3i*P3a - kP3a*u*P3i
+        dP3a = kP3a*u*P3i - kP3i*P3a + kR2r*R2 - kR2f*Na*P3a
+        dT1 = kT1f*Na*P1a - kT1r*T1
+        dR1 = kR1f*Na*P2a - kR1r*R1
+        dR2 = kR2f*Na*P3a - kR2r*R2
+        dT2 = (kT1a*T1**n1)/(kT1b**n1 + T1**n1) - kR1a/(1 + (R1/kR1b)**n2) - kR2a/(1 + (R2/kR2b)**n3)
+        return [dNi, dNa, dP1i, dP1a, dP2i, dP2a, dP3i, dP3a, dT1, dR1, dR2, dT2]
+
+    def simulate(self, t, u, y0):
+        self.uf = interp1d(t, u)
+        result = solve_ivp(
+            fun=lambda t, y: self.model(t, y),
+            t_span=[t[0], t[-1]], y0=y0, t_eval=t, method='LSODA')
+        return result.y
+
+    def reset(self, y0, dt, n, reward_func):
+        y0 = None
+        return y0
+
+    def step(self, action):
+        obs = None
+        reward = None
+        done = None
+        info = None
+        return obs, reward, done, info
+
+    def seed(self, seed):
+        self.rng = np.random.RandomState()
+        self.rng.seed(seed)
+
+    def render(self, mode='human'):
+        if mode == 'human':
+            self.display = True
+        else:
+            raise ValueError
+
+    def close(self):
+        self.display = False
+        plt.close()
+
+
 class FOPDT(Env):
     """
     First Order Plus Dead Time Approximation.
