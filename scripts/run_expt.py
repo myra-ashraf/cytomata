@@ -10,59 +10,52 @@ from cytomata.utils.io import setup_dirs
 
 if __name__ == '__main__':
     # Expt Parameters
-    params = {
-        'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
-        'desc': 'ND8-exposure200-gain1',
-        'mag': 1,
-        't_start': 0,
-        't_stop': 86400,
-        't_img_period': 300,
-        'chs_img': ['DIC', 'GFP'],
-        'ch_af': 'DIC',
-        'algo_af': 'brent',
-        'bounds_af': [-3.0, 3.0],
-        'max_iter_af': 5,
-        't_exc_on': 0,
-        't_exc_off': 21600,
-        't_exc_width': 1,
-        't_exc_period': 30,
-        'ch_dark': 'None',
-        'ch_exc': 'Induction-460nm'
+    info = {
+    'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
+    'ND_filter': 4,
+    'exposure': 200,
+    'gain': 1,
+    'mag': 100
+    }
+    tasks = {
+        'induction': {
+            'func': 'pulse_light',
+            't_starts': [0, 901, 1803, 2706, 3611, 4522, 5432, 6353, 7287, 8242],
+            't_stops': [1, 903, 1806, 2711, 3619, 4535, 5453, 6387, 7342, 8331],
+            't_steps': [1, 2, 3, 5, 8, 13, 21, 34, 55, 89],
+            'kwargs': {
+                't_widths': [1, 2, 3, 5, 8, 13, 21, 34, 55, 89],
+                'ch_dark': 'None',
+                'ch_ind': 'Blue-Light'
+            }
+        },
+        'imaging': {
+            'func': 'image_coords',
+            't_starts': [1, 903, 1806, 2711, 3619, 4532, 5453, 6387, 7342, 8331],
+            't_stops': [301, 1203, 2106, 3011, 3919, 4832, 5753, 6687, 7642, 8631],
+            't_steps': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            'kwargs': {
+                'chs': ['DIC', 'GFP']
+            }
+        },
+        'autofocus': {
+            'func': 'autofocus',
+            't_starts': [1, 903, 1806, 2711, 3619, 4532, 5453, 6387, 7342, 8331],
+            't_stops': [301, 1203, 2106, 3011, 3919, 4832, 5753, 6687, 7642, 8631],
+            't_steps': [300, 300, 300, 300, 300, 300, 300, 300, 300, 300],
+            'kwargs': {
+                'ch': 'DIC',
+                'algo': 'brent',
+                'bounds': [-2.0, 2.0],
+                'max_iter': 5
+            }
+        }
     }
 
-    # Record Parameters
-    setup_dirs(params['save_dir'])
-    with open(os.path.join(params['save_dir'], 'params.json'), 'w') as fp:
-        json.dump(params, fp)
-
-    # Schedule Tasks
-    mscope = Microscope(save_dir=params['save_dir'], mag=params['mag'])
-    mscope.add_task(
-        mscope.image_coords,
-        tstart=params['t_start'],
-        tstop=params['t_stop'],
-        tstep=params['t_img_period'],
-        chs_img=params['chs_img'],
-        ch_af=params['ch_af'],
-        algo_af=params['algo_af'],
-        bounds_af=params['bounds_af'],
-        max_iter_af=params['max_iter_af']
-        )
-    mscope.add_task(
-        mscope.pulse_light,
-        tstart=params['t_start'],
-        tstop=params['t_stop'],
-        tstep=params['t_exc_period'],
-        t_exc_on=params['t_exc_on'],
-        t_exc_off=params['t_exc_off'],
-        t_exc_width=params['t_exc_width'],
-        t_exc_period=params['t_exc_period'],
-        ch_dark=params['ch_dark'],
-        ch_exc=params['ch_exc']
-    )
+    # Init
+    mscope = Microscope(info=info, tasks=tasks)
     # Event Loop
     while True:
         done = mscope.run_tasks()
         if done:
             break
-        time.sleep(0.1)
