@@ -20,10 +20,10 @@ class Microscope(object):
     """
     Microscope task automation and data recording.
     """
-    def __init__(self, info, tasks, config_file=os.path.join(dir_path, 'mm.cfg')):
+    def __init__(self, save_dir, tasks, config_file=os.path.join(dir_path, 'mm.cfg')):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
-        self.save_dir = info['save_dir']
+        self.save_dir = save_dir
         self.tasks = tasks
         self.events = []
         self.funcs = {
@@ -35,8 +35,7 @@ class Microscope(object):
         self.xx = defaultdict(list)
         self.xy = defaultdict(list)
         self.xz = defaultdict(list)
-        self.u1 = defaultdict(list)
-        self.u2 = defaultdict(list)
+        self.ut = defaultdict(list)
         self.av = defaultdict(list)
         self.az = defaultdict(list)
         self.coords = np.array([[
@@ -44,9 +43,6 @@ class Microscope(object):
             self.get_position('y'),
             self.get_position('z')
         ]])
-        setup_dirs(self.save_dir)
-        with open(os.path.join(self.save_dir, 'params.json'), 'w') as fp:
-            json.dump({**info, **tasks}, fp)
         if 'imaging' in self.tasks:
             for ch in self.tasks['imaging']['chs']:
                 for i in range(len(self.coords)):
@@ -113,9 +109,9 @@ class Microscope(object):
         return pos, foc
 
     def sample_focus_stack(self, bounds=[-3.0, 3.0], num=7):
-        z0 = self.xz[0][0]
+        z0 = self.coords[0, 2]
         zi = self.get_position('z')
-        zl = np.max([zi + bounds[0], z0 - 50.0])
+        zl = np.max([zi + bounds[0], z0 - 10.0])
         zu = np.min([zi + bounds[1], z0 + 50.0])
         positions = list(np.linspace(zl, zu, num))
         focuses = []
@@ -167,11 +163,9 @@ class Microscope(object):
             time.sleep(width)
             t2 = time.time() - self.t0
             self.set_channel(ch_dark)
-            self.u1[i].append(t1)
-            self.u2[i].append(t2)
+            self.ut += [t1, t2]
         u_path = os.path.join(self.save_dir, 'u' + str(i) + '.csv')
-        u_data = np.column_stack((self.u1[i], self.u2[i]))
-        np.savetxt(u_path, u_data, delimiter=',', header='u_t1,u_t2', comments='')
+        np.savetxt(u_path, self.ut, delimiter=',', header='ut', comments='')
 
     def image_coords(self, chs):
         for i, (x, y, z) in enumerate(self.coords):
@@ -195,7 +189,7 @@ class Microscope(object):
 
     def autofocus(self, ch='DIC', algo='brent', bounds=[-3.0, 3.0], max_iter=5):
         self.set_channel(ch)
-        z0 = self.xz[0][0]
+        z0 = self.coords[0, 2]
         if algo == 'grid':  # Grid Search
             positions, focuses = self.sample_focus_stack(bounds=bounds, num=max_iter)
             best_foc = max(focuses)
@@ -208,7 +202,7 @@ class Microscope(object):
                 print('f: ' + str(foc))
                 return -foc
             zi = self.get_position('z')
-            zl = np.max([zi + bounds[0], z0 - 50.0])
+            zl = np.max([zi + bounds[0], z0 - 10.0])
             zu = np.min([zi + bounds[1], z0 + 50.0])
             print('--autofocus--')
             result = minimize_scalar(residual, method='bounded',

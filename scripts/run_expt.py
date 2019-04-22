@@ -52,6 +52,10 @@ if __name__ == '__main__':
         }
     }
 
+    setup_dirs(info['save_dir'])
+    with open(os.path.join(info['save_dir'], 'params.json'), 'w') as fp:
+        json.dump({**info, **tasks}, fp)
+
     # Init
     mscope = Microscope(info=info, tasks=tasks)
     # Event Loop
@@ -59,3 +63,5 @@ if __name__ == '__main__':
         done = mscope.run_tasks()
         if done:
             break
+        else:
+            time.sleep(0.1)
