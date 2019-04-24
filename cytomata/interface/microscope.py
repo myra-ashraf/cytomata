@@ -36,15 +36,15 @@ class Microscope(object):
         self.xy = defaultdict(list)
         self.xz = defaultdict(list)
         self.ut = defaultdict(list)
-        self.av = defaultdict(list)
-        self.az = defaultdict(list)
+        self.av = []
+        self.az = []
         self.coords = np.array([[
             self.get_position('x'),
             self.get_position('y'),
             self.get_position('z')
         ]])
         if 'imaging' in self.tasks:
-            for ch in self.tasks['imaging']['chs']:
+            for ch in self.tasks['imaging']['kwargs']['chs']:
                 for i in range(len(self.coords)):
                     setup_dirs(os.path.join(self.save_dir, ch, str(i)))
         self.t0 = time.time()
@@ -163,9 +163,9 @@ class Microscope(object):
             time.sleep(width)
             t2 = time.time() - self.t0
             self.set_channel(ch_dark)
-            self.ut += [t1, t2]
-        u_path = os.path.join(self.save_dir, 'u' + str(i) + '.csv')
-        np.savetxt(u_path, self.ut, delimiter=',', header='ut', comments='')
+            self.ut[i] += [t1, t2]
+            u_path = os.path.join(self.save_dir, 'u' + str(i) + '.csv')
+            np.savetxt(u_path, self.ut[i], delimiter=',', header='ut', comments='')
 
     def image_coords(self, chs):
         for i, (x, y, z) in enumerate(self.coords):
@@ -212,8 +212,8 @@ class Microscope(object):
             best_pos = z0
             best_foc = 0.0
         self.coords[:, 2] += (best_pos - self.coords[0, 2])
-        self.az[i].append(best_pos)
-        self.av[i].append(best_foc)
-        a_path = os.path.join(self.save_dir, 'a' + str(i) + '.csv')
-        a_data = np.column_stack((self.az[i], self.av[i]))
-        np.savetxt(x_path, x_data, delimiter=',', header='af_z, af_v', comments='')
+        self.az.append(best_pos)
+        self.av.append(best_foc)
+        a_path = os.path.join(self.save_dir, 'a.csv')
+        a_data = np.column_stack((self.az, self.av))
+        np.savetxt(a_path, a_data, delimiter=',', header='af_z, af_v', comments='')

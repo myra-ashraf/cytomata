@@ -24,7 +24,7 @@ if __name__ == '__main__':
             't_stops': [1, 903, 1806, 2711, 3619, 4535, 5453, 6387, 7342, 8331],
             't_steps': [1, 2, 3, 5, 8, 13, 21, 34, 55, 89],
             'kwargs': {
-                't_widths': [1, 2, 3, 5, 8, 13, 21, 34, 55, 89],
+                'width': [1, 2, 3, 5, 8, 13, 21, 34, 55, 89],
                 'ch_dark': 'None',
                 'ch_ind': 'Blue-Light'
             }
@@ -57,10 +57,10 @@ if __name__ == '__main__':
         json.dump({**info, **tasks}, fp)
 
     # Init
-    mscope = Microscope(info=info, tasks=tasks)
+    mscope = Microscope(save_dir=info['save_dir'], tasks=tasks)
     # Event Loop
     while True:
-        done = mscope.run_tasks()
+        done = mscope.run_events()
         if done:
             break
         else:
