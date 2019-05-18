@@ -53,8 +53,8 @@ setuptools.setup(
         'https://github.com/tensorpack/tensorpack/tarball/master#egg=tensorpack-0.9.0.1'
     ],
     install_requires=[
-        'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image', 'opencv-python',
-        'gevent', 'eel', 'pyinstaller', 'tornado', 'natsort', 'lmfit', 'filterpy', 'imgaug',
-        'jupyter', 'keras', 'tensorflow-gpu'
+        'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image','jupyter', 'keras',
+        'tensorflow-gpu', 'opencv-python', 'gevent', 'eel', 'pyinstaller', 'tornado', 'natsort',
+        'lmfit', 'filterpy', 'imgaug'
     ]
 )

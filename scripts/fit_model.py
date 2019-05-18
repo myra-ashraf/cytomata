@@ -16,7 +16,7 @@ from scipy.interpolate import interp1d
 from sklearn.model_selection import ParameterGrid
 
 
-from cytomata.process.model import FRC, TwoSystem, ThreeSystem
+from cytomata.process.model import sim_FRC
 from cytomata.utils.visual import imshow, plot, custom_styles, custom_palette
 from cytomata.utils.io import setup_dirs
 
@@ -39,6 +39,95 @@ def rescale(vals):
 
 def standardize(vals):
     return (vals - np.mean(vals)) / np.std(vals)
+
+
+def frc_response(width=1, period=10):
+    """"""
+    t = np.linspace(0.0, 300, 300)
+    u = wp_to_input(t, width, period)
+    # [N, P1, P2, M1, M2, G1, I1, G2, I2] = y
+    y0 = [1000.0, 1000.0, 1000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    params = {
+        'kM1f': 1.0,
+        'kM1r': 0.01,
+        'kM2f': 1.0,
+        'kM2r': 0.1,
+        'kGa': 1.0,
+        'kGb': 100.0,
+        'n1': 4.0,
+        'kIa': 2.0,
+        'kIb': 50.0,
+        'n2': 4.0,
+    }
+    y = sim_FRC(t, y0, u, params)
+    N = np.transpose(y[0])
+    P1 = np.transpose(y[1])
+    P2 = np.transpose(y[2])
+    M1 = np.transpose(y[3])
+    M2 = np.transpose(y[4])
+    G1 = np.transpose(y[5])
+    I1 = np.transpose(y[6])
+    G2 = np.transpose(y[7])
+    I2 = np.transpose(y[8])
+    return t, N, P1, P2, M1, M2, G1, I1, G2, I2
+
+
+t, N, P1, P2, M1, M2, G1, I1, G2, I2 = frc_response(width=1, period=5)
+plot(t, np.column_stack((M1, M2, G1, G2)), xlabel='Time (sec)', ylabel='Amount',
+    title='N=1, P1=1, P2=1 | W=1s | P=5s', show=True, legend_loc='upper right',
+    labels=['Magnet1', 'Magnet2', 'Gene1', 'Gene2'])
+
+# for w in range(1, 61):
+#     t, P1a, P2a, T1, R1, T2 = frc_response(params, width=1, period=w)
+#     plot(t, np.column_stack((P1a, P2a, T1, R1, T2)), xlabel='Time (sec)', ylabel='Amount',
+#         title='Pulsatile Input: Width=1sec, Period={0}sec'.format(w), show=False,
+#         save_path='frc_demo/{0}.png'.format(w), legend_loc='upper right', ylim=(0, 1000),
+#         labels=['pMag1', 'pMag2', 'Activator', 'Repressor', 'Product'])
+#     print(w)
+
+
+# def frc_response(params, width=1, period=5):
+#     """"""
+#     t = np.linspace(0.0, 300, 300)
+#     u = wp_to_input(t, width, period)
+#     model = TwoSystem(params=params)
+#     # [Ni, Na, P1i, P1a, P2i, P2a, T1, R1, T2, G] = y
+#     y0 = [1000.0, 0.0, 1000.0, 0.0, 1000.0, 0.0, 0.0, 0.0, 0.0]
+#     y = model.simulate(t, u, y0)
+#     P1a = np.transpose(y[3])
+#     P2a = np.transpose(y[5])
+#     T1 = np.transpose(y[6])
+#     R1 = np.transpose(y[7])
+#     T2 = np.transpose(y[8])
+#     return t, P1a, P2a, T1, R1, T2
+#
+# params = {
+#     'kNa': 1.0,
+#     'kNi': 0.01,
+#     'kP1a': 1.0,
+#     'kP1i': 0.05,
+#     'kP2a': 1.0,
+#     'kP2i': 2.0,
+#     'kT1f': 0.01,
+#     'kT1r': 0.01,
+#     'kR1f': 0.2,
+#     'kR1r': 0.05,
+#     'kT1a': 1.0,
+#     'kT1b': 100.0,
+#     'n1': 4.0,
+#     'kd1': 0.01,
+#     'kR1a': 1.0,
+#     'kR1b': 300.0,
+#     'n2': 4.0,
+# }
+#
+# for w in range(1, 61):
+#     t, P1a, P2a, T1, R1, T2 = frc_response(params, width=1, period=w)
+#     plot(t, np.column_stack((P1a, P2a, T1, R1, T2)), xlabel='Time (sec)', ylabel='Amount',
+#         title='Pulsatile Input: Width=1sec, Period={0}sec'.format(w), show=False,
+#         save_path='frc_demo/{0}.png'.format(w), legend_loc='upper right', ylim=(0, 1000),
+#         labels=['pMag1', 'pMag2', 'Activator', 'Repressor', 'Product'])
+#     print(w)
 
 
 # def frc_response(params, width=1, period=5):
@@ -93,48 +182,6 @@ def standardize(vals):
 #     print(w)
 
 
-def frc_response(params, width=1, period=5):
-    """"""
-    t = np.linspace(0.0, 300, 300)
-    u = wp_to_input(t, width, period)
-    model = TwoSystem(params=params)
-    # [Ni, Na, P1i, P1a, P2i, P2a, T1, R1, T2, G] = y
-    y0 = [1000.0, 0.0, 1000.0, 0.0, 1000.0, 0.0, 0.0, 0.0, 0.0]
-    y = model.simulate(t, u, y0)
-    P1a = np.transpose(y[3])
-    P2a = np.transpose(y[5])
-    T1 = np.transpose(y[6])
-    R1 = np.transpose(y[7])
-    T2 = np.transpose(y[8])
-    return t, P1a, P2a, T1, R1, T2
-
-params = {
-    'kNa': 1.0,
-    'kNi': 0.01,
-    'kP1a': 1.0,
-    'kP1i': 0.05,
-    'kP2a': 1.0,
-    'kP2i': 2.0,
-    'kT1f': 0.01,
-    'kT1r': 0.01,
-    'kR1f': 0.2,
-    'kR1r': 0.05,
-    'kT1a': 1.0,
-    'kT1b': 100.0,
-    'n1': 4.0,
-    'kd1': 0.01,
-    'kR1a': 1.0,
-    'kR1b': 300.0,
-    'n2': 4.0,
-}
-
-for w in range(1, 61):
-    t, P1a, P2a, T1, R1, T2 = frc_response(params, width=1, period=w)
-    plot(t, np.column_stack((P1a, P2a, T1, R1, T2)), xlabel='Time (sec)', ylabel='Amount',
-        title='Pulsatile Input: Width=1sec, Period={0}sec'.format(w), show=False,
-        save_path='frc_demo/{0}.png'.format(w), legend_loc='upper right', ylim=(0, 1000),
-        labels=['pMag1', 'pMag2', 'Activator', 'Repressor', 'Product'])
-    print(w)
 
 # def frc_response(params):
 #     """"""

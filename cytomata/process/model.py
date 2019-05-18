@@ -18,74 +18,38 @@ from cytomata.utils.io import setup_dirs
 from cytomata.utils.gym import Env, Box, Discrete
 
 
-class FRC(Env):
-    """
-    """
-    metadata = {'render.modes': ['human']}
+def model_FRC(t, y, uf, params):
+    u = uf(t)
+    [N, P1, P2, M1, M2, G1, I1, G2, I2] = y
+    kM1f = params['kM1f']
+    kM1r = params['kM1r']
+    kM2f = params['kM2f']
+    kM2r = params['kM2r']
+    kGa = params['kGa']
+    kGb = params['kGb']
+    n1 = params['n1']
+    kIa = params['kIa']
+    kIb = params['kIb']
+    n2 = params['n2']
+    dN = kM1r*M1 + kM2r*M2 - u*kM1f*N*P1 - u*kM2f*N*P2
+    dP1 = kM1r*M1 - u*kM1f*N*P1
+    dP2 = kM2r*M2 - u*kM2f*N*P2
+    dM1 = u*kM1f*N*P1 - kM1r*M1
+    dM2 = u*kM2f*N*P2 - kM2r*M2
+    dG1 = (kGa*M1**n1)/(kGb**n1 + M1**n1) * kIa/(1 + (I2/kIb)**n2)
+    dI1 = dG1
+    dG2 = (kGa*M2**n1)/(kGb**n1 + M2**n1) * kIa/(1 + (I1/kIb)**n2)
+    dI2 = dG2
+    return [dN, dP1, dP2, dM1, dM2, dG1, dI1, dG2, dI2]
 
-    def __init__(self, params=None):
-        self.action_space = Discrete(2)
-        self.observation_space = Box(
-            low=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
-            high=np.array([np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf, np.inf]),
-            dtype=np.float32)
-        self.reward_range = (-np.inf, np.inf)
-        self.params = params
 
-    def model(self, t, y):
-        u = self.uf(t)
-        [Ni, Na, P1i, P1a, P2i, P2a, M1, M2] = y
-        kNa = self.params['kNa']
-        kNi = self.params['kNi']
-        kP1a = self.params['kP1a']
-        kP1i = self.params['kP1i']
-        kP2a = self.params['kP2a']
-        kP2i = self.params['kP2i']
-        kM1f = self.params['kM1f']
-        kM1r = self.params['kM1r']
-        kM2f = self.params['kM2f']
-        kM2r = self.params['kM2r']
-        dNi = kNi*Na - kNa*u*Ni
-        dNa = kNa*u*Ni - kNi*Na + kM1r*M1 + kM2r*M2 - kM1f*Na*P1a - kM2f*Na*P2a
-        dP1i = kP1i*P1a - kP1a*u*P1i
-        dP1a = kP1a*u*P1i - kP1i*P1a + kM1r*M1 - kM1f*Na*P1a
-        dP2i = kP2i*P2a - kP2a*u*P2i
-        dP2a = kP2a*u*P2i - kP2i*P2a + kM2r*M2 - kM2f*Na*P2a
-        dM1 = kM1f*Na*P1a - kM1r*M1
-        dM2 = kM2f*Na*P2a - kM2r*M2
-        return [dNi, dNa, dP1i, dP1a, dP2i, dP2a, dM1, dM2]
-
-    def simulate(self, t, u, y0):
-        self.uf = interp1d(t, u)
-        result = solve_ivp(
-            fun=lambda t, y: self.model(t, y),
-            t_span=[t[0], t[-1]], y0=y0, t_eval=t, method='LSODA')
-        return result.y
-
-    def reset(self, y0, dt, n, reward_func):
-        y0 = None
-        return y0
-
-    def step(self, action):
-        obs = None
-        reward = None
-        done = None
-        info = None
-        return obs, reward, done, info
-
-    def seed(self, seed):
-        self.rng = np.random.RandomState()
-        self.rng.seed(seed)
-
-    def render(self, mode='human'):
-        if mode == 'human':
-            self.display = True
-        else:
-            raise ValueError
-
-    def close(self):
-        self.display = False
-        plt.close()
+def sim_FRC(t, y0, u, params):
+    uf = interp1d(t, u)
+    result = solve_ivp(
+        fun=lambda t, y: model_FRC(t, y, uf, params),
+        t_span=[t[0], t[-1]], y0=y0, t_eval=t,
+        method='RK45', atol=1e-9, rtol=1e-6)
+    return result.y
 
 
 class TwoSystem(Env):
