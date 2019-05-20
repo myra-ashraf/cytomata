@@ -1,6 +1,7 @@
 .directory
 __pycache__/
 .cache/
+*.ipynb_checkpoints
 .pytest_cache/
 *.pyc
 scripts/data/

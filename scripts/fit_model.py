@@ -16,7 +16,7 @@ from scipy.interpolate import interp1d
 from sklearn.model_selection import ParameterGrid
 
 
-from cytomata.process.model import sim_FRC
+from cytomata.model.ode import sim_FRC
 from cytomata.utils.visual import imshow, plot, custom_styles, custom_palette
 from cytomata.utils.io import setup_dirs
 
