@@ -124,6 +124,8 @@ class Microscope(object):
 
     def queue_event(self, func, tstart, tstop, tstep, kwargs):
         times = deque(np.arange(tstart + self.t0, tstop + self.t0, tstep))
+        print(func)
+        print(times)
         self.events.append({'func': func, 'times': times, 'kwargs': kwargs})
 
     def queue_init_events(self):
