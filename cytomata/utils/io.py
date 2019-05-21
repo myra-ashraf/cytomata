@@ -1,7 +1,5 @@
 import os
-import shutil
 import imghdr
-import warnings
 
 from natsort import natsorted
 
