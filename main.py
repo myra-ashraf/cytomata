@@ -59,12 +59,12 @@ def process_imgs(img_dir, out_dir, proto, params):
     if proto == '0':
         run_frame_ave_analysis(img_dir=img_dir, save_dir=out_dir,
             block=int(params['thres_block']), offset=float(params['sub_offset']),
-            denoise=params['denoise'], stylize=params['stylize'], iter_cb=iter_cb, overwrite=True)
+            denoise=params['denoise'], iter_cb=iter_cb, overwrite=True)
     elif proto == '1':
         run_single_cell_analysis(img_dir, save_dir=out_dir, block=int(params['thres_block']),
             offset=float(params['sub_offset']), min_peaks_dist=int(params['det_sens']),
             min_traj_len=int(params['traj_len']), denoise=params['denoise'],
-            stylize=params['stylize'], iter_cb=iter_cb, overwrite=True)
+            iter_cb=iter_cb, overwrite=True)
 
 
 if __name__ == '__main__':

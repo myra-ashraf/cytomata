@@ -49,7 +49,7 @@ setuptools.setup(
     license=cytomata.__license__,
     packages=setuptools.find_packages(exclude=['tests']),
     dependency_links=[
-        'https://github.com/tensorpack/tensorpack/tarball/master#egg=tensorpack-0.9.0.1'
+        'https://github.com/tensorpack/tensorpack/tarball/master#egg=tensorpack-0.9.4'
     ],
     install_requires=[
         'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image','jupyter', 'keras',

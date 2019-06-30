@@ -11,9 +11,10 @@ from cytomata.utils.io import setup_dirs
 
 
 custom_palette = [
-    '#1E88E5', '#43A047', '#e53935',
-    '#5E35B1', '#FFB300', '#00ACC1',
-    '#3949AB', '#F4511E', '#D81B60']
+    '#1976D2', '#D32F2F', '#388E3C',
+    '#7B1FA2', '#C2185B', '#FBC02D',
+    '#F57C00', '#303F9F', '#0097A7',
+    '#5D4037', '#455A64', '#AFB42B']
 custom_styles = {
     'image.cmap': 'viridis',
     'figure.figsize': (12, 8),
@@ -36,8 +37,8 @@ custom_styles = {
 }
 
 
-def plot(x, y=None, xlabel=None, ylabel=None, title=None, labels=None, show=False,
-    figsize=custom_styles['figure.figsize'], legend_loc='best', save_path=None, ylim=None):
+def plot(x, y=None, xlabel=None, ylabel=None, title=None, labels=None, ylim=None, xlim=None,
+    figsize=custom_styles['figure.figsize'], legend_loc='best', show=False, save_path=None, dpi=100):
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, ax = plt.subplots(figsize=figsize)
         if y is not None:
@@ -48,24 +49,26 @@ def plot(x, y=None, xlabel=None, ylabel=None, title=None, labels=None, show=Fals
             ax.set_xlabel(xlabel)
         if ylabel is not None:
             ax.set_ylabel(ylabel)
+        if title is not None:
+            ax.set_title(title, loc='left')
         if labels is not None:
             labels = [labels] if type(labels) is str else labels
             ax.legend(labels=labels, loc=legend_loc)
-        if title is not None:
-            ax.set_title(title, loc='left')
+        if xlim is not None:
+            ax.set_ylim(xlim)
         if ylim is not None:
             ax.set_ylim(ylim)
         fig.canvas.draw()
         img = np.array(fig.canvas.renderer._renderer)
         if save_path is not None:
-            fig.savefig(save_path, dpi=100, bbox_inches='tight')
+            fig.savefig(save_path, dpi=dpi, bbox_inches='tight')
         if show:
             plt.show()
         plt.close(fig)
         return img
 
 
-def imshow(img, title=None, axes=False, colorbar=True, show=False, save_path=None):
+def imshow(img, title=None, axes=False, colorbar=True, show=False, save_path=None, dpi=100):
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, ax = plt.subplots()
         axim = ax.imshow(img)
@@ -80,7 +83,7 @@ def imshow(img, title=None, axes=False, colorbar=True, show=False, save_path=Non
         fig.canvas.draw()
         img = np.array(fig.canvas.renderer._renderer)
         if save_path is not None:
-            fig.savefig(save_path, dpi=100, bbox_inches='tight')
+            fig.savefig(save_path, dpi=dpi, bbox_inches='tight')
         if show:
             plt.show()
         plt.close(fig)

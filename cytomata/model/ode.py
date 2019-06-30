@@ -42,36 +42,60 @@ def sim_FRC(t, y0, u, params):
     result = solve_ivp(
         fun=lambda t, y: model_FRC(t, y, uf, params),
         t_span=[t[0], t[-1]], y0=y0, t_eval=t,
-        method='RK45', atol=1e-9, rtol=1e-6)
+        method='LSODA', rtol=1e-8, atol=1e-8)
     return result.y
 
 
 def sim_LINTAD(t, y0, u, params):
     def model_LINTAD(t, y, uf, params):
         u = uf(t)
-        [LCBc, LCBn, NCVn, AC, POI] = y
-        kf1 = params['kf1']
-        kr1 = params['kr1']
-        kf2 = params['kf2']
-        kr2 = params['kr2']
-        kf3 = params['kf3']
-        kr3 = params['kr3']
+        [LCBc, LCBn, NCV, AC, POI] = y
+        k1f = params['k1f']
+        k1r = params['k1r']
+        k2f = params['k2f']
+        k2r = params['k2r']
         ka = params['ka']
         kb = params['kb']
         kc = params['kc']
         n = params['n']
-        kd = params['kd']
         dLCBc = k1r*LCBn - u*k1f*LCBc
-        dLCBn = u*k1f*LCBc + k2r*AC - k1r*LCBn - u*k2f*LCBn*NCVn
-        dNCVn = k2r*AC - u*k2f*LCBn*NCVn
-        dAC = u*k2f*LCBn*NCVn - k2r*AC
-        dPOI = ka + kb*(AC**n/(kc**n + AC**n)) - kd*POI
-        return [dLCBc, dLCBn, dNCVn, dAC, dPOI]
+        dLCBn = u*k1f*LCBc + k2r*AC - k1r*LCBn - u*k2f*LCBn*NCV
+        dNCV = k2r*AC - u*k2f*LCBn*NCV
+        dAC = u*k2f*LCBn*NCV - k2r*AC
+        dPOI = (ka*AC**n)/(kb**n + AC**n) - kc*POI
+        return [dLCBc, dLCBn, dNCV, dAC, dPOI]
     uf = interp1d(t, u)
     result = solve_ivp(
         fun=lambda t, y: model_LINTAD(t, y, uf, params),
         t_span=[t[0], t[-1]], y0=y0, t_eval=t,
-        method='RK45', atol=1e-9, rtol=1e-6)
+        method='LSODA', rtol=1e-8, atol=1e-8)
+    print('Num Func Evals: ' + str(result.nfev))
+    return result.y
+
+
+def sim_I1FFL(t, y0, u, params):
+    def model_I1FFL(t, y, uf, params):
+        u = uf(t)
+        [Xi, Xa, Y, Z] = y
+        kXf = params['kXf']
+        kXr = params['kXr']
+        kAa = params['kAa']
+        kAb = params['kAb']
+        kIa = params['kIa']
+        kIb = params['kIb']
+        kc = params['kc']
+        n = params['n']
+        dXi = kXr*Xa - u*kXf*Xi
+        dXa = u*kXf*Xi - kXr*Xa
+        dY = (kAa*Xa**n)/(kAb**n + Xa**n) - kc*Y
+        dZ = (kAa*Xa**n)/(kAb**n + Xa**n) * kIa/(1 + (Y/kIb)**n) - kc*Z
+        return [dXi, dXa, dY, dZ]
+    uf = interp1d(t, u)
+    result = solve_ivp(
+        fun=lambda t, y: model_I1FFL(t, y, uf, params),
+        t_span=[t[0], t[-1]], y0=y0, t_eval=t,
+        method='LSODA', rtol=1e-8, atol=1e-8)
+    print('Num Func Evals: ' + str(result.nfev))
     return result.y
 
 

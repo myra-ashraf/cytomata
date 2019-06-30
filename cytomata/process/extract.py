@@ -25,7 +25,7 @@ from cytomata.utils.io import list_img_files, setup_dirs
 from cytomata.utils.visual import plot, custom_styles, custom_palette
 
 
-def bkg_subtract(img, block=201, offset=1.0, denoise=False, prof_row=None):
+def subtract_bkg(img, block=501, offset=0.0, denoise=False, prof_row=None):
     img = img_as_float(img)
     sigma = estimate_sigma(img)
     bkg = threshold_local(img, block_size=block, method='gaussian', offset=-sigma*offset)
@@ -53,8 +53,8 @@ def bkg_subtract(img, block=201, offset=1.0, denoise=False, prof_row=None):
     return results
 
 
-def run_frame_ave_analysis(img_dir, save_dir=None, block=201,
-    offset=1.0, denoise=False, stylize=False, iter_cb=None, overwrite=True):
+def run_frame_ave_analysis(img_dir, save_dir=None, block=501,
+    offset=0.0, denoise=False, iter_cb=None, overwrite=True):
     if save_dir is not None:
         if overwrite and os.path.exists(save_dir):
             shutil.rmtree(save_dir)
@@ -64,6 +64,8 @@ def run_frame_ave_analysis(img_dir, save_dir=None, block=201,
         setup_dirs(bkg_img_dir)
         sub_img_dir = os.path.join(save_dir, '2-subtracted')
         setup_dirs(sub_img_dir)
+        sty_img_dir = os.path.join(save_dir, '3-styled')
+        setup_dirs(sty_img_dir)
         bkg_prof_dir = os.path.join(save_dir, 'bkg_profile')
         setup_dirs(bkg_prof_dir)
         sub_prof_dir = os.path.join(save_dir, 'sub_profile')
@@ -71,27 +73,21 @@ def run_frame_ave_analysis(img_dir, save_dir=None, block=201,
     ave_ints = []
     imgfs = list_img_files(img_dir)
     for i, imgf in enumerate(imgfs):
-        results = bkg_subtract(imread(imgf), block=block, offset=offset, denoise=denoise)
+        results = subtract_bkg(imread(imgf), block=block, offset=offset, denoise=denoise)
         ave_ints.append(results['ave_int'])
         if save_dir is not None:
             imsave(os.path.join(bkg_prof_dir, str(i) + '.png'), results['bkg_prof'])
             imsave(os.path.join(sub_prof_dir, str(i) + '.png'), results['sub_prof'])
-            if stylize:
-                plt.imsave(os.path.join(ori_img_dir, str(i) + '.png'),
-                    results['ori_img'], cmap='viridis')
-                plt.imsave(os.path.join(bkg_img_dir, str(i) + '.png'),
-                    results['bkg_img'], cmap='viridis')
-                plt.imsave(os.path.join(sub_img_dir, str(i) + '.png'),
-                    results['sub_img'], cmap='viridis')
-            else:
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    imsave(os.path.join(ori_img_dir, str(i) + '.tiff'),
-                        img_as_uint(results['ori_img']))
-                    imsave(os.path.join(bkg_img_dir, str(i) + '.tiff'),
-                        img_as_uint(results['bkg_img']))
-                    imsave(os.path.join(sub_img_dir, str(i) + '.tiff'),
-                        img_as_uint(results['sub_img']))
+            plt.imsave(os.path.join(sty_img_dir, str(i) + '.png'),
+                results['sub_img'], cmap='viridis')
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                imsave(os.path.join(ori_img_dir, str(i) + '.tiff'),
+                    img_as_uint(results['ori_img']))
+                imsave(os.path.join(bkg_img_dir, str(i) + '.tiff'),
+                    img_as_uint(results['bkg_img']))
+                imsave(os.path.join(sub_img_dir, str(i) + '.tiff'),
+                    img_as_uint(results['sub_img']))
         if iter_cb is not None:
             plt_int = plot(range(len(ave_ints)), ave_ints,
                 xlabel='Frame', title='Ave Frame Intensity (Nonzero Pixels)', figsize=(11, 6))
@@ -113,7 +109,7 @@ def run_frame_ave_analysis(img_dir, save_dir=None, block=201,
 
 
 def detect_regions(img, block=201, offset=1.0, denoise=False, min_peaks_dist=25):
-    pre = bkg_subtract(img, block=block, offset=offset, denoise=denoise)
+    pre = subtract_bkg(img, block=block, offset=offset, denoise=denoise)
     # cont = equalize_adapthist(sub, clip_limit=0.001)
     # th = threshold_local(cont, block_size=block, offset=offset, method='mean')
     # sigma = estimate_sigma(pre['sub_img'])
@@ -234,7 +230,7 @@ def save_each_traj_data(trajs, img_dir, save_dir):
 
 
 def run_single_cell_analysis(img_dir, save_dir=None, block=201, offset=1.0,
-    min_peaks_dist=25, min_traj_len=10, denoise=False, stylize=False, iter_cb=None, overwrite=False):
+    min_peaks_dist=25, min_traj_len=10, denoise=False, iter_cb=None, overwrite=False):
     if save_dir is not None:
         if overwrite and os.path.exists(save_dir):
             shutil.rmtree(save_dir)
@@ -278,26 +274,24 @@ def run_single_cell_analysis(img_dir, save_dir=None, block=201, offset=1.0,
                 results['reg_img'], cmap='viridis')
             plt.imsave(os.path.join(bnd_img_dir, str(i) + '.png'),
                 results['bnd_img'], cmap='viridis')
-            if stylize:
-                plt.imsave(os.path.join(ori_img_dir, str(i) + '.png'),
-                    results['ori_img'], cmap='viridis')
-                plt.imsave(os.path.join(bkg_img_dir, str(i) + '.png'),
-                    results['bkg_img'], cmap='viridis')
-                plt.imsave(os.path.join(sub_img_dir, str(i) + '.png'),
-                    results['sub_img'], cmap='viridis')
-                plt.imsave(os.path.join(den_img_dir, str(i) + '.png'),
-                    results['den_img'], cmap='viridis')
-            else:
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    imsave(os.path.join(ori_img_dir, str(i) + '.tiff'),
-                        img_as_uint(results['ori_img']))
-                    imsave(os.path.join(bkg_img_dir, str(i) + '.tiff'),
-                        img_as_uint(results['bkg_img']))
-                    imsave(os.path.join(sub_img_dir, str(i) + '.tiff'),
-                        img_as_uint(results['sub_img']))
-                    imsave(os.path.join(den_img_dir, str(i) + '.tiff'),
-                        img_as_uint(results['den_img']))
+            plt.imsave(os.path.join(ori_img_dir, str(i) + '.png'),
+                results['ori_img'], cmap='viridis')
+            plt.imsave(os.path.join(bkg_img_dir, str(i) + '.png'),
+                results['bkg_img'], cmap='viridis')
+            plt.imsave(os.path.join(sub_img_dir, str(i) + '.png'),
+                results['sub_img'], cmap='viridis')
+            plt.imsave(os.path.join(den_img_dir, str(i) + '.png'),
+                results['den_img'], cmap='viridis')
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                imsave(os.path.join(ori_img_dir, str(i) + '.tiff'),
+                    img_as_uint(results['ori_img']))
+                imsave(os.path.join(bkg_img_dir, str(i) + '.tiff'),
+                    img_as_uint(results['bkg_img']))
+                imsave(os.path.join(sub_img_dir, str(i) + '.tiff'),
+                    img_as_uint(results['sub_img']))
+                imsave(os.path.join(den_img_dir, str(i) + '.tiff'),
+                    img_as_uint(results['den_img']))
         ints = np.array([prop.mean_intensity
             for prop in regionprops(results['reg_img'], results['sub_img'])])
         dets = np.array([prop.bbox for prop in regionprops(results['reg_img'])])
