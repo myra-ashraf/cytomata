@@ -100,6 +100,20 @@ class Microscope(object):
         self.core.snapImage()
         return self.core.getImage()
 
+    def snap_zstack(self, bounds, num_imgs, save_path=None):
+        z0 = self.coords[0, 2]
+        zi = self.get_position('z')
+        zl = np.max([zi + bounds[0], z0 - 50.0])
+        zu = np.min([zi + bounds[1], z0 + 50.0])
+        positions = list(np.linspace(zl, zu, num_imgs))
+        imgs = []
+        for z in positions:
+            self.set_position('z', z)
+            img = self.snap_image()
+            imgs.append(img)
+        self.set_position('z', zi)
+        return positions, imgs
+
     def measure_focus(self, img):
         return np.var(laplace(img))
 
@@ -108,18 +122,9 @@ class Microscope(object):
         foc = self.measure_focus(self.snap_image())
         return pos, foc
 
-    def sample_focus_stack(self, bounds=[-3.0, 3.0], num=7):
-        z0 = self.coords[0, 2]
-        zi = self.get_position('z')
-        zl = np.max([zi + bounds[0], z0 - 10.0])
-        zu = np.min([zi + bounds[1], z0 + 50.0])
-        positions = list(np.linspace(zl, zu, num))
-        focuses = []
-        for z in positions:
-            self.set_position('z', z)
-            _, foc = self.sample_focus()
-            focuses.append(foc)
-        self.set_position('z', zi)
+    def sample_focus_stack(self, bounds=[-3.0, 3.0], num_imgs=7):
+        positions, imgs = self.snap_zstack(bounds=bounds, num_imgs=num_imgs)
+        focuses = [self.measure_focus(img) for img in imgs]
         return positions, focuses
 
     def queue_event(self, func, tstart, tstop, tstep, kwargs):

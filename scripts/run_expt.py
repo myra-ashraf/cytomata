@@ -13,7 +13,7 @@ if __name__ == '__main__':
     info = {
     'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
     'ND_filter': 4,
-    'exposure': 200,
+    'exposure': 400,
     'gain': 1,
     'mag': 100
     }
@@ -53,11 +53,19 @@ if __name__ == '__main__':
     }
 
     setup_dirs(info['save_dir'])
+    expt_log = info.copy()
+    expt_log.update(tasks)
     with open(os.path.join(info['save_dir'], 'params.json'), 'w') as fp:
-        json.dump({**info, **tasks}, fp)
+        json.dump(expt_log, fp)
 
     # Init
     mscope = Microscope(save_dir=info['save_dir'], tasks=tasks)
+    while True:
+        add_pos = raw_input('Add current position (x, y, z) to coords list? [y/n]')
+        if add_pos.lower() == 'y':
+            mscope.add_coord()
+        else:
+            break
     # Event Loop
     while True:
         done = mscope.run_events()
