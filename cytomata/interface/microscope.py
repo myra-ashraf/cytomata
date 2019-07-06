@@ -100,16 +100,21 @@ class Microscope(object):
         self.core.snapImage()
         return self.core.getImage()
 
-    def snap_zstack(self, bounds, num_imgs, save_path=None):
-        z0 = self.coords[0, 2]
+    def snap_zstack(self, ch, bounds, step):
         zi = self.get_position('z')
-        zl = np.max([zi + bounds[0], z0 - 50.0])
-        zu = np.min([zi + bounds[1], z0 + 50.0])
-        positions = list(np.linspace(zl, zu, num_imgs))
+        self.set_channel(ch)
+        positions = list(np.arange(bounds[0], bounds[1], step))
         imgs = []
+        save_path = os.path.join(self.save_dir, ch, 'zstack')
+        setup_dirs(save_path)
         for z in positions:
             self.set_position('z', z)
+            time.sleep(0.5)
             img = self.snap_image()
+            img_path = os.path.join(save_path, str(z) + '.tiff')
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                imsave(img_path, img)
             imgs.append(img)
         self.set_position('z', zi)
         return positions, imgs
