@@ -55,12 +55,10 @@ class Microscope(object):
     def set_channel(self, chname):
         if chname != self.core.getCurrentConfig('Channel'):
             self.core.setConfig('Channel', chname)
-            self.core.waitForConfig('Channel', chname)
 
     def set_magnification(self, mag):
         if mag != self.core.getState('TINosePiece'):
             self.core.setState('TINosePiece', mag)
-            self.core.waitForDevice('TINosePiece')
 
     def get_position(self, axis):
         if axis.lower() == 'x':
@@ -122,28 +120,23 @@ class Microscope(object):
         self.set_position('z', zi)
         return positions, imgs
 
-    def snap_xyfield(self, ch, step, save=True):
-        xi = self.get_position('x')
-        yi = self.get_position('y')
-        positions = [
-            (xi, yi),
-            (xi + step, yi), (xi + step, yi + step),
-            (xi, yi + step), (xi - step, yi + step),
-            (xi - step, yi), (xi - step, yi - step),
-            (xi, yi - step), (xi + step, yi - step)
-        ]
-        for x, y in positions:
-            self.set_position('xy', (x, y))
-            img = self.snap_image()
-            imgs.append(img)
-            if save:
-                img_path = os.path.join(self.save_dir,
-                    'xyfield', ch, str(x) + '-' + str(y) + '.tiff')
+    def snap_xyfield(self, ch, n=5, step=81.92):
+        x0 = self.get_position('x')
+        y0 = self.get_position('y')
+        xs = np.arange(-(n//2)*step, (n//2)*step + step, step)
+        ys = np.arange(-(n//2)*step, (n//2)*step + step, step)
+        for i, yi in enumerate(ys):
+            for xi in xs:
+                if not i % 2:
+                    xi = -xi
+                self.set_position('xy', (x0 + xi, y0 + yi))
+                img = self.snap_image()
+                save_path = os.path.join(self.save_dir, 'xyfield', ch,
+                    str(xi) + '-' + str(yi), time.strftime('%H%M%S') + '.tiff')
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     imsave(img_path, img)
-        self.set_position('xy', (xi, yi))
-        return positions, imgs
+        self.set_position('xy', (x0, y0))
 
     def measure_focus(self, img):
         return np.var(laplace(img))
@@ -153,15 +146,13 @@ class Microscope(object):
         foc = self.measure_focus(self.snap_image())
         return pos, foc
 
-    def sample_focus_stack(self, bounds=[-3.0, 3.0], step=0.5):
+    def sample_focus_stack(self, bounds=[-3.0, 3.0], step=1.0):
         positions, imgs = self.snap_zstack(ch='DIC', bounds=bounds, step=step, save=False)
         focuses = [self.measure_focus(img) for img in imgs]
         return positions, focuses
 
     def queue_event(self, func, tstart, tstop, tstep, kwargs):
         times = deque(np.arange(tstart + self.t0, tstop + self.t0, tstep))
-        print(func)
-        print(times)
         self.events.append({'func': func, 'times': times, 'kwargs': kwargs})
 
     def queue_init_events(self):
@@ -249,7 +240,7 @@ class Microscope(object):
         else:  # Reset Position
             best_pos = z0
             best_foc = 0.0
-        self.coords[:, 2] += (best_pos - self.coords[0, 2])
+        self.coords[:, 2] += (best_pos - self.coords[0, 2])  # Update all z-coords
         self.az.append(best_pos)
         self.av.append(best_foc)
         a_path = os.path.join(self.save_dir, 'a.csv')
