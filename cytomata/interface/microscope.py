@@ -23,6 +23,8 @@ class Microscope(object):
     def __init__(self, save_dir, tasks, config_file=os.path.join(dir_path, 'mm.cfg')):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
+        self.core.assignImageSynchro('XYStage')
+        self.core.assignImageSynchro('TIZDrive')
         self.save_dir = save_dir
         self.tasks = tasks
         self.events = []
@@ -97,26 +99,50 @@ class Microscope(object):
         self.coords = np.vstack((self.coords, [x, y, z]))
 
     def snap_image(self):
+        self.core.waitForSystem()
         self.core.snapImage()
         return self.core.getImage()
 
-    def snap_zstack(self, ch, bounds, step):
+    def snap_zstack(self, ch, bounds, step, save=True):
+        z0 = self.coords[0, 2]
         zi = self.get_position('z')
-        self.set_channel(ch)
-        positions = list(np.arange(bounds[0], bounds[1], step))
+        zl = np.max([zi + bounds[0], z0 - 50.0])
+        zu = np.min([zi + bounds[1], z0 + 50.0])
+        positions = list(np.arange(zl, zu, step))
         imgs = []
-        save_path = os.path.join(self.save_dir, ch, 'zstack')
-        setup_dirs(save_path)
         for z in positions:
             self.set_position('z', z)
-            time.sleep(0.5)
             img = self.snap_image()
-            img_path = os.path.join(save_path, str(z) + '.tiff')
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                imsave(img_path, img)
             imgs.append(img)
+            if save:
+                img_path = os.path.join(self.save_dir, 'zstack', ch, str(z) + '.tiff')
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    imsave(img_path, img)
         self.set_position('z', zi)
+        return positions, imgs
+
+    def snap_xyfield(self, ch, step, save=True):
+        xi = self.get_position('x')
+        yi = self.get_position('y')
+        positions = [
+            (xi, yi),
+            (xi + step, yi), (xi + step, yi + step),
+            (xi, yi + step), (xi - step, yi + step),
+            (xi - step, yi), (xi - step, yi - step),
+            (xi, yi - step), (xi + step, yi - step)
+        ]
+        for x, y in positions:
+            self.set_position('xy', (x, y))
+            img = self.snap_image()
+            imgs.append(img)
+            if save:
+                img_path = os.path.join(self.save_dir,
+                    'xyfield', ch, str(x) + '-' + str(y) + '.tiff')
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    imsave(img_path, img)
+        self.set_position('xy', (xi, yi))
         return positions, imgs
 
     def measure_focus(self, img):
@@ -127,8 +153,8 @@ class Microscope(object):
         foc = self.measure_focus(self.snap_image())
         return pos, foc
 
-    def sample_focus_stack(self, bounds=[-3.0, 3.0], num_imgs=7):
-        positions, imgs = self.snap_zstack(bounds=bounds, num_imgs=num_imgs)
+    def sample_focus_stack(self, bounds=[-3.0, 3.0], step=0.5):
+        positions, imgs = self.snap_zstack(ch='DIC', bounds=bounds, step=step, save=False)
         focuses = [self.measure_focus(img) for img in imgs]
         return positions, focuses
 
