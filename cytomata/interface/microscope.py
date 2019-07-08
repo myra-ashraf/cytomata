@@ -45,6 +45,12 @@ class Microscope(object):
             self.get_position('y'),
             self.get_position('z')
         ]])
+        while True:
+            ans = raw_input('Add current position (x, y, z) to coords list? y/[n]: ')
+            if ans.lower() == 'y':
+                self.add_coord()
+            else:
+                break
         if 'imaging' in self.tasks:
             for ch in self.tasks['imaging']['kwargs']['chs']:
                 for i in range(len(self.coords)):
@@ -73,20 +79,16 @@ class Microscope(object):
     def set_position(self, axis, value):
         if axis.lower() == 'xy':
             self.core.setXYPosition('XYStage', value[0], value[1])
-            self.core.waitForDevice('XYStage')
         elif axis.lower() == 'z':
             self.core.setPosition('TIZDrive', value)
-            self.core.waitForDevice('TIZDrive')
         else:
             raise ValueError('Invalid axis arg in Microscope.set_position(axis).')
 
     def shift_position(self, axis, value):
         if axis.lower() == 'xy':
             self.core.setRelativeXYPosition('XYStage', value[0], value[1])
-            self.core.waitForDevice('XYStage')
         elif axis.lower() == 'z':
             self.core.setRelativePosition('TIZDrive', value)
-            self.core.waitForDevice('TIZDrive')
         else:
             raise ValueError('Invalid axis arg in Microscope.shift_position(axis).')
 

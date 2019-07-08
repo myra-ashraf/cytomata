@@ -60,12 +60,6 @@ if __name__ == '__main__':
 
     # Init
     mscope = Microscope(save_dir=info['save_dir'], tasks=tasks)
-    while True:
-        add_pos = raw_input('Add current position (x, y, z) to coords list? [y/n]')
-        if add_pos.lower() == 'y':
-            mscope.add_coord()
-        else:
-            break
     # Event Loop
     while True:
         done = mscope.run_events()
