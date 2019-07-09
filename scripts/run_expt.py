@@ -22,9 +22,9 @@ if __name__ == '__main__':
             'func': 'pulse_light',
             't_starts': [0],
             't_stops': [86400],
-            't_steps': [30],
+            't_steps': [60],
             'kwargs': {
-                'width': [1],
+                'width': [5],
                 'ch_dark': 'None',
                 'ch_ind': 'Blue-Light'
             }
@@ -46,11 +46,13 @@ if __name__ == '__main__':
             'kwargs': {
                 'ch': 'DIC',
                 'algo': 'brent',
-                'bounds': [-2.0, 2.0],
+                'bounds': [-3.0, 3.0],
                 'max_iter': 5
             }
         }
     }
+
+    ans = raw_input('Checklist\n1. ND-filter\n2. AF bounds\nPress [ENTER] to continue.')
 
     setup_dirs(info['save_dir'])
     expt_log = info.copy()
