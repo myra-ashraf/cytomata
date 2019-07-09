@@ -46,7 +46,7 @@ class Microscope(object):
             self.get_position('z')
         ]])
         while True:
-            ans = raw_input('Add current position (x, y, z) to coords list? y/[n]: ')
+            ans = raw_input('Add current (x, y, z) to coords list? y/[n]: ')
             if ans.lower() == 'y':
                 self.add_coord()
             else:
