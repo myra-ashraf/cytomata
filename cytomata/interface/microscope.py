@@ -23,8 +23,8 @@ class Microscope(object):
     def __init__(self, save_dir, tasks, config_file=os.path.join(dir_path, 'mm.cfg')):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
-        # self.core.assignImageSynchro('XYStage')
-        # self.core.assignImageSynchro('TIZDrive')
+        self.core.assignImageSynchro('XYStage')
+        self.core.assignImageSynchro('TIZDrive')
         self.save_dir = save_dir
         self.tasks = tasks
         self.events = []
@@ -104,7 +104,7 @@ class Microscope(object):
         self.coords = np.vstack((self.coords, [x, y, z]))
 
     def snap_image(self):
-        # self.core.waitForSystem()
+        self.core.waitForSystem()
         self.core.snapImage()
         return self.core.getImage()
 
@@ -127,23 +127,23 @@ class Microscope(object):
         self.set_position('z', zi)
         return positions, imgs
 
-    # def snap_xyfield(self, ch, n=5, step=81.92):
-    #     x0 = self.get_position('x')
-    #     y0 = self.get_position('y')
-    #     xs = np.arange(-(n//2)*step, (n//2)*step + step, step)
-    #     ys = np.arange(-(n//2)*step, (n//2)*step + step, step)
-    #     for i, yi in enumerate(ys):
-    #         for xi in xs:
-    #             if not i % 2:
-    #                 xi = -xi
-    #             self.set_position('xy', (x0 + xi, y0 + yi))
-    #             img = self.snap_image()
-    #             save_path = os.path.join(self.save_dir, 'xyfield', ch,
-    #                 str(xi) + '-' + str(yi), time.strftime('%H%M%S') + '.tiff')
-    #             with warnings.catch_warnings():
-    #                 warnings.simplefilter("ignore")
-    #                 imsave(img_path, img)
-    #     self.set_position('xy', (x0, y0))
+    def snap_xyfield(self, ch, n=5, step=81.92):
+        x0 = self.get_position('x')
+        y0 = self.get_position('y')
+        xs = np.arange(-(n//2)*step, (n//2)*step + step, step)
+        ys = np.arange(-(n//2)*step, (n//2)*step + step, step)
+        for i, yi in enumerate(ys):
+            for xi in xs:
+                if not i % 2:
+                    xi = -xi
+                self.set_position('xy', (x0 + xi, y0 + yi))
+                img = self.snap_image()
+                save_path = os.path.join(self.save_dir, 'xyfield', ch,
+                    str(xi) + '-' + str(yi), time.strftime('%H%M%S') + '.tiff')
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    imsave(img_path, img)
+        self.set_position('xy', (x0, y0))
 
     def measure_focus(self, img):
         return np.var(laplace(img))

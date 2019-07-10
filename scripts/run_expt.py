@@ -10,9 +10,10 @@ from cytomata.utils.io import setup_dirs
 
 if __name__ == '__main__':
     # Expt Parameters
+    nd_filter = raw_input('ND Filter? [4]: ') or 4
     info = {
     'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
-    'ND_filter': 4,
+    'ND_filter': nd_filter,
     'exposure': 400,
     'gain': 1,
     'mag': 100
@@ -46,13 +47,12 @@ if __name__ == '__main__':
             'kwargs': {
                 'ch': 'DIC',
                 'algo': 'brent',
-                'bounds': [-3.0, 3.0],
+                'bounds': [-30.0, 30.0],
                 'max_iter': 5
             }
         }
     }
 
-    ans = raw_input('Checklist\n1. ND-filter\n2. AF bounds\nPress [ENTER] to continue.')
 
     setup_dirs(info['save_dir'])
     expt_log = info.copy()
