@@ -190,7 +190,9 @@ class Microscope(object):
         else:
             return True
 
-    def pulse_light(self, ch_ind, ch_dark, width):
+    def pulse_light(self, ch_ind, ch_dark, width, mag):
+        mag0 = self.core.getState('TINosePiece')
+        self.set_magnification(mag)
         for i, (x, y, z) in enumerate(self.coords):
             self.set_position('xy', (x, y))
             self.set_position('z', z)
@@ -202,6 +204,7 @@ class Microscope(object):
             self.ut[i] += [t1, t2]
             u_path = os.path.join(self.save_dir, 'u' + str(i) + '.csv')
             np.savetxt(u_path, self.ut[i], delimiter=',', header='ut', comments='')
+        self.set_magnification(mag0)
 
     def image_coords(self, chs):
         for i, (x, y, z) in enumerate(self.coords):

@@ -27,7 +27,8 @@ if __name__ == '__main__':
             'kwargs': {
                 'width': [5],
                 'ch_dark': 'None',
-                'ch_ind': 'Blue-Light'
+                'ch_ind': 'Blue-Light',
+                'mag': 2
             }
         },
         'imaging': {
@@ -53,7 +54,7 @@ if __name__ == '__main__':
         }
     }
 
-
+    # Log Info
     setup_dirs(info['save_dir'])
     expt_log = info.copy()
     expt_log.update(tasks)
