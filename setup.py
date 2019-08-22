@@ -18,15 +18,11 @@ def read(*names):
     return values
 
 
-long_description = """
-%(README)s
-""" % read('README')
-
 setuptools.setup(
     name=cytomata.__name__,
     version=cytomata.__version__,
     description=cytomata.__description__,
-    long_description=long_description,
+    long_description="""%(README)s""" % read('README'),
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Environment :: Console",
@@ -48,12 +44,9 @@ setuptools.setup(
     url=cytomata.__website__,
     license=cytomata.__license__,
     packages=setuptools.find_packages(exclude=['tests']),
-    dependency_links=[
-        'https://github.com/tensorpack/tensorpack/tarball/master#egg=tensorpack-0.9.4'
-    ],
     install_requires=[
-        'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image','jupyter', 'keras',
-        'tensorflow-gpu', 'opencv-python', 'gevent', 'eel', 'pyinstaller', 'tornado', 'natsort',
+        'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image','jupyter', 'pytorch',
+        'torchvision', 'opencv-python', 'gevent', 'eel', 'pyinstaller', 'tornado', 'natsort',
         'lmfit', 'filterpy', 'imgaug'
     ]
 )

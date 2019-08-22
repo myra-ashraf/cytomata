@@ -10,13 +10,18 @@ from cytomata.utils.io import setup_dirs
 
 if __name__ == '__main__':
     # Expt Parameters
-    nd_filter = raw_input('ND Filter? [4]: ') or 4
-    info = {
-    'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
-    'ND_filter': nd_filter,
-    'exposure': 400,
-    'gain': 1,
-    'mag': 100
+    settings = {
+        'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
+        'ND_filter': 4,
+        'pixel_size': 0.16,
+        'img_width': 512,
+        'img_height': 512,
+        'exposure': 400,
+        'gain': 1,
+        'mag': 100,
+        'z_bound': [-100, 100],
+        'x_bound': [-720, 720],
+        'y_bound': [-720, 720],
     }
     tasks = {
         'induction': {
@@ -56,13 +61,13 @@ if __name__ == '__main__':
 
     # Log Info
     setup_dirs(info['save_dir'])
-    expt_log = info.copy()
+    expt_log = settings.copy()
     expt_log.update(tasks)
-    with open(os.path.join(info['save_dir'], 'params.json'), 'w') as fp:
+    with open(os.path.join(info['save_dir'], 'expt_log.json'), 'w') as fp:
         json.dump(expt_log, fp)
 
     # Init
-    mscope = Microscope(save_dir=info['save_dir'], tasks=tasks)
+    mscope = Microscope(settings=settings, tasks=tasks)
     # Event Loop
     while True:
         done = mscope.run_events()

@@ -20,12 +20,13 @@ class Microscope(object):
     """
     Microscope task automation and data recording.
     """
-    def __init__(self, save_dir, tasks, config_file=os.path.join(dir_path, 'mm.cfg')):
+    def __init__(self, settings, tasks, config_file=os.path.join(dir_path, 'mm.cfg')):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
         self.core.assignImageSynchro('XYStage')
         self.core.assignImageSynchro('TIZDrive')
-        self.save_dir = save_dir
+        self.settings = settings
+        self.save_dir = settings['save_dir']
         self.tasks = tasks
         self.events = []
         self.funcs = {
@@ -40,17 +41,23 @@ class Microscope(object):
         self.ut = defaultdict(list)
         self.av = []
         self.az = []
+        self.img_w = settings['pixel_size'] * settings['img_width']
+        self.img_h = settings['pixel_size'] * settings['img_height']
+        self.x0 = self.get_position('x')
+        self.y0 = self.get_position('y')
+        self.z0 = self.get_position('z')
+        self.bounds = [(self.x0 + )]
         self.coords = np.array([[
-            self.get_position('x'),
-            self.get_position('y'),
-            self.get_position('z')
+            self.x0,
+            self.y0,
+            self.z0
         ]])
-        while True:
-            ans = raw_input('Add current (x, y, z) to coords list? y/[n]: ')
-            if ans.lower() == 'y':
-                self.add_coord()
-            else:
-                break
+        # while True:
+        #     ans = raw_input('Add current (x, y, z) to coords list? y/[n]: ')
+        #     if ans.lower() == 'y':
+        #         self.add_coord()
+        #     else:
+        #         break
         if 'imaging' in self.tasks:
             for ch in self.tasks['imaging']['kwargs']['chs']:
                 for i in range(len(self.coords)):
@@ -80,8 +87,6 @@ class Microscope(object):
         x0 = self.get_position('x')
         y0 = self.get_position('y')
         z0 = self.get_position('z')
-        print('Current Pos: ({0}, {1}, {2})'.format(x0, y0, z0))
-        print('Move To: {0}={1}'.format(axis, value))
         if axis.lower() == 'xy':
             self.core.setXYPosition('XYStage', value[0], value[1])
         elif axis.lower() == 'z':

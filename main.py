@@ -73,7 +73,7 @@ if __name__ == '__main__':
         'mode': "chrome",
         'host': 'localhost',
         'port': 8080,
-        'chromeFlags': ["--start-fullscreen"]
+        # 'chromeFlags': ["--start-fullscreen"]
     }
 
     eel.start('index.html', options=options)

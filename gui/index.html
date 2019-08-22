@@ -8,8 +8,10 @@
 
     <link rel="icon" href="img/favicon.ico">
     <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/bootstrap4-toggle.min.css">
     <link rel="stylesheet" href="css/index.css">
 
+    <script type="text/javascript" src="js/bootstrap4-toggle.min.js"></script>
     <script type="text/javascript" src="/eel.js"></script>
     <script type="text/javascript">
       async function check_found_imgs(img_dir) {
@@ -67,15 +69,156 @@
     <title>Cytomata</title>
   </head>
   <body class="py-3">
+    <div class="modal fade" id="view_coords_modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Coordinates (x, y, z)</h5>
+            <button type="button" class="close" data-dismiss="modal">
+              <span>&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <ul class="list-group">
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                (2300.34, 120.75, 4230.34)
+                <div>
+                  <button type="button" class="btn btn-success btn-sm"><</button>
+                  <button type="button" class="btn btn-danger btn-sm">&times;</button>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="acquire_z_modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Acquire Z-Stack</h5>
+            <button type="button" class="close" data-dismiss="modal">
+              <span>&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-row">
+              <div class="input-group col-4">
+                <div class="input-group-prepend">
+                  <span class="input-group-text">z-min</span>
+                </div>
+                <input type="text" class="form-control" id="z-min" placeholder="4100">
+              </div>
+              <div class="input-group col-4">
+                <div class="input-group-prepend">
+                  <span class="input-group-text">z-max</span>
+                </div>
+                <input type="text" class="form-control" id="z-max" placeholder="4300">
+              </div>
+              <div class="input-group col-4">
+                <div class="input-group-prepend">
+                  <span class="input-group-text">z-step</span>
+                </div>
+                <input type="text" class="form-control" id="z-step" placeholder="50">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary">Run</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="acquire_xy_modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Acquire XY-Field</h5>
+            <button type="button" class="close" data-dismiss="modal">
+              <span>&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="form-row">
+              <div class="input-group col-6">
+                <div class="input-group-prepend">
+                  <span class="input-group-text">field-width</span>
+                </div>
+                <input type="text" class="form-control" id="field-width" placeholder="5">
+              </div>
+              <div class="input-group col-6">
+                <div class="input-group-prepend">
+                  <span class="input-group-text">field-step</span>
+                </div>
+                <input type="text" class="form-control" id="field-step" placeholder="81.92">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary">Run</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="config_expt_modal" tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Configure Experiment</h5>
+            <button type="button" class="close" data-dismiss="modal">
+              <span>&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="container-fluid">
+              <h5>Induction</h5>
+              <div class="input-group">
+                <div class="input-group-prepend"><span class="input-group-text">Times</span></div>
+                <input type="text" class="form-control" id="ind_times" placeholder="(0, 86400, 60, 5)">
+              </div>
+              <small class="form-text text-muted mb-3">(start, stop, period, width), (...),...</small>
+              <div class="form-row">
+                <div class="input-group col-6 mb-3">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text">Dark Ch</span>
+                  </div>
+                  <select class="custom-select" id="ch_dark">
+                    <option value='0'>DIC</option>
+                    <option value='1'>GFP</option>
+                    <option value='2'>mCh</option>
+                  </select>
+                </div>
+                <div class="input-group col-6 mb-3">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text">Ind Ch</span>
+                  </div>
+                  <select class="custom-select" id="ch_ind">
+                    <option value='0'>DIC</option>
+                    <option value='1'>GFP</option>
+                    <option value='2'>mCh</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary">Save changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="container-fluid d-flex flex-column h-100 col-9">
       <div class="row px-0 mb-2">
-        <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+        <ul class="nav nav-pills mb-2" id="pills-tab" role="tablist">
           <li class="nav-item">
             <a class="nav-link active" id="pills-home-tab" data-toggle="pill" href="#pills-home" role="tab">Home</a>
           </li>
-          <!-- <li class="nav-item">
+          <li class="nav-item">
             <a class="nav-link" id="pills-mic-tab" data-toggle="pill" href="#pills-mic" role="tab">Microscope</a>
-          </li> -->
+          </li>
           <li class="nav-item">
             <a class="nav-link" id="pills-proc-tab" data-toggle="pill" href="#pills-proc" role="tab">Processing</a>
           </li>
@@ -83,17 +226,113 @@
       </div>
       <div class="row card p-3 flex-grow-1 border-primary">
         <div class="tab-content flex-grow-1" id="pills-tabContent">
-          <div class="tab-pane fade show active pyp-10" id="pills-home" role="tabpanel">
+          <div class="tab-pane fade show active pyp-5" id="pills-home" role="tabpanel">
             <div class="row justify-content-center">
               <img class="" src="img/logo_full.png">
             </div>
             <div class="row justify-content-center mt-3">
-              <i>Make it happen.</i>
-              <!-- <a role="button" class="mx-2 btn btn-primary btn-lg" href="/microscope.html">Run Microscope</a>
-              <a role="button" class="mx-2 btn btn-success btn-lg" href="/img_proc.html">Process Images</a> -->
+              <div class="col-6 custom-file">
+                <input type="file" class="custom-file-input" id="customFile">
+                <label class="custom-file-label" for="customFile">Select MicroManager Config File</label>
+              </div>
             </div>
           </div>
-          <!-- <div class="tab-pane fade" id="pills-mic" role="tabpanel">Under Construction: Microscope</div> -->
+          <div class="tab-pane fade" id="pills-mic" role="tabpanel">
+            <div class="row pr-3">
+              <div class="col-5 pb-3 pr-3">
+                <div class="input-group mb-3">
+                  <div class="input-group-prepend">
+                    <button class="btn btn-outline-success" type="button"><</button>
+                  </div>
+                  <input type="text" class="form-control" placeholder="X : 4502.23">
+                  <div class="input-group-append">
+                    <button class="btn btn-outline-success" type="button">></button>
+                  </div>
+                </div>
+                <div class="input-group mb-3">
+                  <div class="input-group-prepend">
+                    <button class="btn btn-outline-success" type="button"><</button>
+                  </div>
+                  <input type="text" class="form-control" placeholder="Y : 4502.23">
+                  <div class="input-group-append">
+                    <button class="btn btn-outline-success" type="button">></button>
+                  </div>
+                </div>
+                <div class="input-group mb-3">
+                  <div class="input-group-prepend">
+                    <button class="btn btn-outline-success" type="button"><</button>
+                  </div>
+                  <input type="text" class="form-control" placeholder="Z : 4502.23">
+                  <div class="input-group-append">
+                    <button class="btn btn-outline-success" type="button">></button>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="input-group col-6 mb-3">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text">Exp&nbsp;</span>
+                    </div>
+                    <input type="text" class="form-control" id="cam_exposure" placeholder="100">
+                  </div>
+                  <div class="input-group col-6 mb-3">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text">Gain</span>
+                    </div>
+                    <select class="custom-select" id="gain">
+                      <option value='0'>1</option>
+                      <option value='1'>2</option>
+                      <option value='2'>3</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="input-group col-6 mb-3">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text">Mag</span>
+                    </div>
+                    <select class="custom-select" id="mag">
+                      <option value='0'>10x</option>
+                      <option value='1'>20x</option>
+                      <option value='2'>40x</option>
+                    </select>
+                  </div>
+                  <div class="input-group col-6 mb-3">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text">Chan</span>
+                    </div>
+                    <select class="custom-select" id="chan">
+                      <option value='0'>DIC</option>
+                      <option value='1'>GFP</option>
+                      <option value='2'>mCh</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row px-1 mb-3">
+                  <button class="col-5 mr-3 btn btn-outline-primary" type="button">Add Coord</button>
+                  <button class="col-5 btn btn-outline-primary" type="button" data-toggle="modal" data-target="#view_coords_modal">View Coords</button>
+                </div>
+                <div class="form-row px-1 mb-3">
+                  <button class="col-5 mr-3 btn btn-outline-primary" type="button" data-toggle="modal" data-target="#acquire_z_modal">Acquire Z-Stack</button>
+                  <button class="col-5 btn btn-outline-primary" type="button" data-toggle="modal" data-target="#acquire_xy_modal">Acquire XY-Field</button>
+                </div>
+                <div class="form-row px-1">
+                  <button class="col-11 btn btn-outline-primary" type="button" data-toggle="modal" data-target="#config_expt_modal">Configure Experiment</button>
+                </div>
+              </div>
+              <div class="col-7 pb-3 pl-3">
+                <div class="row justify-content-between">
+                  <div class="col-10 input-group">
+                    <input type="text" class="form-control" id="snap_save_dir" placeholder="Save Directory">
+                    <div class="input-group-append">
+                      <button class="btn btn-outline-primary px-4" type="button">Snap</button>
+                    </div>
+                  </div>
+                  <button class="col-2 btn btn-outline-primary" type="button">Live</button>
+                </div>
+                <img id="live_window" src="" class="invisible img-fluid">
+              </div>
+            </div>
+          </div>
           <div class="tab-pane fade" id="pills-proc" role="tabpanel">
             <div class="row px-3">
               <div class="col-4 pb-3 pr-3 pl-3">
