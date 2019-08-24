@@ -13,14 +13,11 @@ import MMCorePy
 from cytomata.utils.io import setup_dirs
 
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-
-
 class Microscope(object):
     """
     Microscope task automation and data recording.
     """
-    def __init__(self, settings, tasks, config_file=os.path.join(dir_path, 'mm.cfg')):
+    def __init__(self, settings, config_file):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
         self.core.assignImageSynchro('XYStage')
@@ -46,7 +43,7 @@ class Microscope(object):
         self.x0 = self.get_position('x')
         self.y0 = self.get_position('y')
         self.z0 = self.get_position('z')
-        self.bounds = [(self.x0 + )]
+        self.bounds = None
         self.coords = np.array([[
             self.x0,
             self.y0,

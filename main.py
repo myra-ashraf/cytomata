@@ -9,8 +9,10 @@ import numpy as np
 from skimage import img_as_ubyte
 from skimage.exposure import equalize_adapthist
 
+# from cytomata.interface.microscope import Microscope
 from cytomata.utils.io import list_img_files, setup_dirs
 from cytomata.process.extract import run_frame_ave_analysis, run_single_cell_analysis
+from configs.mm_settings import *
 
 
 @eel.expose
@@ -65,6 +67,21 @@ def process_imgs(img_dir, out_dir, proto, params):
             offset=float(params['sub_offset']), min_peaks_dist=int(params['det_sens']),
             min_traj_len=int(params['traj_len']), denoise=params['denoise'],
             iter_cb=iter_cb, overwrite=True)
+
+@eel.expose
+def init_mscope(config):
+    global mscope
+    settings = {
+        'save_dir': EXPT_DIR,
+        'z_lim': STAGE_Z_LIMIT,
+        'x_lim': STAGE_X_LIMIT,
+        'y_lim': STAGE_Y_LIMIT
+    }
+    if config:
+        mscope = Microscope(settings, config)
+    else:
+        mscope = Microscope(settings, MM_CFG_FILE)
+    eel.enable_mscope_tab()()
 
 
 if __name__ == '__main__':

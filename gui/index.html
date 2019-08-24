@@ -63,6 +63,12 @@
       function is_proc_imgs_stopped() {
         return $('#protocol_button').hasClass('proto-start');
       }
+      eel.expose(enable_mscope_tab);
+      function enable_mscope_tab() {
+        $('#pills-mic-tab').removeClass('disabled');
+        $('#pills-mic-tab').tab('show');
+        $('#mscope_start_button').addClass('disabled');
+      }
     </script>
 
     <title>Cytomata</title>
@@ -275,12 +281,7 @@
               <img class="" src="img/logo_full.png">
             </div>
             <div class="row justify-content-center mt-3">
-              <div class="col-6 input-group">
-                <input type="text" class="form-control" id="mm_config" placeholder="MM config file path">
-                <div class="input-group-append">
-                  <button class="btn btn-success" type="button">Start</button>
-                </div>
-              </div>
+              <button id="mscope_start_button" class="btn btn-outline-success col-3" type="button" onclick="">Start Microscope</button>
             </div>
           </div>
           <div class="tab-pane fade" id="pills-mic" role="tabpanel">
