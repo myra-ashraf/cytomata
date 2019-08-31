@@ -69,7 +69,7 @@ def process_imgs(img_dir, out_dir, proto, params):
             iter_cb=iter_cb, overwrite=True)
 
 @eel.expose
-def init_mscope(config):
+def init_mscope():
     global mscope
     settings = {
         'save_dir': EXPT_DIR,
@@ -77,11 +77,98 @@ def init_mscope(config):
         'x_lim': STAGE_X_LIMIT,
         'y_lim': STAGE_Y_LIMIT
     }
-    if config:
-        mscope = Microscope(settings, config)
-    else:
-        mscope = Microscope(settings, MM_CFG_FILE)
+    mscope = Microscope(settings, MM_CFG_FILE)
     eel.enable_mscope_tab()()
+
+@eel.expose
+def set_cam_exposure(exp):
+    mscope.core.setExposure(exp)
+
+@eel.expose
+def set_cam_gain(gain):
+    mscope.core.setProperty('Camera', 'Gain', gain)
+
+@eel.expose
+def set_magnification(mag):
+    mscope.set_magnification(mag)
+
+@eel.expose
+def set_channel(ch):
+    mscope.set_channel(ch)
+
+@eel.expose
+def shift_x_position(dx):
+    mscope.shift_position('xy', (dx, 0))
+
+@eel.expose
+def shift_y_position(dy):
+    mscope.shift_position('xy', (0, dy))
+
+@eel.expose
+def shift_z_position(dz):
+    mscope.shift_position('z', dz)
+
+@eel.expose
+def get_xyz_position():
+    x = mscope.get_position('x')
+    y = mscope.get_position('y')
+    z = mscope.get_position('z')
+    return (x, y, z)
+
+@eel.expose
+def add_current_coord():
+    mscope.add_coord()
+
+@eel.expose
+def get_coords():
+    return mscope.coords
+
+@eel.expose
+def acquire_zstack(bounds, step):
+    mscope.snap_zstack(bounds, step)
+
+@eel.expose
+def acquire_xyfield(tiles, step):
+    mscope.snap_xyfield(tiles, step)
+
+@eel.expose
+def queue_imaging(times, chs):
+    for (tstart, tstop, period) in times:
+        mscope.queue_event(
+            'image_coords',
+            tstart, tstop, period,
+            {'chs': chs}
+        )
+
+@eel.expose
+def queue_autofocus(times, ch):
+    for (tstart, tstop, period) in times:
+        mscope.queue_event(
+            'autofocus',
+            tstart, tstop, period,
+            {'ch': ch}
+        )
+
+@eel.expose
+def queue_induction(times, ch_dark, ch_ind):
+    for (tstart, tstop, period, width) in times:
+        mscope.queue_event(
+            'pulse_light',
+            tstart, tstop, period,
+            {'width': width, 'ch_dark': ch_dark, 'ch_ind': ch_ind, 'mag': mag}
+        )
+
+@eel.expose
+def snap_image(save_dir=None):
+    img = mscope.snap_image()
+    # TODO: render to gui
+    if save_dir is not None:
+        setup_dirs(save_dir)
+        n = len(list_img_files(img_dir))
+        img_path = os.path.join(save_dir, str(n + 1) + '.tiff')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            imsave(img_path, img)
 
 
 if __name__ == '__main__':

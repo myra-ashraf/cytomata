@@ -24,7 +24,6 @@ class Microscope(object):
         self.core.assignImageSynchro('TIZDrive')
         self.settings = settings
         self.save_dir = settings['save_dir']
-        self.tasks = tasks
         self.events = []
         self.funcs = {
             'pulse_light': self.pulse_light,
@@ -110,7 +109,7 @@ class Microscope(object):
         self.core.snapImage()
         return self.core.getImage()
 
-    def snap_zstack(self, ch, bounds, step, save=True):
+    def snap_zstack(self, bounds, step):
         z0 = self.coords[0, 2]
         zi = self.get_position('z')
         zl = np.max([zi + bounds[0], z0 - 50.0])
@@ -121,15 +120,17 @@ class Microscope(object):
             self.set_position('z', z)
             img = self.snap_image()
             imgs.append(img)
-            if save:
-                img_path = os.path.join(self.save_dir, 'zstack', ch, str(z) + '.tiff')
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    imsave(img_path, img)
+            ch = self.core.getCurrentConfig('Channel')
+            tstamp = time.strftime('%Y%m%d-%H%M%S')
+            img_path = os.path.join(self.save_dir,
+                'zstack_' + tstamp, ch, str(z) + '.tiff')
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                imsave(img_path, img)
         self.set_position('z', zi)
         return positions, imgs
 
-    def snap_xyfield(self, ch, n=5, step=81.92):
+    def snap_xyfield(self, n=5, step=81.92):
         x0 = self.get_position('x')
         y0 = self.get_position('y')
         xs = np.arange(-(n//2)*step, (n//2)*step + step, step)
@@ -140,8 +141,10 @@ class Microscope(object):
                     xi = -xi
                 self.set_position('xy', (x0 + xi, y0 + yi))
                 img = self.snap_image()
-                save_path = os.path.join(self.save_dir, 'xyfield', ch,
-                    str(xi) + '-' + str(yi), time.strftime('%H%M%S') + '.tiff')
+                ch = self.core.getCurrentConfig('Channel')
+                tstamp = time.strftime('%Y%m%d-%H%M%S')
+                save_path = os.path.join(self.save_dir,
+                    'xyfield_' + tstamp, ch, str(xi) + '-' + str(yi) + '.tiff')
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     imsave(img_path, img)
