@@ -114,9 +114,9 @@ class Microscope(object):
             self.core.setState(self.obj_device, mag)
 
     def get_position(self, axis):
-        if axis.lower() == 'x':
+        if axis.lower() == 'x' and self.xy_device:
             return self.core.getXPosition(self.xy_device)
-        elif axis.lower() == 'y':
+        elif axis.lower() == 'y' and self.xy_device:
             return self.core.getYPosition(self.xy_device)
         elif axis.lower() == 'z':
             return self.core.getPosition(self.z_device)
@@ -124,7 +124,7 @@ class Microscope(object):
             raise ValueError('Invalid axis arg in Microscope.get_position(axis).')
 
     def set_position(self, axis, value):
-        if axis.lower() == 'xy':
+        if axis.lower() == 'xy' and self.xy_device:
             if (value[0] > self.xlim[0] and value[0] < self.xlim[1] and
             value[1] > self.ylim[0] and value[1] < self.ylim[1]):
                 self.core.setXYPosition(self.xy_device, value[0], value[1])
