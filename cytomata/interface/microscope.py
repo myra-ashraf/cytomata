@@ -19,15 +19,14 @@ class Microscope(object):
     def __init__(self, settings, config_file):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
+        self.core.setExposure(settings['cam_exposure'])
+        self.core.setProperty('Camera', 'Gain', settings['cam_gain'])
+        self.set_magnification(settings['obj_mag'])
         self.settings = settings
         self.save_dir = settings['save_dir']
         setup_dirs(self.save_dir)
         with open(os.path.join(self.save_dir, 'settings.json'), 'w') as fp:
             json.dump(settings, fp)
-        self.img_w = settings['pixel_size'] * settings['img_width']
-        self.img_h = settings['pixel_size'] * settings['img_height']
-        self.core.setExposure(settings['cam_exposure'])
-        self.core.setProperty('Camera', 'Gain', settings['cam_gain'])
         self.tasks = []
         setup_dirs(self.save_dir, 'tasks_log')
         self.xt = defaultdict(list)
@@ -41,6 +40,9 @@ class Microscope(object):
         self.x0 = self.get_position('x')
         self.y0 = self.get_position('y')
         self.z0 = self.get_position('z')
+        self.xlim = np.array(settings['stage_x_limit']) + self.x0
+        self.ylim = np.array(settings['stage_y_limit']) + self.y0
+        self.zlim = np.array(settings['stage_z_limit']) + self.z0
         self.coords = np.array([[
             self.x0,
             self.y0,
@@ -118,23 +120,15 @@ class Microscope(object):
             raise ValueError('Invalid axis arg in Microscope.get_position(axis).')
 
     def set_position(self, axis, value):
-        x0 = self.get_position('x')
-        y0 = self.get_position('y')
-        z0 = self.get_position('z')
         if axis.lower() == 'xy':
-            self.core.setXYPosition('XYStage', value[0], value[1])
+            if (value[0] > self.xlim[0] and value[0] < self.xlim[1] and
+            value[1] > self.ylim[0] and value[1] < self.ylim[1]):
+                self.core.setXYPosition('XYStage', value[0], value[1])
         elif axis.lower() == 'z':
-            self.core.setPosition('TIZDrive', value)
+            if value > self.zlim[0] and value < self.zlim[1]:
+                self.core.setPosition('TIZDrive', value)
         else:
             raise ValueError('Invalid axis arg in Microscope.set_position(axis).')
-
-    def shift_position(self, axis, value):
-        if axis.lower() == 'xy':
-            self.core.setRelativeXYPosition('XYStage', value[0], value[1])
-        elif axis.lower() == 'z':
-            self.core.setRelativePosition('TIZDrive', value)
-        else:
-            raise ValueError('Invalid axis arg in Microscope.shift_position(axis).')
 
     def add_coord(self):
         x = self.get_position('x')
@@ -163,11 +157,8 @@ class Microscope(object):
         self.core.setAutoShutter(1)
 
     def snap_zstack(self, bounds, step):
-        z0 = self.coords[0, 2]
         zi = self.get_position('z')
-        zl = np.max([zi + bounds[0], z0 - 50.0])
-        zu = np.min([zi + bounds[1], z0 + 50.0])
-        positions = list(np.arange(zl, zu, step))
+        positions = list(np.arange(zi + bounds[0], zi + bounds[1], step))
         imgs = []
         for z in positions:
             self.set_position('z', z)
@@ -183,7 +174,7 @@ class Microscope(object):
         self.set_position('z', zi)
         return positions, imgs
 
-    def snap_xyfield(self, n=5, step=81.92):
+    def snap_xyfield(self, n=5, step=np.min(self.img_h, self.img_w)):
         x0 = self.get_position('x')
         y0 = self.get_position('y')
         xs = np.arange(-(n//2)*step, (n//2)*step + step, step)
@@ -258,7 +249,8 @@ class Microscope(object):
         else:  # Reset Position
             best_pos = self.z0
             best_foc = 0.0
-        self.coords[:, 2] += (best_pos - self.z0) + offset  # Update all z-coords
+        # Update all z-coords based on single z0
+        self.coords[:, 2] += (best_pos - self.z0) + offset
         self.az.append(best_pos)
         self.av.append(best_foc)
         a_path = os.path.join(self.save_dir, 'a.csv')

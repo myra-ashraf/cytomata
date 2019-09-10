@@ -4,7 +4,11 @@ import time
 sys.path.append(os.path.abspath('../'))
 
 from cytomata.interface.microscope import Microscope
+from configs.mm_settings import MM_CFG_FILE, SETTINGS
 
 
-mscope = Microscope(save_dir=os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')), tasks={})
-mscope.snap_xyfield(ch='GFP', n=5, step=81.92)
+mscope = Microscope(SETTINGS, MM_CFG_FILE)
+w = SETTINGS['img_width'] * SETTINGS['pixel_size']
+h = SETTINGS['img_height'] * SETTINGS['pixel_size']
+step = min(w, h)
+mscope.snap_xyfield(n=5, step=step)
