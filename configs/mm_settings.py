@@ -8,20 +8,27 @@ MM_CFG_FILE = os.path.join(CONFIG_DIR, 'mm_config.cfg')
 
 SETTINGS = {
     'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
+    'ch_group': 'Channel',
+    'obj_device': 'TINosePiece',
+    'xy_device': 'XYStage',
+    'z_device': 'TIZDrive',
     'img_width': 512,
     'img_height': 512,
     'pixel_size': 0.16,
-    'cam_exposure': 50,
-    'cam_gain': 1,
-    'obj_mag': 4,
     'stage_z_limit': [-100, 100],
     'stage_x_limit': [-3600, 3600],
     'stage_y_limit': [-3600, 3600],
+    #################################
+    'cam_exposure': 50,
+    'cam_gain': 1,
+    'obj_mag': 4,
+    'multi_position': False
 }
 
 INDUCTION = {
     't_info': [(1, 31, 5, 5)],
     'ch_ind': 'Blue-Light',
+    'ch_dark': 'None'
     'mag': 2
 }
 

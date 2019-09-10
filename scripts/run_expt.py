@@ -7,10 +7,12 @@ from cytomata.interface.microscope import Microscope
 from configs.mm_settings import MM_CFG_FILE, SETTINGS, INDUCTION, IMAGING, AUTOFOCUS
 
 
-notes = raw_input('Expt Notes (e.g. ND filters)?')
+notes = raw_input('Expt Notes (e.g. ND filters, expt group)?')
 SETTINGS['notes'] = notes
 
 mscope = Microscope(SETTINGS, MM_CFG_FILE)
+if SETTINGS['multi_position']:
+    mscope.add_coords_session()
 if INDUCTION:
     mscope.queue_induction(**INDUCTION)
 if IMAGING:

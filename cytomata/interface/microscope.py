@@ -23,6 +23,10 @@ class Microscope(object):
         self.core.setProperty('Camera', 'Gain', settings['cam_gain'])
         self.set_magnification(settings['obj_mag'])
         self.settings = settings
+        self.ch_group = self.settings['ch_group']
+        self.obj_device = self.settings['obj_device']
+        self.xy_device = self.settings['xy_device']
+        self.z_device = self.settings['z_device']
         self.save_dir = settings['save_dir']
         setup_dirs(self.save_dir)
         with open(os.path.join(self.save_dir, 'settings.json'), 'w') as fp:
@@ -50,17 +54,17 @@ class Microscope(object):
         ]])
         self.t0 = time.time()
 
-    def queue_induction(self, t_info, ch_ind, mag):
+    def queue_induction(self, t_info, ch_ind, ch_dark, mag):
         for (start, stop, period, width) in t_info:
             times = deque(np.arange(start + self.t0, stop + self.t0, period))
             self.tasks.append({
                 'func': self.pulse_light,
                 'times': times,
-                'kwargs': {'width': width, 'ch_ind': ch_ind, 'mag': mag}
+                'kwargs': {'width': width, 'ch_ind': ch_ind, 'ch_dark': ch_dark, 'mag': mag}
             })
         t = time.strftime('%Y%m%d-%H%M%S')
         with open(os.path.join(self.save_dir, 'tasks_log', t + '-induction.json'), 'w') as fp:
-            json.dump({'t_info': t_info, 'ch_ind': ch_ind, 'mag': mag}, fp)
+            json.dump({'t_info': t_info, 'ch_ind': ch_ind, 'ch_dark': ch_dark, 'mag': mag}, fp)
 
     def queue_imaging(self, t_info, chs):
         for (start, stop, period) in t_info:
@@ -102,20 +106,20 @@ class Microscope(object):
             return True
 
     def set_channel(self, chname):
-        if chname != self.core.getCurrentConfig('Channel'):
-            self.core.setConfig('Channel', chname)
+        if chname != self.core.getCurrentConfig(self.ch_group):
+            self.core.setConfig(self.ch_group, chname)
 
     def set_magnification(self, mag):
-        if mag != self.core.getState('TINosePiece'):
-            self.core.setState('TINosePiece', mag)
+        if mag != self.core.getState(self.obj_device):
+            self.core.setState(self.obj_device, mag)
 
     def get_position(self, axis):
         if axis.lower() == 'x':
-            return self.core.getXPosition('XYStage')
+            return self.core.getXPosition(self.xy_device)
         elif axis.lower() == 'y':
-            return self.core.getYPosition('XYStage')
+            return self.core.getYPosition(self.xy_device)
         elif axis.lower() == 'z':
-            return self.core.getPosition('TIZDrive')
+            return self.core.getPosition(self.z_device)
         else:
             raise ValueError('Invalid axis arg in Microscope.get_position(axis).')
 
@@ -123,10 +127,10 @@ class Microscope(object):
         if axis.lower() == 'xy':
             if (value[0] > self.xlim[0] and value[0] < self.xlim[1] and
             value[1] > self.ylim[0] and value[1] < self.ylim[1]):
-                self.core.setXYPosition('XYStage', value[0], value[1])
+                self.core.setXYPosition(self.xy_device, value[0], value[1])
         elif axis.lower() == 'z':
             if value > self.zlim[0] and value < self.zlim[1]:
-                self.core.setPosition('TIZDrive', value)
+                self.core.setPosition(self.z_device, value)
         else:
             raise ValueError('Invalid axis arg in Microscope.set_position(axis).')
 
@@ -164,7 +168,7 @@ class Microscope(object):
             self.set_position('z', z)
             img = self.snap_image()
             imgs.append(img)
-            ch = self.core.getCurrentConfig('Channel')
+            ch = self.core.getCurrentConfig(self.ch_group)
             tstamp = time.strftime('%Y%m%d-%H%M%S')
             img_path = os.path.join(self.save_dir,
                 'zstack_' + tstamp, ch, str(z) + '.tiff')
@@ -185,7 +189,7 @@ class Microscope(object):
                     xi = -xi
                 self.set_position('xy', (x0 + xi, y0 + yi))
                 img = self.snap_image()
-                ch = self.core.getCurrentConfig('Channel')
+                ch = self.core.getCurrentConfig(self.ch_group)
                 tstamp = time.strftime('%Y%m%d-%H%M%S')
                 save_path = os.path.join(self.save_dir,
                     'xyfield_' + tstamp, ch, str(xi) + '-' + str(yi) + '.tiff')
@@ -198,14 +202,14 @@ class Microscope(object):
         img = self.snap_image()
         return np.var(laplace(img))
 
-    def pulse_light(self, width, ch_ind, mag):
-        mag0 = self.core.getState('TINosePiece')
+    def pulse_light(self, width, ch_ind, ch_dark, mag):
+        mag0 = self.core.getState(self.obj_device)
         self.set_magnification(mag)
         ta = time.time() - self.t0
         self.set_channel(ch_ind)
         time.sleep(width)
         tb = time.time() - self.t0
-        self.set_channel('None')
+        self.set_channel(ch_dark)
         self.set_magnification(mag0)
         self.uta.append(ta)
         self.utb.append(tb)
@@ -233,7 +237,7 @@ class Microscope(object):
             x_data = np.column_stack((self.xt[i], self.xx[i], self.xy[i], self.xz[i]))
             np.savetxt(x_path, x_data, delimiter=',', header='t,x,y,z', comments='')
 
-    def autofocus(self, ch='DIC', algo='brent', bounds=[-3.0, 3.0], max_iter=5, offset=0):
+    def autofocus(self, ch, algo='brent', bounds=[-3.0, 3.0], max_iter=5, offset=0):
         self.set_channel(ch)
         if algo == 'brent':  # Brent's Method
             def residual(z):
