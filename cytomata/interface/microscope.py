@@ -1,6 +1,5 @@
 import os
 import time
-import copy
 import warnings
 from collections import defaultdict, deque
 
@@ -20,46 +19,85 @@ class Microscope(object):
     def __init__(self, settings, config_file):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
-        self.core.assignImageSynchro('XYStage')
-        self.core.assignImageSynchro('TIZDrive')
         self.settings = settings
         self.save_dir = settings['save_dir']
-        self.events = []
-        self.funcs = {
-            'pulse_light': self.pulse_light,
-            'image_coords': self.image_coords,
-            'autofocus': self.autofocus
-        }
+        setup_dirs(self.save_dir)
+        with open(os.path.join(self.save_dir, 'settings.json'), 'w') as fp:
+            json.dump(settings, fp)
+        self.img_w = settings['pixel_size'] * settings['img_width']
+        self.img_h = settings['pixel_size'] * settings['img_height']
+        self.core.setExposure(settings['cam_exposure'])
+        self.core.setProperty('Camera', 'Gain', settings['cam_gain'])
+        self.tasks = []
+        setup_dirs(self.save_dir, 'tasks_log')
         self.xt = defaultdict(list)
         self.xx = defaultdict(list)
         self.xy = defaultdict(list)
         self.xz = defaultdict(list)
-        self.ut = defaultdict(list)
+        self.uta = []
+        self.utb = []
         self.av = []
         self.az = []
-        self.img_w = settings['pixel_size'] * settings['img_width']
-        self.img_h = settings['pixel_size'] * settings['img_height']
         self.x0 = self.get_position('x')
         self.y0 = self.get_position('y')
         self.z0 = self.get_position('z')
-        self.bounds = None
         self.coords = np.array([[
             self.x0,
             self.y0,
             self.z0
         ]])
-        # while True:
-        #     ans = raw_input('Add current (x, y, z) to coords list? y/[n]: ')
-        #     if ans.lower() == 'y':
-        #         self.add_coord()
-        #     else:
-        #         break
-        if 'imaging' in self.tasks:
-            for ch in self.tasks['imaging']['kwargs']['chs']:
-                for i in range(len(self.coords)):
-                    setup_dirs(os.path.join(self.save_dir, ch, str(i)))
         self.t0 = time.time()
-        self.queue_init_events()
+
+    def queue_induction(self, t_info, ch_ind, mag):
+        for (start, stop, period, width) in t_info:
+            times = deque(np.arange(start + self.t0, stop + self.t0, period))
+            self.tasks.append({
+                'func': self.pulse_light,
+                'times': times,
+                'kwargs': {'width': width, 'ch_ind': ch_ind, 'mag': mag}
+            })
+        t = time.strftime('%Y%m%d-%H%M%S')
+        with open(os.path.join(self.save_dir, 'tasks_log', t + '-induction.json'), 'w') as fp:
+            json.dump({'t_info': t_info, 'ch_ind': ch_ind, 'mag': mag}, fp)
+
+    def queue_imaging(self, t_info, chs):
+        for (start, stop, period) in t_info:
+            times = deque(np.arange(start + self.t0, stop + self.t0, period))
+            self.tasks.append({
+                'func': self.image_coords,
+                'times': times,
+                'kwargs': {'chs': chs}
+            })
+        for ch in chs:
+            for i in range(len(self.coords)):
+                setup_dirs(os.path.join(self.save_dir, ch, str(i)))
+        t = time.strftime('%Y%m%d-%H%M%S')
+        with open(os.path.join(self.save_dir, 'tasks_log', t + '-imaging.json'), 'w') as fp:
+            json.dump({'t_info': t_info, 'chs': chs}, fp)
+
+    def queue_autofocus(self, t_info, ch):
+        for (start, stop, period) in t_info:
+            times = deque(np.arange(start + self.t0, stop + self.t0, period))
+            self.tasks.append({
+                'func': self.autofocus,
+                'times': times,
+                'kwargs': {'ch': ch}
+            })
+        t = time.strftime('%Y%m%d-%H%M%S')
+        with open(os.path.join(self.save_dir, 'tasks_log', t + '-autofocus.json'), 'w') as fp:
+            json.dump({'t_info': t_info, 'ch': ch}, fp)
+
+    def run_tasks(self):
+        if self.tasks:
+            for i, task in enumerate(self.tasks):
+                if task['times']:
+                    if time.time() > task['times'][0]:
+                        task['func'](**task['kwargs'])
+                        self.tasks[i]['times'].popleft()
+                else:
+                    self.tasks.pop(i)
+        else:
+            return True
 
     def set_channel(self, chname):
         if chname != self.core.getCurrentConfig('Channel'):
@@ -109,6 +147,21 @@ class Microscope(object):
         self.core.snapImage()
         return self.core.getImage()
 
+    def add_coords_session(self):
+        self.core.setAutoShutter(0)
+        self.core.setShutterOpen(1)
+        while True:
+            ans = raw_input('Enter [y] to add current (x, y, z) to coord list or any key to quit.')
+            if ans.lower() == 'y':
+                self.add_coord()
+                print('--Coords List--')
+                for coord in self.coords:
+                    print(coord)
+            else:
+                break
+        self.core.setShutterOpen(0)
+        self.core.setAutoShutter(1)
+
     def snap_zstack(self, bounds, step):
         z0 = self.coords[0, 2]
         zi = self.get_position('z')
@@ -150,66 +203,24 @@ class Microscope(object):
                     imsave(img_path, img)
         self.set_position('xy', (x0, y0))
 
-    def measure_focus(self, img):
+    def measure_focus(self):
+        img = self.snap_image()
         return np.var(laplace(img))
 
-    def sample_focus(self):
-        pos = self.get_position('z')
-        foc = self.measure_focus(self.snap_image())
-        return pos, foc
-
-    def sample_focus_stack(self, bounds=[-3.0, 3.0], step=1.0):
-        positions, imgs = self.snap_zstack(ch='DIC', bounds=bounds, step=step, save=False)
-        focuses = [self.measure_focus(img) for img in imgs]
-        return positions, focuses
-
-    def queue_event(self, func, tstart, tstop, tstep, kwargs):
-        times = deque(np.arange(tstart + self.t0, tstop + self.t0, tstep))
-        self.events.append({'func': func, 'times': times, 'kwargs': kwargs})
-
-    def queue_init_events(self):
-        for task, params in self.tasks.items():
-            n_events = len(params['t_starts'])
-            for i in range(n_events):
-                kwargs = copy.deepcopy(params['kwargs'])
-                for k, v in kwargs.items():
-                    if isinstance(v, list) and len(v) == n_events:
-                        kwargs[k] = kwargs[k][i]
-                self.queue_event(
-                    func=self.funcs[params['func']],
-                    tstart=params['t_starts'][i],
-                    tstop=params['t_stops'][i],
-                    tstep=params['t_steps'][i],
-                    kwargs=kwargs,
-                )
-
-    def run_events(self):
-        if self.events:
-            for i, event in enumerate(self.events):
-                if event['times']:
-                    if time.time() > event['times'][0]:
-                        event['func'](**event['kwargs'])
-                        self.events[i]['times'].popleft()
-                else:
-                    self.events.pop(i)
-        else:
-            return True
-
-    def pulse_light(self, ch_ind, ch_dark, width, mag):
+    def pulse_light(self, width, ch_ind, mag):
         mag0 = self.core.getState('TINosePiece')
         self.set_magnification(mag)
-        for i, (x, y, z) in enumerate(self.coords):
-            self.set_position('xy', (x, y))
-            self.set_position('z', z)
-            t1 = time.time() - self.t0
-            self.set_channel(ch_ind)
-            time.sleep(width)
-            t2 = time.time() - self.t0
-            self.set_channel(ch_dark)
-            self.ut[i] += [t1, t2]
-            u_path = os.path.join(self.save_dir, 'u' + str(i) + '.csv')
-            np.savetxt(u_path, self.ut[i], delimiter=',', header='ut', comments='')
+        ta = time.time() - self.t0
+        self.set_channel(ch_ind)
+        time.sleep(width)
+        tb = time.time() - self.t0
+        self.set_channel('None')
         self.set_magnification(mag0)
+        self.uta.append(ta)
+        self.utb.append(tb)
+        u_path = os.path.join(self.save_dir, 'u' + str(i) + '.csv')
+        u_data = np.column_stack((self.uta, self.utb))
+        np.savetxt(u_path, u_data, delimiter=',', header='u_ta,u_tb', comments='')
 
     def image_coords(self, chs):
         for i, (x, y, z) in enumerate(self.coords):
@@ -231,33 +242,25 @@ class Microscope(object):
             x_data = np.column_stack((self.xt[i], self.xx[i], self.xy[i], self.xz[i]))
             np.savetxt(x_path, x_data, delimiter=',', header='t,x,y,z', comments='')
 
-    def autofocus(self, ch='DIC', algo='brent', bounds=[-3.0, 3.0], max_iter=5):
+    def autofocus(self, ch='DIC', algo='brent', bounds=[-3.0, 3.0], max_iter=5, offset=0):
         self.set_channel(ch)
-        z0 = self.coords[0, 2]
-        if algo == 'grid':  # Grid Search
-            positions, focuses = self.sample_focus_stack(bounds=bounds, num=max_iter)
-            best_foc = max(focuses)
-            best_pos = positions[focuses.index(max(focuses))]
-        elif algo == 'brent':  # Brent's Method
+        if algo == 'brent':  # Brent's Method
             def residual(z):
                 self.set_position('z', z)
-                foc = self.sample_focus()[1]
-                print('z: ' + str(z))
-                print('f: ' + str(foc))
+                foc = measure_focus()
                 return -foc
             zi = self.get_position('z')
-            zl = np.max([zi + bounds[0], z0 - 10.0])
-            zu = np.min([zi + bounds[1], z0 + 50.0])
-            print('--autofocus--')
+            zl = np.max([zi + bounds[0], self.z0 - 50.0])
+            zu = np.min([zi + bounds[1], self.z0 + 50.0])
             result = minimize_scalar(residual, method='bounded',
                 bounds=(zl, zu), options={'maxiter': max_iter, 'xatol': 2.0})
             best_pos, best_foc = result.x, -result.fun
         else:  # Reset Position
-            best_pos = z0
+            best_pos = self.z0
             best_foc = 0.0
-        self.coords[:, 2] += (best_pos - self.coords[0, 2])  # Update all z-coords
+        self.coords[:, 2] += (best_pos - self.z0) + offset  # Update all z-coords
         self.az.append(best_pos)
         self.av.append(best_foc)
         a_path = os.path.join(self.save_dir, 'a.csv')
         a_data = np.column_stack((self.az, self.av))
-        np.savetxt(a_path, a_data, delimiter=',', header='af_z, af_v', comments='')
+        np.savetxt(a_path, a_data, delimiter=',', header='af_z,af_v', comments='')

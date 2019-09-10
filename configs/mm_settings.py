@@ -5,13 +5,32 @@ from os.path import dirname, abspath, realpath
 
 CONFIG_DIR = dirname(abspath(__file__))
 MM_CFG_FILE = os.path.join(CONFIG_DIR, 'mm_config.cfg')
-EXPT_DIR = os.path.join('expts', time.strftime('%Y%m%d-%H%M%S'))
-CAM_PIXEL_SIZE = 0.16
-CAM_IMG_WIDTH = 512
-CAM_IMG_HEIGHT = 512
-CAM_EXPOSURE = 100
-CAM_GAIN = 1
-OBJ_MAG = '100x'
-STAGE_Z_LIMIT = [-100, 100]
-STAGE_X_LIMIT = [-3600, 3600]
-STAGE_Y_LIMIT = [-3600, 3600]
+
+SETTINGS = {
+    'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
+    'img_width': 512,
+    'img_height': 512,
+    'pixel_size': 0.16,
+    'cam_exposure': 50,
+    'cam_gain': 1,
+    'obj_mag': 4,
+    'stage_z_limit': [-100, 100],
+    'stage_x_limit': [-3600, 3600],
+    'stage_y_limit': [-3600, 3600],
+}
+
+INDUCTION = {
+    't_info': [(1, 31, 5, 5)],
+    'ch_ind': 'Blue-Light',
+    'mag': 2
+}
+
+IMAGING = {
+    't_info': [(0, 300, 10)],
+    'chs': ['DIC', 'YFP', 'mCherry']
+}
+
+AUTOFOCUS = {
+#     't_info': [(0, 86400, 300)],
+#     'ch': 'DIC'
+}
