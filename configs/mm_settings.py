@@ -4,7 +4,7 @@ from os.path import dirname, abspath, realpath
 
 
 CONFIG_DIR = dirname(abspath(__file__))
-MM_CFG_FILE = os.path.join(CONFIG_DIR, 'mm_config.cfg')
+MM_CFG_FILE = os.path.join(CONFIG_DIR, 'mm_nikon2.cfg')
 
 SETTINGS = {
     'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
@@ -22,7 +22,7 @@ SETTINGS = {
     #################################
     'cam_exposure': 50,
     'cam_gain': 1,
-    'obj_mag': 4,
+    'obj_mag': 3,
     'multi_position': False
 }
 
@@ -30,12 +30,12 @@ INDUCTION = {
     't_info': [(1, 31, 5, 5)],
     'ch_ind': 'Blue-Light',
     'ch_dark': 'None'
-    'mag': 2
+    'mag': 3
 }
 
 IMAGING = {
-    't_info': [(0, 300, 10)],
-    'chs': ['DIC', 'YFP', 'mCherry']
+    't_info': [(0, 300, 5)],
+    'chs': ['mCherry']
 }
 
 AUTOFOCUS = {
