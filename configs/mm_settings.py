@@ -23,21 +23,21 @@ SETTINGS = {
     'stage_x_limit': [-3600, 3600],
     'stage_y_limit': [-3600, 3600],
     #################################
-    'cam_exposure': 50,
+    'cam_exposure': 200,
     'cam_gain': 1,
     'obj_mag': 3,
     'multi_position': False
 }
 
 INDUCTION = {
-    't_info': [(1, 31, 5, 5)],
+    't_info': [(1, 16, 5, 5)],
     'ch_ind': 'Blue-Light',
     'ch_dark': 'None',
     'mag': 3
 }
 
 IMAGING = {
-    't_info': [(0, 300, 5)],
+    't_info': [(0, 120, 5)],
     'chs': ['mCherry']
 }
 
