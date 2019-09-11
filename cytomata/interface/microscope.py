@@ -1,5 +1,6 @@
 import os
 import time
+import json
 import warnings
 from collections import defaultdict, deque
 
@@ -19,20 +20,23 @@ class Microscope(object):
     def __init__(self, settings, config_file):
         self.core = MMCorePy.CMMCore()
         self.core.loadSystemConfiguration(config_file)
-        self.core.setExposure(settings['cam_exposure'])
-        self.core.setProperty('Camera', 'Gain', settings['cam_gain'])
-        self.set_magnification(settings['obj_mag'])
         self.settings = settings
         self.ch_group = self.settings['ch_group']
+        self.cam_device = self.settings['cam_device']
         self.obj_device = self.settings['obj_device']
         self.xy_device = self.settings['xy_device']
         self.z_device = self.settings['z_device']
+        self.img_w = self.settings['img_width_um']
+        self.img_h = self.settings['img_height_um']
         self.save_dir = settings['save_dir']
         setup_dirs(self.save_dir)
         with open(os.path.join(self.save_dir, 'settings.json'), 'w') as fp:
             json.dump(settings, fp)
         self.tasks = []
-        setup_dirs(self.save_dir, 'tasks_log')
+        setup_dirs(os.path.join(self.save_dir, 'tasks_log'))
+        self.core.setExposure(settings['cam_exposure'])
+        self.core.setProperty(settings['cam_device'], 'Gain', settings['cam_gain'])
+        self.set_magnification(settings['obj_mag'])
         self.xt = defaultdict(list)
         self.xx = defaultdict(list)
         self.xy = defaultdict(list)
@@ -114,25 +118,29 @@ class Microscope(object):
             self.core.setState(self.obj_device, mag)
 
     def get_position(self, axis):
-        if axis.lower() == 'x' and self.xy_device:
-            return self.core.getXPosition(self.xy_device)
-        elif axis.lower() == 'y' and self.xy_device:
-            return self.core.getYPosition(self.xy_device)
-        elif axis.lower() == 'z':
-            return self.core.getPosition(self.z_device)
+        if self.xy_device:
+            if axis.lower() == 'x':
+                return self.core.getXPosition(self.xy_device)
+            elif axis.lower() == 'y':
+                return self.core.getYPosition(self.xy_device)
+            elif axis.lower() == 'z':
+                return self.core.getPosition(self.z_device)
+            else:
+                raise ValueError('Invalid axis arg in Microscope.get_position(axis).')
         else:
-            raise ValueError('Invalid axis arg in Microscope.get_position(axis).')
+            return 0
 
     def set_position(self, axis, value):
-        if axis.lower() == 'xy' and self.xy_device:
-            if (value[0] > self.xlim[0] and value[0] < self.xlim[1] and
-            value[1] > self.ylim[0] and value[1] < self.ylim[1]):
-                self.core.setXYPosition(self.xy_device, value[0], value[1])
-        elif axis.lower() == 'z':
-            if value > self.zlim[0] and value < self.zlim[1]:
-                self.core.setPosition(self.z_device, value)
-        else:
-            raise ValueError('Invalid axis arg in Microscope.set_position(axis).')
+        if self.xy_device:
+            if axis.lower() == 'xy':
+                if (value[0] > self.xlim[0] and value[0] < self.xlim[1] and
+                value[1] > self.ylim[0] and value[1] < self.ylim[1]):
+                    self.core.setXYPosition(self.xy_device, value[0], value[1])
+            elif axis.lower() == 'z':
+                if value > self.zlim[0] and value < self.zlim[1]:
+                    self.core.setPosition(self.z_device, value)
+            else:
+                raise ValueError('Invalid axis arg in Microscope.set_position(axis).')
 
     def add_coord(self):
         x = self.get_position('x')
@@ -178,7 +186,7 @@ class Microscope(object):
         self.set_position('z', zi)
         return positions, imgs
 
-    def snap_xyfield(self, n=5, step=np.min(self.img_h, self.img_w)):
+    def snap_xyfield(self, n=5, step=81.92):
         x0 = self.get_position('x')
         y0 = self.get_position('y')
         xs = np.arange(-(n//2)*step, (n//2)*step + step, step)
@@ -213,7 +221,7 @@ class Microscope(object):
         self.set_magnification(mag0)
         self.uta.append(ta)
         self.utb.append(tb)
-        u_path = os.path.join(self.save_dir, 'u' + str(i) + '.csv')
+        u_path = os.path.join(self.save_dir, 'u' + '.csv')
         u_data = np.column_stack((self.uta, self.utb))
         np.savetxt(u_path, u_data, delimiter=',', header='u_ta,u_tb', comments='')
 

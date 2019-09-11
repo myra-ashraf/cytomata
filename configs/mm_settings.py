@@ -10,11 +10,14 @@ SETTINGS = {
     'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
     'ch_group': 'Channel',
     'obj_device': 'TINosePiece',
+    'cam_device': 'QuantEM',
     # 'xy_device': 'XYStage',
     'xy_device': None,
     'z_device': 'TIZDrive',
-    'img_width': 512,
-    'img_height': 512,
+    'img_width_px': 512,
+    'img_width_um': 81.92,
+    'img_height_px': 512,
+    'img_height_um': 81.92,
     'pixel_size': 0.16,
     'stage_z_limit': [-100, 100],
     'stage_x_limit': [-3600, 3600],
@@ -29,7 +32,7 @@ SETTINGS = {
 INDUCTION = {
     't_info': [(1, 31, 5, 5)],
     'ch_ind': 'Blue-Light',
-    'ch_dark': 'None'
+    'ch_dark': 'None',
     'mag': 3
 }
 
