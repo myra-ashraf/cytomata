@@ -46,7 +46,6 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=['tests']),
     install_requires=[
         'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image','jupyter', 'pytorch',
-        'torchvision', 'opencv-python', 'gevent', 'eel', 'pyinstaller', 'tornado', 'natsort',
-        'lmfit', 'filterpy', 'imgaug'
+        'torchvision', 'opencv-python', 'gevent', 'eel', 'tornado', 'natsort', 'lmfit', 'filterpy'
     ]
 )
