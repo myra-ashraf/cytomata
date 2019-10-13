@@ -250,7 +250,7 @@ class Microscope(object):
         if algo == 'brent':  # Brent's Method
             def residual(z):
                 self.set_position('z', z)
-                foc = measure_focus()
+                foc = self.measure_focus()
                 return -foc
             zi = self.get_position('z')
             zl = np.max([zi + bounds[0], self.z0 - 50.0])
@@ -262,7 +262,8 @@ class Microscope(object):
             best_pos = self.z0
             best_foc = 0.0
         # Update all z-coords based on single z0
-        self.coords[:, 2] += (best_pos - self.z0) + offset
+        adj = (best_pos - np.float64(self.z0)) + np.float64(offset)
+        np.add(self.coords[:, 2], adj, out=self.coords[:, 2], casting="unsafe")
         self.az.append(best_pos)
         self.av.append(best_foc)
         a_path = os.path.join(self.save_dir, 'a.csv')

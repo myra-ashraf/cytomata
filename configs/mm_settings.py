@@ -29,19 +29,19 @@ SETTINGS = {
     'multi_position': False
 }
 
+IMAGING = {
+    't_info': [(0, 600, 10)],
+    'chs': ['mCherry']
+}
+
 INDUCTION = {
-    't_info': [(1, 16, 5, 5)],
+    't_info': [(0, 10, 10, 10)],
     'ch_ind': 'Blue-Light',
     'ch_dark': 'None',
     'mag': 3
 }
 
-IMAGING = {
-    't_info': [(0, 120, 5)],
-    'chs': ['mCherry']
-}
-
 AUTOFOCUS = {
-#     't_info': [(0, 86400, 300)],
-#     'ch': 'DIC'
+    # 't_info': [(0, 1200, 60)],
+    # 'ch': 'mCherry'
 }

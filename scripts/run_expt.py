@@ -13,10 +13,10 @@ SETTINGS['notes'] = notes
 mscope = Microscope(SETTINGS, MM_CFG_FILE)
 if SETTINGS['multi_position']:
     mscope.add_coords_session()
-if INDUCTION:
-    mscope.queue_induction(**INDUCTION)
 if IMAGING:
     mscope.queue_imaging(**IMAGING)
+if INDUCTION:
+    mscope.queue_induction(**INDUCTION)
 if AUTOFOCUS:
     mscope.queue_autofocus(**AUTOFOCUS)
 
@@ -26,4 +26,4 @@ while True:
     if done:
         break
     else:
-        time.sleep(0.1)
+        time.sleep(0.01)
