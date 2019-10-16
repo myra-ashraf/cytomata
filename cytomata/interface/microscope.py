@@ -154,8 +154,12 @@ class Microscope(object):
         return self.core.getImage()
 
     def add_coords_session(self):
-        self.core.setAutoShutter(0)
-        self.core.setShutterOpen(1)
+        self.core.setShutterDevice('Shutter-A')
+        self.core.setShutterOpen(True)
+        print(self.core.getShutterOpen())
+        print(self.core.getAutoShutter())
+        print(self.core.getShutterDevice())
+        self.set_channel('mCherry')
         while True:
             ans = raw_input('Enter [y] to add current (x, y, z) to coord list or any key to quit.')
             if ans.lower() == 'y':
@@ -166,7 +170,6 @@ class Microscope(object):
             else:
                 break
         self.core.setShutterOpen(0)
-        self.core.setAutoShutter(1)
 
     def snap_zstack(self, bounds, step):
         zi = self.get_position('z')
