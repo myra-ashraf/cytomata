@@ -12,7 +12,7 @@ SETTINGS['notes'] = notes
 
 mscope = Microscope(SETTINGS, MM_CFG_FILE)
 if SETTINGS['multi_position']:
-    mscope.add_coords_session()
+    mscope.add_coords_session(SETTINGS['mpos_ch'])
 if IMAGING:
     mscope.queue_imaging(**IMAGING)
 if INDUCTION:

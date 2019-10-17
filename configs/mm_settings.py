@@ -26,7 +26,8 @@ SETTINGS = {
     'cam_exposure': 200,
     'cam_gain': 1,
     'obj_mag': 3,
-    'multi_position': True
+    'multi_position': True,
+    'mpos_ch': 'mCherry'
 }
 
 IMAGING = {
