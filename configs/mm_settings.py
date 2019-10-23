@@ -31,15 +31,15 @@ SETTINGS = {
 }
 
 IMAGING = {
-    't_info': [(0, 43200, 300)],
-    'chs': ['DIC', 'mCherry', 'YFP']
+    't_info': [(0, 120, 5)],
+    'chs': ['mCherry']
 }
 
 INDUCTION = {
-    't_info': [(0, 300, 300, 300)],
+    't_info': [(0, 5, 5, 5)],
     'ch_ind': 'Blue-Light',
     'ch_dark': 'None',
-    'mag': 0
+    'mag': 3
 }
 
 AUTOFOCUS = {
