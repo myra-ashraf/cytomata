@@ -11,8 +11,8 @@ SETTINGS = {
     'ch_group': 'Channel',
     'obj_device': 'TINosePiece',
     'cam_device': 'QuantEM',
-    # 'xy_device': 'XYStage',
-    'xy_device': None,
+    'xy_device': 'XYStage',
+    # 'xy_device': None,
     'z_device': 'TIZDrive',
     'img_width_px': 512,
     'img_width_um': 81.92,
@@ -23,7 +23,7 @@ SETTINGS = {
     'stage_x_limit': [-3600, 3600],
     'stage_y_limit': [-3600, 3600],
     #################################
-    'cam_exposure': 200,
+    'cam_exposure': 100,
     'cam_gain': 1,
     'obj_mag': 3,
     'multi_position': True,
@@ -31,14 +31,14 @@ SETTINGS = {
 }
 
 IMAGING = {
-    't_info': [(0, 120, 5)],
+    't_info': [(0, 0, 1), (0.2, 1, 0.2), (1, 10, 1), (10, 600, 5)],
     'chs': ['mCherry']
 }
 
 INDUCTION = {
-    't_info': [(0, 5, 5, 5)],
-    'ch_ind': 'Blue-Light',
-    'ch_dark': 'None',
+    't_info': [(0, 0.1, 0.1, 0.1)],
+    'ch_ind': 'blue-light',
+    'ch_dark': 'blue-dark',
     'mag': 3
 }
 

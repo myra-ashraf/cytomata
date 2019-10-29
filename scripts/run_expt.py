@@ -7,7 +7,7 @@ from cytomata.interface.microscope import Microscope
 from configs.mm_settings import MM_CFG_FILE, SETTINGS, INDUCTION, IMAGING, AUTOFOCUS
 
 
-notes = raw_input('Expt Notes (e.g. ND filters, expt group)?')
+notes = raw_input('Notes: ')
 SETTINGS['notes'] = notes
 
 mscope = Microscope(SETTINGS, MM_CFG_FILE)
@@ -26,4 +26,4 @@ while True:
     if done:
         break
     else:
-        time.sleep(0.01)
+        time.sleep(0.001)

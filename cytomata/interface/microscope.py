@@ -5,6 +5,7 @@ import warnings
 from collections import defaultdict, deque
 
 import numpy as np
+import cv2
 from skimage.io import imsave
 from skimage.filters import laplace
 from scipy.optimize import minimize_scalar
@@ -43,8 +44,6 @@ class Microscope(object):
         self.xz = defaultdict(list)
         self.uta = []
         self.utb = []
-        self.av = []
-        self.az = []
         self.x0 = self.get_position('x')
         self.y0 = self.get_position('y')
         self.z0 = self.get_position('z')
@@ -58,21 +57,14 @@ class Microscope(object):
         ]])
         self.t0 = time.time()
 
-    def queue_induction(self, t_info, ch_ind, ch_dark, mag):
-        for (start, stop, period, width) in t_info:
-            times = deque(np.arange(start + self.t0, stop + self.t0, period))
-            self.tasks.append({
-                'func': self.pulse_light,
-                'times': times,
-                'kwargs': {'width': width, 'ch_ind': ch_ind, 'ch_dark': ch_dark, 'mag': mag}
-            })
-        t = time.strftime('%Y%m%d-%H%M%S')
-        with open(os.path.join(self.save_dir, 'tasks_log', t + '-induction.json'), 'w') as fp:
-            json.dump({'t_info': t_info, 'ch_ind': ch_ind, 'ch_dark': ch_dark, 'mag': mag}, fp)
-
     def queue_imaging(self, t_info, chs):
         for (start, stop, period) in t_info:
             times = deque(np.arange(start + self.t0, stop + self.t0, period))
+            print('--imaging task--')
+            if len(times) > 1010:
+                print(list(times)[:1010], '...')
+            else:
+                print(list(times))
             self.tasks.append({
                 'func': self.image_coords,
                 'times': times,
@@ -85,9 +77,31 @@ class Microscope(object):
         with open(os.path.join(self.save_dir, 'tasks_log', t + '-imaging.json'), 'w') as fp:
             json.dump({'t_info': t_info, 'chs': chs}, fp)
 
+    def queue_induction(self, t_info, ch_ind, ch_dark, mag):
+        for (start, stop, period, width) in t_info:
+            times = deque(np.arange(start + self.t0, stop + self.t0, period))
+            print('--induction task--')
+            if len(times) > 10:
+                print(list(times)[:10], '...')
+            else:
+                print(list(times))
+            self.tasks.append({
+                'func': self.pulse_light,
+                'times': times,
+                'kwargs': {'width': width, 'ch_ind': ch_ind, 'ch_dark': ch_dark, 'mag': mag}
+            })
+        t = time.strftime('%Y%m%d-%H%M%S')
+        with open(os.path.join(self.save_dir, 'tasks_log', t + '-induction.json'), 'w') as fp:
+            json.dump({'t_info': t_info, 'ch_ind': ch_ind, 'ch_dark': ch_dark, 'mag': mag}, fp)
+
     def queue_autofocus(self, t_info, ch):
         for (start, stop, period) in t_info:
             times = deque(np.arange(start + self.t0, stop + self.t0, period))
+            print('--autofocus task--')
+            if len(times) > 10:
+                print(list(times)[:10], '...')
+            else:
+                print(list(times))
             self.tasks.append({
                 'func': self.autofocus,
                 'times': times,
@@ -155,19 +169,30 @@ class Microscope(object):
 
     def add_coords_session(self, ch):
         self.set_channel(ch)
-        self.core.setAutoShutter(False)
-        self.core.setShutterOpen(True)
+        cv2.namedWindow('Positions Picker')
+        self.core.startContinuousSequenceAcquisition(1)
         while True:
-            ans = raw_input('Enter [y] to add current (x, y, z) to coord list or any key to quit.')
-            if ans.lower() == 'y':
+            img = self.core.getLastImage()
+            if self.core.getRemainingImageCount() > 0:
+                img = self.core.getLastImage()
+                cv2.imshow('Positions Picker', img)
+            else:
+                print('No Image')
+            k = cv2.waitKey(0)
+            if k == 27:  # ESC - Exit
+                break
+            elif k == 32:  # SPACE - Add Current Coord
                 self.add_coord()
                 print('--Coords List--')
                 for coord in self.coords:
                     print(coord)
-            else:
-                break
-        self.core.setShutterOpen(False)
-        self.core.setAutoShutter(True)
+            elif k == 8:  # Backspace - Remove Prev Coord
+                self.coords = self.coords[:-1]
+                print('--Coords List--')
+                for coord in self.coords:
+                    print(coord)
+        cv2.destroyAllWindows()
+        self.core.stopSequenceAcquisition()
 
     def snap_zstack(self, bounds, step):
         zi = self.get_position('z')
@@ -229,15 +254,15 @@ class Microscope(object):
     def image_coords(self, chs):
         for i, (x, y, z) in enumerate(self.coords):
             self.set_position('xy', (x, y))
-            self.set_position('z', z)
+            # self.set_position('z', z)
             self.xt[i].append(time.time() - self.t0)
-            self.xx[i].append(x)
-            self.xy[i].append(y)
-            self.xz[i].append(z)
+            self.xx[i].append(self.get_position('x'))
+            self.xy[i].append(self.get_position('y'))
+            self.xz[i].append(self.get_position('z'))
             for ch in chs:
                 self.set_channel(ch)
                 img = self.snap_image()
-                img_name = str(round(self.xt[i][-1]))
+                img_name = str(round(self.xt[i][-1], 2))
                 img_path = os.path.join(self.save_dir, ch, str(i), img_name + '.tiff')
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
@@ -265,8 +290,3 @@ class Microscope(object):
         # Update all z-coords based on single z0
         adj = (best_pos - np.float64(self.z0)) + np.float64(offset)
         np.add(self.coords[:, 2], adj, out=self.coords[:, 2], casting="unsafe")
-        self.az.append(best_pos)
-        self.av.append(best_foc)
-        a_path = os.path.join(self.save_dir, 'a.csv')
-        a_data = np.column_stack((self.az, self.av))
-        np.savetxt(a_path, a_data, delimiter=',', header='af_z,af_v', comments='')
