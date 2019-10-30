@@ -25,21 +25,21 @@ SETTINGS = {
     #################################
     'cam_exposure': 100,
     'cam_gain': 1,
-    'obj_mag': 3,
-    'multi_position': True,
+    'obj_mag': 0,
+    'multi_position': False,
     'mpos_ch': 'mCherry'
 }
 
 IMAGING = {
-    't_info': [(0, 0, 1), (0.2, 1, 0.2), (1, 10, 1), (10, 600, 5)],
-    'chs': ['mCherry']
+    't_info': [(0, 43200, 300)],
+    'chs': ['DIC', 'GFP']
 }
 
 INDUCTION = {
-    't_info': [(0, 0.1, 0.1, 0.1)],
+    't_info': [(0, 43200, 30, 1)],
     'ch_ind': 'blue-light',
     'ch_dark': 'blue-dark',
-    'mag': 3
+    'mag': 5
 }
 
 AUTOFOCUS = {

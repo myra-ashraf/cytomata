@@ -61,8 +61,8 @@ class Microscope(object):
         for (start, stop, period) in t_info:
             times = deque(np.arange(start + self.t0, stop + self.t0, period))
             print('--imaging task--')
-            if len(times) > 1010:
-                print(list(times)[:1010], '...')
+            if len(times) > 10:
+                print(list(times)[:10], '...')
             else:
                 print(list(times))
             self.tasks.append({
@@ -172,13 +172,11 @@ class Microscope(object):
         cv2.namedWindow('Positions Picker')
         self.core.startContinuousSequenceAcquisition(1)
         while True:
-            img = self.core.getLastImage()
             if self.core.getRemainingImageCount() > 0:
                 img = self.core.getLastImage()
+                img = cv2.normalize(img, dst=None, alpha=0, beta=65535, norm_type=cv2.NORM_MINMAX)
                 cv2.imshow('Positions Picker', img)
-            else:
-                print('No Image')
-            k = cv2.waitKey(0)
+            k = cv2.waitKey(20)
             if k == 27:  # ESC - Exit
                 break
             elif k == 32:  # SPACE - Add Current Coord
