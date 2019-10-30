@@ -39,10 +39,10 @@ INDUCTION = {
     't_info': [(0, 43200, 30, 1)],
     'ch_ind': 'blue-light',
     'ch_dark': 'blue-dark',
-    'mag': 5
+    'mag': 0
 }
 
 AUTOFOCUS = {
-    # 't_info': [(0, 1200, 60)],
-    # 'ch': 'mCherry'
+    't_info': [(0, 43200, 300)],
+    'ch': 'DIC'
 }
