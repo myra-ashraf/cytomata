@@ -10,9 +10,9 @@ SETTINGS = {
     'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
     'ch_group': 'Channel',
     'obj_device': 'TINosePiece',
+    'lp_device': 'TILightPath',
     'cam_device': 'QuantEM',
     'xy_device': 'XYStage',
-    # 'xy_device': None,
     'z_device': 'TIZDrive',
     'img_width_px': 512,
     'img_width_um': 81.92,
@@ -25,24 +25,24 @@ SETTINGS = {
     #################################
     'cam_exposure': 100,
     'cam_gain': 1,
-    'obj_mag': 0,
+    'obj_mag': 3,
     'multi_position': False,
     'mpos_ch': 'mCherry'
 }
 
 IMAGING = {
-    't_info': [(0, 43200, 300)],
-    'chs': ['DIC', 'GFP']
+    't_info': [(0, 300, 5)],
+    'chs': ['mCherry']
 }
 
 INDUCTION = {
-    't_info': [(0, 43200, 30, 1)],
+    't_info': [(0, 5, 5, 5)],
     'ch_ind': 'blue-light',
     'ch_dark': 'blue-dark',
-    'mag': 0
+    'mag': 3
 }
 
 AUTOFOCUS = {
-    't_info': [(0, 43200, 300)],
-    'ch': 'DIC'
+    # 't_info': [(0, 43200, 300)],
+    # 'ch': 'DIC'
 }

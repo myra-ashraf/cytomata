@@ -25,6 +25,7 @@ class Microscope(object):
         self.ch_group = self.settings['ch_group']
         self.cam_device = self.settings['cam_device']
         self.obj_device = self.settings['obj_device']
+        self.lp_device = self.settings['lp_device']
         self.xy_device = self.settings['xy_device']
         self.z_device = self.settings['z_device']
         self.img_w = self.settings['img_width_um']
@@ -38,6 +39,7 @@ class Microscope(object):
         self.core.setExposure(settings['cam_exposure'])
         self.core.setProperty(settings['cam_device'], 'Gain', settings['cam_gain'])
         self.set_magnification(settings['obj_mag'])
+        self.core.setState(self.lp_device, 1)
         self.xt = defaultdict(list)
         self.xx = defaultdict(list)
         self.xy = defaultdict(list)
