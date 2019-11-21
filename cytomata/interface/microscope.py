@@ -128,15 +128,16 @@ class Microscope(object):
     def snap_zstack(self, bounds, step):
         zi = self.get_position('z')
         positions = list(np.arange(zi + bounds[0], zi + bounds[1], step))
+        ch = self.core.getCurrentConfig(self.ch_group)
+        tstamp = time.strftime('%Y%m%d-%H%M%S')
+        img_dir = os.path.join(self.save_dir, 'zstack_' + tstamp, ch)
+        setup_dirs(img_dir)
         imgs = []
         for z in positions:
             self.set_position('z', z)
             img = self.snap_image()
             imgs.append(img)
-            ch = self.core.getCurrentConfig(self.ch_group)
-            tstamp = time.strftime('%Y%m%d-%H%M%S')
-            img_path = os.path.join(self.save_dir,
-                'zstack_' + tstamp, ch, str(z) + '.tiff')
+            img_path = os.path.join(img_dir, str(z) + '.tiff')
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 imsave(img_path, img)
@@ -148,16 +149,18 @@ class Microscope(object):
         y0 = self.get_position('y')
         xs = np.arange(-(n//2)*step, (n//2)*step + step, step)
         ys = np.arange(-(n//2)*step, (n//2)*step + step, step)
+        tstamp = time.strftime('%Y%m%d-%H%M%S')
+        ch = self.core.getCurrentConfig(self.ch_group)
+        img_dir = os.path.join(self.save_dir, 'xyfield_' + tstamp, ch)
+        setup_dirs(img_dir)
         for i, yi in enumerate(ys):
             for xi in xs:
                 if not i % 2:
                     xi = -xi
                 self.set_position('xy', (x0 + xi, y0 + yi))
+                print((x0 + xi, y0 + yi))
                 img = self.snap_image()
-                ch = self.core.getCurrentConfig(self.ch_group)
-                tstamp = time.strftime('%Y%m%d-%H%M%S')
-                save_path = os.path.join(self.save_dir,
-                    'xyfield_' + tstamp, ch, str(xi) + '-' + str(yi) + '.tiff')
+                img_path = os.path.join(img_dir, str(xi) + '-' + str(yi) + '.tiff')
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     imsave(img_path, img)
@@ -185,7 +188,7 @@ class Microscope(object):
     def imaging_task(self, chs):
         if self.settings['mpos']:
             if self.settings['mpos_mode'] == 'parallel':
-                for for i in range(len(self.coords)):
+                for i in range(len(self.coords)):
                     self.take_images(i, chs)
             elif self.settings['mpos_mode'] == 'sequential':
                 self.take_images(self.cid, chs)
@@ -229,7 +232,7 @@ class Microscope(object):
     def induction_task(self, width, ch_ind, ch_dark):
         if self.settings['mpos']:
             if self.settings['mpos_mode'] == 'parallel':
-                for for i in range(len(self.coords)):
+                for i in range(len(self.coords)):
                     self.pulse_light(i, width, ch_ind, ch_dark)
             elif self.settings['mpos_mode'] == 'sequential':
                 self.pulse_light(self.cid, width, ch_ind, ch_dark)
@@ -241,7 +244,7 @@ class Microscope(object):
             times = deque(np.arange(start + self.t0, stop + self.t0, period))
             print('--induction task--\n', list(times)[:10])
             self.tasks.append({
-                'func': self.pulse_light,
+                'func': self.induction_task,
                 'times': times,
                 'kwargs': {'width': width, 'ch_ind': ch_ind, 'ch_dark': ch_dark}
             })
@@ -272,7 +275,7 @@ class Microscope(object):
     def autofocus_task(self, ch, bounds, max_iter, offset):
         if self.settings['mpos']:
             if self.settings['mpos_mode'] == 'parallel':
-                for for i in range(len(self.coords)):
+                for i in range(len(self.coords)):
                     self.autofocus(i, ch, bounds, max_iter, offset)
             elif self.settings['mpos_mode'] == 'sequential':
                 self.autofocus(self.cid, ch, bounds, max_iter, offset)
@@ -284,7 +287,7 @@ class Microscope(object):
             times = deque(np.arange(start + self.t0, stop + self.t0, period))
             print('--autofocus task--\n', list(times)[:10])
             self.tasks.append({
-                'func': self.autofocus,
+                'func': self.autofocus_task,
                 'times': times,
                 'kwargs': {'ch': ch}
             })
