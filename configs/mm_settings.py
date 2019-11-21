@@ -25,9 +25,9 @@ SETTINGS = {
     #################################
     'cam_exposure': 100,
     'cam_gain': 1,
-    'obj_mag': 3,
-    'multi_position': False,
-    'mpos_ch': 'mCherry'
+    'mpos': False,
+    'mpos_ch': 'mCherry',
+    'mpos_mode': 'sequential'
 }
 
 IMAGING = {
@@ -39,10 +39,12 @@ INDUCTION = {
     't_info': [(0, 5, 5, 5)],
     'ch_ind': 'blue-light',
     'ch_dark': 'blue-dark',
-    'mag': 3
 }
 
 AUTOFOCUS = {
     # 't_info': [(0, 43200, 300)],
-    # 'ch': 'DIC'
+    # 'ch': 'DIC',
+    # bounds: [-5.0, 5.0],
+    # max_iter: 5,
+    # offset: 0
 }
