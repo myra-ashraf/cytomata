@@ -125,13 +125,13 @@ class Microscope(object):
         self.core.snapImage()
         return self.core.getImage()
 
-    def snap_zstack(self, bounds, step):
+    def snap_zstack(self, ch, bounds, step):
         zi = self.get_position('z')
         positions = list(np.arange(zi + bounds[0], zi + bounds[1], step))
-        ch = self.core.getCurrentConfig(self.ch_group)
         tstamp = time.strftime('%Y%m%d-%H%M%S')
         img_dir = os.path.join(self.save_dir, 'zstack_' + tstamp, ch)
         setup_dirs(img_dir)
+        self.set_channel(ch)
         imgs = []
         for z in positions:
             self.set_position('z', z)
@@ -144,15 +144,15 @@ class Microscope(object):
         self.set_position('z', zi)
         return positions, imgs
 
-    def snap_xyfield(self, n=5, step=81.92):
+    def snap_xyfield(self, ch, n=5, step=81.92):
         x0 = self.get_position('x')
         y0 = self.get_position('y')
         xs = np.arange(-(n//2)*step, (n//2)*step + step, step)
         ys = np.arange(-(n//2)*step, (n//2)*step + step, step)
         tstamp = time.strftime('%Y%m%d-%H%M%S')
-        ch = self.core.getCurrentConfig(self.ch_group)
         img_dir = os.path.join(self.save_dir, 'xyfield_' + tstamp, ch)
         setup_dirs(img_dir)
+        self.set_channel(ch)
         for i, yi in enumerate(ys):
             for xi in xs:
                 if not i % 2:

@@ -31,8 +31,8 @@ SETTINGS = {
 }
 
 IMAGING = {
-    't_info': [(0, 120, 5)],
-    'chs': ['mCherry']
+    't_info': [(0, 300, 5)],
+    'chs': ['mCherry', 'YFP']
 }
 
 INDUCTION = {
