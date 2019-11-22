@@ -20,17 +20,18 @@ with open(os.path.join(SETTINGS['save_dir'], 'settings.json'), 'w') as fp:
 mscope = Microscope(SETTINGS, MM_CFG_FILE)
 if SETTINGS['mpos']:
     mscope.add_coords_session(SETTINGS['mpos_ch'])
-if IMAGING:
-    mscope.queue_imaging(**IMAGING)
-if INDUCTION:
-    mscope.queue_induction(**INDUCTION)
-if AUTOFOCUS:
-    mscope.queue_autofocus(**AUTOFOCUS)
 
 # Event Loop
 if SETTINGS['mpos'] and SETTINGS['mpos_mode'] == 'sequential':
     for cid in range(len(mscope.coords)):
         mscope.cid = cid
+        mscope.t0 = time.time()
+        if IMAGING:
+            mscope.queue_imaging(**IMAGING)
+        if INDUCTION:
+            mscope.queue_induction(**INDUCTION)
+        if AUTOFOCUS:
+            mscope.queue_autofocus(**AUTOFOCUS)
         while True:
             done = mscope.run_tasks()
             if done:

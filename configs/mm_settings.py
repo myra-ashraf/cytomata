@@ -25,14 +25,14 @@ SETTINGS = {
     #################################
     'cam_exposure': 100,
     'cam_gain': 1,
-    'mpos': False,
-    'mpos_ch': 'mCherry',
+    'mpos': True,
+    'mpos_ch': 'DIC',
     'mpos_mode': 'sequential'
 }
 
 IMAGING = {
-    't_info': [(0, 300, 5)],
-    'chs': ['mCherry', 'YFP']
+    't_info': [(0, 120, 5)],
+    'chs': ['DIC', 'mCherry']
 }
 
 INDUCTION = {

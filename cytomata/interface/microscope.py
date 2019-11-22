@@ -168,6 +168,7 @@ class Microscope(object):
 
     def take_images(self, cid, chs):
         (x, y, z) = self.coords[cid]
+        print(x, y)
         self.set_position('xy', (x, y))
         self.xt[cid].append(time.time() - self.t0)
         self.xx[cid].append(self.get_position('x'))
