@@ -39,6 +39,13 @@ if SETTINGS['mpos'] and SETTINGS['mpos_mode'] == 'sequential':
             else:
                 time.sleep(0.001)
 else:
+    mscope.t0 = time.time()
+    if IMAGING:
+        mscope.queue_imaging(**IMAGING)
+    if INDUCTION:
+        mscope.queue_induction(**INDUCTION)
+    if AUTOFOCUS:
+        mscope.queue_autofocus(**AUTOFOCUS)
     while True:
         done = mscope.run_tasks()
         if done:

@@ -158,9 +158,10 @@ class Microscope(object):
                 if not i % 2:
                     xi = -xi
                 self.set_position('xy', (x0 + xi, y0 + yi))
-                print((x0 + xi, y0 + yi))
                 img = self.snap_image()
-                img_path = os.path.join(img_dir, str(xi) + '-' + str(yi) + '.tiff')
+                xstr = str(round(xi, 2))
+                ystr = str(round(yi, 2))
+                img_path = os.path.join(img_dir, xstr + '-' + ystr + '.tiff')
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     imsave(img_path, img)
@@ -168,7 +169,6 @@ class Microscope(object):
 
     def take_images(self, cid, chs):
         (x, y, z) = self.coords[cid]
-        print(x, y)
         self.set_position('xy', (x, y))
         self.xt[cid].append(time.time() - self.t0)
         self.xx[cid].append(self.get_position('x'))
