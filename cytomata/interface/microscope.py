@@ -212,17 +212,18 @@ class Microscope(object):
         with open(os.path.join(self.save_dir, 'tasks_log', t + '-imaging.json'), 'w') as fp:
             json.dump({'t_info': t_info, 'chs': chs}, fp)
 
-    def pulse_light(self, cid, width, ch_ind, ch_dark):
+    def pulse_light(self, cid, width, ch_ind):
         (x, y, z) = self.coords[cid]
         self.set_position('xy', (x, y))
         self.ux[cid].append(self.get_position('x'))
         self.uy[cid].append(self.get_position('y'))
         self.uz[cid].append(self.get_position('z'))
-        ta = time.time() - self.t0
         self.set_channel(ch_ind)
-        time.sleep(width)
+        self.core.setExposure(width*100)
+        ta = time.time() - self.t0
+        self.snap_image()
         tb = time.time() - self.t0
-        self.set_channel(ch_dark)
+        self.core.setExposure(settings['cam_exposure'])
         self.uta[cid].append(ta)
         self.utb[cid].append(tb)
         u_path = os.path.join(self.save_dir, 'u' + str(cid) + '.csv')
@@ -230,28 +231,28 @@ class Microscope(object):
             (self.uta[cid], self.utb[cid], self.ux[cid], self.uy[cid], self.uz[cid]))
         np.savetxt(u_path, u_data, delimiter=',', header='ta,tb,x,y,z', comments='')
 
-    def induction_task(self, width, ch_ind, ch_dark):
+    def induction_task(self, width, ch_ind):
         if self.settings['mpos']:
             if self.settings['mpos_mode'] == 'parallel':
                 for i in range(len(self.coords)):
-                    self.pulse_light(i, width, ch_ind, ch_dark)
+                    self.pulse_light(i, width, ch_ind)
             elif self.settings['mpos_mode'] == 'sequential':
-                self.pulse_light(self.cid, width, ch_ind, ch_dark)
+                self.pulse_light(self.cid, width, ch_ind)
         else:
-            self.pulse_light(self.cid, width, ch_ind, ch_dark)
+            self.pulse_light(self.cid, width, ch_ind)
 
-    def queue_induction(self, t_info, ch_ind, ch_dark):
+    def queue_induction(self, t_info, ch_ind):
         for (start, stop, period, width) in t_info:
             times = deque(np.arange(start + self.t0, stop + self.t0, period))
             print('--induction task--\n', list(times)[:10])
             self.tasks.append({
                 'func': self.induction_task,
                 'times': times,
-                'kwargs': {'width': width, 'ch_ind': ch_ind, 'ch_dark': ch_dark}
+                'kwargs': {'width': width, 'ch_ind': ch_ind}
             })
         t = time.strftime('%Y%m%d-%H%M%S')
         with open(os.path.join(self.save_dir, 'tasks_log', t + '-induction.json'), 'w') as fp:
-            json.dump({'t_info': t_info, 'ch_ind': ch_ind, 'ch_dark': ch_dark}, fp)
+            json.dump({'t_info': t_info, 'ch_ind': ch_ind}, fp)
 
     def measure_focus(self):
         img = self.snap_image()

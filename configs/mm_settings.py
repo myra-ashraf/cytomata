@@ -30,16 +30,39 @@ SETTINGS = {
     'mpos_mode': 'sequential'
 }
 
+# Seconds-Timescale
 IMAGING = {
-    't_info': [(0, 600, 5)],
+    't_info': [(0, 660, 1)],
     'chs': ['mCherry']
 }
 
 INDUCTION = {
-    't_info': [(0, 5, 5, 5)],
-    'ch_ind': 'blue-light',
-    'ch_dark': 'blue-dark',
+    't_info': [(60, 61, 1, 1)],
+    'ch_ind': 'blue-light'
 }
+
+# Minutes-Timescale
+# IMAGING = {
+#     't_info': [(0, 1800, 60)],
+#     'chs': ['mCherry']
+# }
+#
+# INDUCTION = {
+#     't_info': [(300, 360, 60, 60)],
+#     'ch_ind': 'blue-light'
+# }
+
+# Hours-Timescale
+# IMAGING = {
+#     't_info': [(0, 46800, 300)],
+#     'chs': ['mCherry']
+# }
+#
+# INDUCTION = {
+#     't_info': [(3600, 3660, 60, 60)],
+#     'ch_ind': 'blue-light'
+# }
+
 
 AUTOFOCUS = {
     # 't_info': [(0, 43200, 300)],
