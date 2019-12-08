@@ -219,13 +219,12 @@ class Microscope(object):
         self.uy[cid].append(self.get_position('y'))
         self.uz[cid].append(self.get_position('z'))
         self.set_channel(ch_ind)
-        self.core.setExposure(width*100)
+        self.core.setExposure(width*1000)
         ta = time.time() - self.t0
         self.snap_image()
-        tb = time.time() - self.t0
-        self.core.setExposure(settings['cam_exposure'])
+        self.core.setExposure(self.settings['cam_exposure'])
         self.uta[cid].append(ta)
-        self.utb[cid].append(tb)
+        self.utb[cid].append(ta + width)
         u_path = os.path.join(self.save_dir, 'u' + str(cid) + '.csv')
         u_data = np.column_stack(
             (self.uta[cid], self.utb[cid], self.ux[cid], self.uy[cid], self.uz[cid]))

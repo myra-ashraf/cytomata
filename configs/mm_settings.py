@@ -25,7 +25,7 @@ SETTINGS = {
     #################################
     'cam_exposure': 100,
     'cam_gain': 1,
-    'mpos': True,
+    'mpos': False,
     'mpos_ch': 'mCherry',
     'mpos_mode': 'sequential'
 }
