@@ -32,23 +32,23 @@ SETTINGS = {
 
 # Seconds-Timescale
 IMAGING = {
-    't_info': [(0, 660, 1)],
-    'chs': ['mCherry']
+    't_info': [(0, 601, 5)],
+    'chs': ['YFP']
 }
 
 INDUCTION = {
-    't_info': [(60, 61, 1, 1)],
+    't_info': [(60, 65, 5, 5)],
     'ch_ind': 'blue-light'
 }
 
 # Minutes-Timescale
 # IMAGING = {
-#     't_info': [(0, 1800, 60)],
+#     't_info': [(0, 61, 5), (70, 611, 5)],
 #     'chs': ['mCherry']
 # }
-#
+
 # INDUCTION = {
-#     't_info': [(300, 360, 60, 60)],
+#     't_info': [(60, 70, 10, 10)],
 #     'ch_ind': 'blue-light'
 # }
 
