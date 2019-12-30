@@ -78,7 +78,7 @@ def imshow(img, title=None, axes=False, colorbar=True, show=False, save_path=Non
         if not axes:
             ax.axis('off')
         if colorbar:
-            cb = fig.colorbar(axim, pad=0.01)
+            cb = fig.colorbar(axim, pad=0.01, format='%.2f')
             cb.outline.set_linewidth(0)
         fig.canvas.draw()
         img = np.array(fig.canvas.renderer._renderer)
