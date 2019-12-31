@@ -68,7 +68,7 @@ def plot(x, y=None, xlabel=None, ylabel=None, title=None, labels=None, ylim=None
         return img
 
 
-def imshow(img, title=None, axes=False, colorbar=True, show=False, save_path=None, dpi=100):
+def imshow(img, title=None, axes=False, colorbar=False, show=False, save_path=None, dpi=300):
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, ax = plt.subplots()
         axim = ax.imshow(img)
@@ -78,12 +78,12 @@ def imshow(img, title=None, axes=False, colorbar=True, show=False, save_path=Non
         if not axes:
             ax.axis('off')
         if colorbar:
-            cb = fig.colorbar(axim, pad=0.01, format='%.2f')
+            cb = fig.colorbar(axim, pad=0.01, format='%.4f')
             cb.outline.set_linewidth(0)
         fig.canvas.draw()
         img = np.array(fig.canvas.renderer._renderer)
         if save_path is not None:
-            fig.savefig(save_path, dpi=dpi, bbox_inches='tight')
+            fig.savefig(save_path, dpi=dpi)
         if show:
             plt.show()
         plt.close(fig)
