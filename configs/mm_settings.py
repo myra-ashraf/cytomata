@@ -23,16 +23,17 @@ SETTINGS = {
     'stage_x_limit': [-3600, 3600],
     'stage_y_limit': [-3600, 3600],
     #################################
-    'cam_exposure': 100,
+    'cam_exposure': 200,
     'cam_gain': 1,
     'mpos': False,
     'mpos_ch': 'mCherry',
     'mpos_mode': 'sequential'
 }
 
-# Seconds-Timescale
+
+## Seconds-Timescale ##
 IMAGING = {
-    't_info': [(0, 61, 5), (71, 601, 5)],
+    't_info': [(0, 61, 5), (71, 301, 5)],
     'chs': ['mCherry']
 }
 
@@ -41,7 +42,8 @@ INDUCTION = {
     'ch_ind': 'blue-light'
 }
 
-# Minutes-Timescale
+
+## Minutes-Timescale ##
 # IMAGING = {
 #     't_info': [(0, 61, 5), (61, 662, 10, 10), (662, 1263, 5)],
 #     'chs': ['mCherry']
@@ -52,7 +54,8 @@ INDUCTION = {
 #     'ch_ind': 'blue-light'
 # }
 
-# Hours-Timescale
+
+## Hours-Timescale ##
 # IMAGING = {
 #     't_info': [(0, 3601, 60), (601, 4202, 60, 60), (4202, 43203, 60)],
 #     'chs': ['mCherry']

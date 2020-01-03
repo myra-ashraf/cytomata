@@ -19,4 +19,4 @@ mscope = Microscope(SETTINGS, MM_CFG_FILE)
 w = SETTINGS['img_width_px'] * SETTINGS['pixel_size']
 h = SETTINGS['img_height_px'] * SETTINGS['pixel_size']
 step = min(w, h)
-mscope.snap_xyfield('YFP', n=15, step=step)
+mscope.snap_xyfield('mCherry', n=9, step=step)
