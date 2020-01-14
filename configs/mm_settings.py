@@ -33,36 +33,36 @@ SETTINGS = {
 
 ## Seconds-Timescale ##
 IMAGING = {
-    't_info': [(0, 61, 5), (71, 301, 5)],
+    't_info': [(0, 61, 5), (65, 301, 5)],
     'chs': ['mCherry']
 }
 
 INDUCTION = {
-    't_info': [(61, 71, 10, 10)],
+    't_info': [(60, 65, 5, 5)],
     'ch_ind': 'blue-light'
 }
 
 
 ## Minutes-Timescale ##
 # IMAGING = {
-#     't_info': [(0, 61, 5), (61, 662, 10, 10), (662, 1263, 5)],
+#     't_info': [(0, 1201, 15)],
 #     'chs': ['mCherry']
 # }
 
 # INDUCTION = {
-#     't_info': [(61, 662, 10, 10)],
+#     't_info': [(180, 780, 15, 15)],
 #     'ch_ind': 'blue-light'
 # }
 
 
 ## Hours-Timescale ##
 # IMAGING = {
-#     't_info': [(0, 3601, 60), (601, 4202, 60, 60), (4202, 43203, 60)],
+#     't_info': [(0, 43201, 60)],
 #     'chs': ['mCherry']
 # }
 #
 # INDUCTION = {
-#     't_info': [(3601, 4202, 60, 60)],
+#     't_info': [(7200, 10800, 60, 60)],
 #     'ch_ind': 'blue-light'
 # }
 
