@@ -168,6 +168,7 @@ class Microscope(object):
         self.set_position('xy', (x0, y0))
 
     def take_images(self, cid, chs):
+        t_i =time.time()
         (x, y, z) = self.coords[cid]
         self.set_position('xy', (x, y))
         self.xt[cid].append(time.time() - self.t0)
@@ -185,6 +186,7 @@ class Microscope(object):
         x_path = os.path.join(self.save_dir, 'x' + str(cid) + '.csv')
         x_data = np.column_stack((self.xt[cid], self.xx[cid], self.xy[cid], self.xz[cid]))
         np.savetxt(x_path, x_data, delimiter=',', header='t,x,y,z', comments='')
+        print("imaging_task: " + str(time.time() - t_i) + ' seconds')
 
     def imaging_task(self, chs):
         if self.settings['mpos']:
@@ -213,6 +215,7 @@ class Microscope(object):
             json.dump({'t_info': t_info, 'chs': chs}, fp)
 
     def pulse_light(self, cid, width, ch_ind):
+        t_i = time.time()
         (x, y, z) = self.coords[cid]
         self.set_position('xy', (x, y))
         self.ux[cid].append(self.get_position('x'))
@@ -229,6 +232,7 @@ class Microscope(object):
         u_data = np.column_stack(
             (self.uta[cid], self.utb[cid], self.ux[cid], self.uy[cid], self.uz[cid]))
         np.savetxt(u_path, u_data, delimiter=',', header='ta,tb,x,y,z', comments='')
+        print("induction_task: " + str(time.time() - t_i) + ' seconds')
 
     def induction_task(self, width, ch_ind):
         if self.settings['mpos']:
