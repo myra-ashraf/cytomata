@@ -9,8 +9,9 @@ from cytomata.interface.microscope import Microscope
 from configs.mm_settings import MM_CFG_FILE, SETTINGS, INDUCTION, IMAGING, AUTOFOCUS
 
 
-notes = raw_input('Notes: ')
-SETTINGS['notes'] = notes
+expt_name = raw_input('Expt Directory Name: ')
+expt_name = ''.join([x if x.isalnum() else '_' for x in expt_name])
+SETTINGS['save_dir'] = os.path.join('expts', time.strftime('%Y%m%d-') + expt_name)
 
 setup_dirs(SETTINGS['save_dir'])
 setup_dirs(os.path.join(SETTINGS['save_dir'], 'tasks_log'))

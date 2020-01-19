@@ -7,7 +7,6 @@ CONFIG_DIR = dirname(abspath(__file__))
 MM_CFG_FILE = os.path.join(CONFIG_DIR, 'mm_nikon2.cfg')
 
 SETTINGS = {
-    'save_dir': os.path.join('expts', time.strftime('%Y%m%d-%H%M%S')),
     'ch_group': 'Channel',
     'obj_device': 'TINosePiece',
     'lp_device': 'TILightPath',
@@ -22,7 +21,6 @@ SETTINGS = {
     'stage_z_limit': [-100, 100],
     'stage_x_limit': [-3600, 3600],
     'stage_y_limit': [-3600, 3600],
-    #################################
     'cam_exposure': 200,
     'cam_gain': 1,
     'mpos': False,
