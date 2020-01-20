@@ -168,35 +168,23 @@ class Microscope(object):
         self.set_position('xy', (x0, y0))
 
     def take_images(self, cid, chs):
-        t1 =time.time()
         (x, y, z) = self.coords[cid]
         self.set_position('xy', (x, y))
         self.xt[cid].append(time.time() - self.t0)
         self.xx[cid].append(self.get_position('x'))
         self.xy[cid].append(self.get_position('y'))
         self.xz[cid].append(self.get_position('z'))
-        t2 = time.time()
         for ch in chs:
             self.set_channel(ch)
-            t3 = time.time()
             img = self.snap_image()
-            t4 = time.time()
             img_name = str(round(self.xt[cid][-1], 2))
             img_path = os.path.join(self.save_dir, ch, str(cid), img_name + '.tiff')
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 imsave(img_path, img)
-        t5 = time.time()
         x_path = os.path.join(self.save_dir, 'x' + str(cid) + '.csv')
         x_data = np.column_stack((self.xt[cid], self.xx[cid], self.xy[cid], self.xz[cid]))
         np.savetxt(x_path, x_data, delimiter=',', header='t,x,y,z', comments='')
-        t6 = time.time()
-        print("imaging_task: ")
-        print(t2 - t1)
-        print(t3 - t2)
-        print(t4 - t3)
-        print(t5 - t4)
-        print(t6 - t5)
 
     def imaging_task(self, chs):
         if self.settings['mpos']:
@@ -225,32 +213,22 @@ class Microscope(object):
             json.dump({'t_info': t_info, 'chs': chs}, fp)
 
     def pulse_light(self, cid, width, ch_ind):
-        t1 = time.time()
         (x, y, z) = self.coords[cid]
         self.set_position('xy', (x, y))
         self.ux[cid].append(self.get_position('x'))
         self.uy[cid].append(self.get_position('y'))
         self.uz[cid].append(self.get_position('z'))
-        t2 = time.time()
         self.set_channel(ch_ind)
-        t3 = time.time()
         self.core.setExposure(width*1000)
         ta = time.time() - self.t0
         self.snap_image()
         self.core.setExposure(self.settings['cam_exposure'])
-        t4 = time.time()
         self.uta[cid].append(ta)
         self.utb[cid].append(ta + width)
         u_path = os.path.join(self.save_dir, 'u' + str(cid) + '.csv')
         u_data = np.column_stack(
             (self.uta[cid], self.utb[cid], self.ux[cid], self.uy[cid], self.uz[cid]))
         np.savetxt(u_path, u_data, delimiter=',', header='ta,tb,x,y,z', comments='')
-        t5 = time.time()
-        print("induction_task: ")
-        print(t2 - t1)
-        print(t3 - t2)
-        print(t4 - t3)
-        print(t5 - t4)
 
     def induction_task(self, width, ch_ind):
         if self.settings['mpos']:
