@@ -57,6 +57,15 @@ def segment_clusters(imgf, bkg_imgf=None):
     thr = log > bkg
     return thr, den
 
+def segment_mito(imgf, bkg_imgf=None):
+    """Segment out bright mitochondrial region from fluorescence images."""
+    img, den = preprocess_img(imgf, bkg_imgf)
+    gos = gaussian(sobel(den), sigma=3)
+    thr = gos > threshold_otsu(gos)
+    thr = clear_border(remove_small_objects(thr, min_size=1000))
+    thr = closing(thr, selem=disk(5))
+    return thr, den
+
 
 def segment_dim_nucleus(imgf, bkg_imgf=None):
     """Segment out dim nucleus from bright cytoplasm."""

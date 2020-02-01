@@ -21,7 +21,7 @@ SETTINGS = {
     'stage_z_limit': [-100, 100],
     'stage_x_limit': [-3600, 3600],
     'stage_y_limit': [-3600, 3600],
-    'cam_exposure': 200,
+    'cam_exposure': 100,
     'cam_gain': 1,
     'mpos': True,
     'mpos_ch': 'mCherry',
@@ -31,7 +31,7 @@ SETTINGS = {
 
 ## Seconds-Timescale ##
 IMAGING = {
-    't_info': [(0, 61, 5), (65, 301, 5)],
+    't_info': [(0, 61, 5), (65, 601, 5)],
     'chs': ['mCherry']
 }
 
