@@ -50,9 +50,8 @@ def approx_half_life(t, y, phase='fall'):
     return t_half
 
 
-def process_cad(img_dir, name='CRY2low', metric='area'):
+def process_cad(img_dir, save_dir, name='CIBN-CRY2PHR', metric='area'):
     """Analyze cad dataset and generate figures."""
-    save_dir = name + '-results'
     setup_dirs(os.path.join(save_dir, 'imgs'))
     y = []
     t = []
@@ -109,12 +108,13 @@ def process_lexa(img_dir):
 
 if __name__ == '__main__':
     t0 = time.time()
-    img_dir = os.path.join('data', 'pDN77')
-    # process_cad(img_dir)
-    imgfs = list_img_files(img_dir)
-    imgf = imgfs[38]
-    thr, den = segment_dim_nucleus(imgf)
+    img_dir = '/home/phuong/data/LINTAD/CAD/20200131-CIBN-mTq2-CAD_CRY2PHR-mCh/mCherry/7/'
+    save_dir = '/home/phuong/data/LINTAD/CAD/20200131-CIBN-mTq2-CAD_CRY2PHR-mCh/7-results'
+    process_cad(img_dir, save_dir)
+    # imgfs = list_img_files(img_dir)
+    # imgf = imgfs[14]
+    # thr, den = segment_clusters(imgf)
     # # plt.hist(den.ravel(), bins=255)
-    plt.imshow(den, cmap='viridis')
-    plt.contour(thr, linewidths=0.2, colors='r')
-    plt.show()
+    # plt.imshow(den, cmap='viridis')
+    # plt.contour(thr, linewidths=0.2, colors='r')
+    # plt.show()
