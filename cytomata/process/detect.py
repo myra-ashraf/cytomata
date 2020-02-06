@@ -52,8 +52,8 @@ def segment_clusters(imgf, bkg_imgf=None):
     """Segment out bright clusters from fluorescence images."""
     img, den = preprocess_img(imgf, bkg_imgf)
     log = laplace(gaussian(den))
-    sig = estimate_sigma(img)
-    bkg = threshold_local(log, block_size=25, offset=-sig, method='gaussian')
+    sig = estimate_sigma(den)
+    bkg = threshold_local(log, block_size=15, offset=-200*sig, method='gaussian')
     thr = log > bkg
     return thr, den
 
