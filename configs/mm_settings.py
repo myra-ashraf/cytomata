@@ -21,24 +21,24 @@ SETTINGS = {
     'stage_z_limit': [-100, 100],
     'stage_x_limit': [-3600, 3600],
     'stage_y_limit': [-3600, 3600],
-    'cam_exposure': 100,
+    'cam_exposure': 500,
     'cam_gain': 1,
-    'mpos': True,
+    'mpos': False,
     'mpos_ch': 'mCherry',
     'mpos_mode': 'sequential'
 }
 
 
 ## Seconds-Timescale ##
-IMAGING = {
-    't_info': [(0, 61, 5), (65, 601, 5)],
-    'chs': ['mCherry']
-}
+# IMAGING = {
+#     't_info': [(0, 61, 5), (65, 601, 5)],
+#     'chs': ['mCherry']
+# }
 
-INDUCTION = {
-    't_info': [(60, 65, 5, 5)],
-    'ch_ind': 'blue-light'
-}
+# INDUCTION = {
+#     't_info': [(60, 65, 5, 5)],
+#     'ch_ind': 'blue-light'
+# }
 
 
 ## Minutes-Timescale ##
@@ -54,15 +54,15 @@ INDUCTION = {
 
 
 ## Hours-Timescale ##
-# IMAGING = {
-#     't_info': [(0, 43201, 60)],
-#     'chs': ['mCherry']
-# }
-#
-# INDUCTION = {
-#     't_info': [(7200, 10800, 60, 60)],
-#     'ch_ind': 'blue-light'
-# }
+IMAGING = {
+    't_info': [(0, 43201, 60)],
+    'chs': ['DIC', 'mCherry', 'YFP']
+}
+
+INDUCTION = {
+    't_info': [(7200, 10800, 60, 5)],
+    'ch_ind': 'blue-light'
+}
 
 
 AUTOFOCUS = {
