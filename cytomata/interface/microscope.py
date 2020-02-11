@@ -97,13 +97,13 @@ class Microscope(object):
 
     def add_coords_session(self, ch):
         self.set_channel(ch)
-        cv2.namedWindow('Positions Picker')
+        cv2.namedWindow('Coordinate Picker')
         self.core.startContinuousSequenceAcquisition(1)
         while True:
             if self.core.getRemainingImageCount() > 0:
                 img = self.core.getLastImage()
                 img = cv2.normalize(img, dst=None, alpha=0, beta=65535, norm_type=cv2.NORM_MINMAX)
-                cv2.imshow('Positions Picker', img)
+                cv2.imshow('Coordinate Picker', img)
             k = cv2.waitKey(20)
             if k == 27:  # ESC - Exit
                 break
@@ -199,7 +199,6 @@ class Microscope(object):
     def queue_imaging(self, t_info, chs):
         for (start, stop, period) in t_info:
             times = deque(np.arange(start + self.t0, stop + self.t0, period))
-            print('--imaging task--\n', list(times)[:10])
             self.tasks.append({
                 'func': self.imaging_task,
                 'times': times,
@@ -243,7 +242,6 @@ class Microscope(object):
     def queue_induction(self, t_info, ch_ind):
         for (start, stop, period, width) in t_info:
             times = deque(np.arange(start + self.t0, stop + self.t0, period))
-            print('--induction task--\n', list(times)[:10])
             self.tasks.append({
                 'func': self.induction_task,
                 'times': times,
@@ -286,7 +284,6 @@ class Microscope(object):
     def queue_autofocus(self, t_info, ch):
         for (start, stop, period) in t_info:
             times = deque(np.arange(start + self.t0, stop + self.t0, period))
-            print('--autofocus task--\n', list(times)[:10])
             self.tasks.append({
                 'func': self.autofocus_task,
                 'times': times,

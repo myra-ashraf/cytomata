@@ -21,7 +21,7 @@ SETTINGS = {
     'stage_z_limit': [-100, 100],
     'stage_x_limit': [-3600, 3600],
     'stage_y_limit': [-3600, 3600],
-    'cam_exposure': 500,
+    'cam_exposure': 250,
     'cam_gain': 1,
     'mpos': False,
     'mpos_ch': 'mCherry',
@@ -42,27 +42,27 @@ SETTINGS = {
 
 
 ## Minutes-Timescale ##
-# IMAGING = {
-#     't_info': [(0, 1381, 15)],
-#     'chs': ['mCherry', 'YFP']
-# }
-
-# INDUCTION = {
-#     't_info': [(180, 780, 15, 15)],
-#     'ch_ind': 'blue-light'
-# }
-
-
-## Hours-Timescale ##
 IMAGING = {
-    't_info': [(0, 43201, 60)],
-    'chs': ['DIC', 'mCherry', 'YFP']
+    't_info': [(0, 1381, 15)],
+    'chs': ['mCherry', 'YFP']
 }
 
 INDUCTION = {
-    't_info': [(7200, 10800, 60, 5)],
+    't_info': [(180, 780, 15, 15)],
     'ch_ind': 'blue-light'
 }
+
+
+## Hours-Timescale ##
+# IMAGING = {
+#     't_info': [(0, 43201, 60)],
+#     'chs': ['DIC', 'mCherry', 'YFP']
+# }
+
+# INDUCTION = {
+#     't_info': [(7200, 10800, 60, 5)],
+#     'ch_ind': 'blue-light'
+# }
 
 
 AUTOFOCUS = {
