@@ -3,13 +3,14 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import ndimage as ndi
+from scipy.stats import iqr
 from skimage import img_as_float
 from skimage.io import imread
 from skimage.exposure import equalize_adapthist
 from skimage.measure import regionprops
 from skimage.feature import peak_local_max
-from skimage.filters import threshold_local, gaussian, laplace, threshold_otsu, sobel
-from skimage.morphology import disk, dilation, erosion, remove_small_objects, watershed, closing
+from skimage.filters import threshold_local, gaussian, laplace, threshold_otsu, sobel, median
+from skimage.morphology import disk, binary_dilation, erosion, binary_erosion, remove_small_objects, watershed, binary_closing, binary_opening
 from skimage.restoration import denoise_nl_means, estimate_sigma
 from skimage.segmentation import random_walker, clear_border, find_boundaries
 
@@ -34,27 +35,30 @@ def measure_regions(thr, img):
     rprops = regionprops(lab, img)
     areas = [prop.area for prop in rprops]
     int_imgs = [prop.intensity_image for prop in rprops]
-    med_ints = [np.median(ii[np.nonzero(ii)]) for ii in int_imgs]
-    return areas, med_ints
+    ave_ints = [np.mean(ii[np.nonzero(ii)]) for ii in int_imgs]
+    return np.array(areas), np.array(ave_ints)
 
 
 def segment_whole_cell(imgf, bkg_imgf=None):
     """Segment out whole cell body from fluorescence images."""
     img, den = preprocess_img(imgf, bkg_imgf)
-    sig = estimate_sigma(img)
+    sig = estimate_sigma(den)
     bkg = threshold_local(den, block_size=501, offset=-sig, method='gaussian')
     thr = den > bkg
-    thr = clear_border(remove_small_objects(thr, min_size=1000))
+    thr = remove_small_objects(thr, min_size=15000)
+    thr = binary_dilation(thr, selem=disk(3))
     return thr, den
 
 
-def segment_clusters(imgf, bkg_imgf=None):
+def segment_clusters(imgf, bkg_imgf=None, mask=None):
     """Segment out bright clusters from fluorescence images."""
     img, den = preprocess_img(imgf, bkg_imgf)
-    log = laplace(gaussian(den))
-    sig = estimate_sigma(den)
-    bkg = threshold_local(log, block_size=15, offset=-200*sig, method='gaussian')
-    thr = log > bkg
+    edg = gaussian(laplace(den), sigma=1.25)
+    sig = estimate_sigma(edg)
+    bkg = threshold_local(edg, block_size=25, offset=-1e3*sig, method='gaussian')
+    thr = edg > bkg
+    if mask is not None:
+        thr *= mask
     return thr, den
 
 def segment_mito(imgf, bkg_imgf=None):
@@ -63,7 +67,7 @@ def segment_mito(imgf, bkg_imgf=None):
     gos = gaussian(sobel(den), sigma=3)
     thr = gos > threshold_otsu(gos)
     thr = clear_border(remove_small_objects(thr, min_size=1000))
-    thr = closing(thr, selem=disk(5))
+    thr = binary_closing(thr, selem=disk(5))
     return thr, den
 
 
