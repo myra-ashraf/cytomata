@@ -96,6 +96,7 @@ class Microscope(object):
         self.coords = np.vstack((self.coords, [x, y, z]))
 
     def add_coords_session(self, ch):
+        self.core.setExposure(settings['mpos_exp'])
         self.set_channel(ch)
         cv2.namedWindow('Coordinate Picker')
         self.core.startContinuousSequenceAcquisition(1)
@@ -119,6 +120,7 @@ class Microscope(object):
                     print(coord)
         cv2.destroyAllWindows()
         self.core.stopSequenceAcquisition()
+        self.core.setExposure(settings['cam_exposure'])
 
     def snap_image(self):
         self.core.waitForSystem()
