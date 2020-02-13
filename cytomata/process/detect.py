@@ -35,18 +35,21 @@ def measure_regions(thr, img):
     rprops = regionprops(lab, img)
     areas = [prop.area for prop in rprops]
     int_imgs = [prop.intensity_image for prop in rprops]
-    ave_ints = [np.mean(ii[np.nonzero(ii)]) for ii in int_imgs]
+    ave_ints = [prop.mean_intensity for prop in rprops]
     return np.array(areas), np.array(ave_ints)
 
 
-def segment_whole_cell(imgf, bkg_imgf=None):
+def segment_cell(imgf, bkg_imgf=None, mask=None):
     """Segment out whole cell body from fluorescence images."""
     img, den = preprocess_img(imgf, bkg_imgf)
-    sig = estimate_sigma(den)
-    bkg = threshold_local(den, block_size=501, offset=-sig, method='gaussian')
+    sig = estimate_sigma(img)
+    bkg = threshold_local(den, block_size=501, offset=sig, method='gaussian')
     thr = den > bkg
-    thr = remove_small_objects(thr, min_size=15000)
-    thr = binary_dilation(thr, selem=disk(3))
+    if mask is not None:
+        thr = thr | mask
+    thr = binary_erosion(thr, selem=disk(25))
+    thr = binary_dilation(thr, selem=disk(21))
+    thr = clear_border(remove_small_objects(thr, min_size=10000), buffer_size=15)
     return thr, den
 
 
@@ -55,38 +58,19 @@ def segment_clusters(imgf, bkg_imgf=None, mask=None):
     img, den = preprocess_img(imgf, bkg_imgf)
     edg = gaussian(laplace(den), sigma=1.25)
     sig = estimate_sigma(edg)
-    bkg = threshold_local(edg, block_size=25, offset=-1e3*sig, method='gaussian')
+    bkg = threshold_local(edg, block_size=25, offset=-5e3*sig, method='gaussian')
     thr = edg > bkg
     if mask is not None:
         thr *= mask
     return thr, den
 
-def segment_mito(imgf, bkg_imgf=None):
-    """Segment out bright mitochondrial region from fluorescence images."""
-    img, den = preprocess_img(imgf, bkg_imgf)
-    gos = gaussian(sobel(den), sigma=3)
-    thr = gos > threshold_otsu(gos)
-    thr = clear_border(remove_small_objects(thr, min_size=1000))
-    thr = binary_closing(thr, selem=disk(5))
-    return thr, den
 
-
-def segment_dim_nucleus(imgf, bkg_imgf=None):
-    """Segment out dim nucleus from bright cytoplasm."""
-    img, den = preprocess_img(imgf, bkg_imgf)
-    gos = gaussian(sobel(den), sigma=9)
-    thr = gos > threshold_otsu(gos)
-    thr = clear_border(remove_small_objects(thr, min_size=1000))
-    cyto = erosion(thr, selem=disk(12))
-    cell = ndi.binary_fill_holes(cyto)
-    nucl = cell^cyto
-    return nucl, den
-
-
-def segment_bright_nucleus(imgf, bkg_imgf=None):
+def segment_nucleus(imgf, bkg_imgf=None):
     """Segment out bright nucleus from dim cytoplasm."""
     img, den = preprocess_img(imgf, bkg_imgf)
+    den = equalize_adapthist(den, clip_limit=0.02)
     bkg = threshold_local(den, block_size=501, offset=-0.1*np.max(den), method='gaussian')
     thr = den > bkg
-    nucl = clear_border(remove_small_objects(thr, min_size=1000))
+    thr = binary_erosion(thr, selem=disk(9))
+    nucl = clear_border(remove_small_objects(thr, min_size=1000), buffer_size=50)
     return nucl, den

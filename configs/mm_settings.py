@@ -21,17 +21,18 @@ SETTINGS = {
     'stage_z_limit': [-100, 100],
     'stage_x_limit': [-3600, 3600],
     'stage_y_limit': [-3600, 3600],
-    'cam_exposure': 250,
+    'cam_exposure': 500,
     'cam_gain': 1,
     'mpos': False,
     'mpos_ch': 'mCherry',
+    'mpos_exp': 200,
     'mpos_mode': 'sequential'
 }
 
 
 ## Seconds-Timescale ##
 # IMAGING = {
-#     't_info': [(0, 61, 5), (65, 601, 5)],
+#     't_info': [(0, 61, 5), (65, 721, 5)],
 #     'chs': ['mCherry']
 # }
 
@@ -43,7 +44,7 @@ SETTINGS = {
 
 ## Minutes-Timescale ##
 IMAGING = {
-    't_info': [(0, 1381, 15)],
+    't_info': [(0, 1861, 15)],
     'chs': ['mCherry', 'YFP']
 }
 

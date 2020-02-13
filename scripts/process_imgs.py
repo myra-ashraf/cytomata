@@ -27,8 +27,8 @@ from natsort import natsorted
 
 from cytomata.utils.io import setup_dirs, list_img_files
 from cytomata.process.detect import (
-    preprocess_img, measure_regions, segment_clusters, segment_mito,
-    segment_whole_cell, segment_dim_nucleus, segment_bright_nucleus
+    preprocess_img, measure_regions, segment_clusters,
+    segment_cell, segment_nucleus
 )
 from cytomata.utils.visual import imshow, plot, imgs_to_gif, custom_styles, custom_palette
 
@@ -59,7 +59,7 @@ def process_cad(img_dir, save_dir, name='CIBN-CRY2PHR'):
     plot_imgs = []
     for i, imgf in enumerate(list_img_files(img_dir)):
         fname = os.path.splitext(os.path.basename(imgf))[0]
-        cell, den = segment_whole_cell(imgf)
+        cell, den = segment_cell(imgf)
         dots, den = segment_clusters(imgf, mask=cell)
         if i == 0:
             cmin = np.min(den)
@@ -94,7 +94,7 @@ def process_cad(img_dir, save_dir, name='CIBN-CRY2PHR'):
     y_label = '(Cluster Area)/(Cell Area)'
     plot(t, y, xlabel='Time (s)', ylabel=y_label,
         title='%s Kinetics | $t_{1/2}$=%.0fsec' % (name, t_half),
-        save_path=os.path.join(save_dir, 'area_ratio.png'))
+        save_path=os.path.join(save_dir, 'plot.png'))
 
 
 def process_bilinus(nucleus_dir, bilinus_dir, save_dir, name='BiLINuS'):
@@ -106,14 +106,15 @@ def process_bilinus(nucleus_dir, bilinus_dir, save_dir, name='BiLINuS'):
     bilinus_imgfs = list_img_files(bilinus_dir)
     for i, (nu_imgf, bi_imgf) in enumerate(zip(nucleus_imgfs, bilinus_imgfs)):
         fname = os.path.splitext(os.path.basename(bi_imgf))[0]
-        cell, den = segment_whole_cell(bi_imgf)
-        nucl, _ = segment_bright_nucleus(nu_imgf)
-        cyto = cell^nucl
+        nucl, den_nucl = segment_nucleus(nu_imgf)
+        cell, den = segment_cell(bi_imgf, mask=nucl)
+        cell = cell | nucl
+        cyto = cell ^ nucl
         if i == 0:
             cmin = np.min(den)
             cmax = 1.1*np.max(den)
-        _, nucl_ave_int = measure_regions(nucl, den)
-        _, cyto_ave_int = measure_regions(cyto, den)
+        nucl_ave_int = np.mean(nucl*den)
+        cyto_ave_int = np.mean(cyto*den)
         t.append(np.float(fname))
         y.append(nucl_ave_int/cyto_ave_int)
         with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
@@ -121,7 +122,7 @@ def process_bilinus(nucleus_dir, bilinus_dir, save_dir, name='BiLINuS'):
             axim = ax.imshow(den, cmap='viridis')
             axim.set_clim(cmin, cmax)
             ax.contour(nucl, linewidths=0.1, colors='r')
-            ax.contour(cell, linewidths=0.1, colors='w')
+            ax.contour(cyto, linewidths=0.1, colors='w')
             ax.grid(False)
             ax.axis('off')
             fig.tight_layout(pad=0)
@@ -140,10 +141,10 @@ def process_bilinus(nucleus_dir, bilinus_dir, save_dir, name='BiLINuS'):
     y_label = '(Ave Nucleus Intensity)/(Ave Cytoplasm Intensity)'
     plot(t, y, xlabel='Time (s)', ylabel=y_label,
         title='%s Kinetics | $t_{1/2}$=%.0fsec' % (name, t_half),
-        save_path=os.path.join(save_dir, 'area_ratio.png'))
+        save_path=os.path.join(save_dir, 'plot.png'))
 
 
-def aggregate_stats(results_dir, save_dir):
+def aggregate_stats(results_dir, save_dir, xlabel, ylabel, title):
     with plt.style.context(('seaborn-whitegrid', custom_styles)):
         fig, ax = plt.subplots()
         labels = []
@@ -160,25 +161,56 @@ def aggregate_stats(results_dir, save_dir):
         combined_y_ave = combined_y.mean(axis=1)
         labels.append('Ave')
         ave_curve = ax.plot(combined_t_ave, combined_y_ave, color='#0b559f')
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('(Cluster Area)/(Cell Area)')
-        ax.set_title('CIBN-CRY2PHR Kinetics', loc='left')
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_title(title, loc='left')
         ax.legend(handles=[Line2D([0], [0], color='#0b559f', lw=4)], labels=['Ave'], loc='best')
         fig.savefig(os.path.join(save_dir, 'kinetics.png'),
             dpi=100, bbox_inches='tight', transparent=False, pad_inches=0)
         plt.close(fig)
 
 
+def process_cad_multi():
+    root_dir = '/home/phuong/data/LINTAD/CAD'
+    results_dir = '/home/phuong/data/LINTAD/CAD-results'
+    for img_dir in [x[1] for x in os.walk(root_dir)][0]:
+        in_dir = os.path.join(root_dir, img_dir)
+        out_dir = os.path.join(results_dir, img_dir)
+        process_cad(in_dir, out_dir)
+    xlabel = 'Time (s)'
+    ylabel = '(Ave Cluster Area)/(Ave Cell Area)'
+    title = 'CIBN-CRY2PHR Kinetics'
+    aggregate_stats(results_dir, results_dir, xlabel, ylabel, title)
+
+def process_bilinus_multi():
+    nucleus_root_dir = '/home/phuong/data/LINTAD/LINuS/nucleus'
+    bilinus_root_dir = '/home/phuong/data/LINTAD/LINuS/bilinus'
+    results_dir = '/home/phuong/data/LINTAD/LINuS-results'
+    for img_dir in [x[1] for x in os.walk(nucleus_root_dir)][0]:
+        nucleus_dir = os.path.join(nucleus_root_dir, img_dir)
+        bilinus_dir = os.path.join(bilinus_root_dir, img_dir)
+        out_dir = os.path.join(save_dir, img_dir)
+        process_bilinus(nucleus_dir, bilinus_dir, out_dir)
+    xlabel = 'Time (s)'
+    ylabel = '(Ave Nucleus Intensity)/(Ave Cytoplasm Intensity)'
+    title = 'BiLINuS2 Kinetics'
+    aggregate_stats(results_dir, results_dir, xlabel, ylabel, title)
 
 
 if __name__ == '__main__':
-    nucleus_dir = '/home/phuong/data/LINTAD/CAD/0'
-    bilinus_dir = '/home/phuong/data/LINTAD/CAD/1'
-    save_dir = '/home/phuong/data/LINTAD/nucleus_results'
-    process_bilinus(nucleus_dir, bilinus_dir, save_dir)
-    # results_dir = '/home/phuong/data/LINTAD/CAD-results'
-    # save_dir = '/home/phuong/data/LINTAD/CAD-results'
-    # aggregate_stats(results_dir, save_dir)
+    # nucleus_dir = '/home/phuong/data/LINTAD/LINuS/nucleus/0'
+    # bilinus_dir = '/home/phuong/data/LINTAD/LINuS/bilinus/0'
+    # save_dir = '/home/phuong/data/LINTAD/linus_results'
+    # process_bilinus(nucleus_dir, bilinus_dir, save_dir)
+
+    # nucleus_root_dir = '/home/phuong/data/LINTAD/LINuS/nucleus'
+    # bilinus_root_dir = '/home/phuong/data/LINTAD/LINuS/bilinus'
+    # save_dir = '/home/phuong/data/LINTAD/LINuS-results'
+    # for img_dir in [x[1] for x in os.walk(nucleus_root_dir)][0]:
+    #     nucleus_dir = os.path.join(nucleus_root_dir, img_dir)
+    #     bilinus_dir = os.path.join(bilinus_root_dir, img_dir)
+    #     out_dir = os.path.join(save_dir, img_dir)
+    #     process_bilinus(nucleus_dir, bilinus_dir, out_dir)
 
     # root_dir = '/home/phuong/data/LINTAD/CAD'
     # save_dir = '/home/phuong/data/LINTAD/CAD-results'
@@ -186,6 +218,14 @@ if __name__ == '__main__':
     #     in_dir = os.path.join(root_dir, img_dir)
     #     out_dir = os.path.join(save_dir, img_dir)
     #     process_cad(in_dir, out_dir)
+
+    nucleus_root_dir = '/home/phuong/data/LINTAD/LINuS/nucleus'
+    bilinus_root_dir = '/home/phuong/data/LINTAD/LINuS/bilinus'
+    results_dir = '/home/phuong/data/LINTAD/LINuS-results'
+    xlabel = 'Time (s)'
+    ylabel = '(Ave Nucleus Intensity)/(Ave Cytoplasm Intensity)'
+    title = 'BiLINuS2 Kinetics'
+    aggregate_stats(results_dir, results_dir, xlabel, ylabel, title)
 
     # save_dir = '/home/phuong/data/LINTAD/CAD/20200131-CIBN-mTq2-CAD_CRY2PHR-mCh/3-results'
     # process_cad(img_dir, save_dir)
