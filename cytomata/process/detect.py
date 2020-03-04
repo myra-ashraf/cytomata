@@ -9,8 +9,8 @@ from skimage.io import imread
 from skimage.exposure import equalize_adapthist
 from skimage.measure import regionprops
 from skimage.feature import peak_local_max
-from skimage.filters import threshold_local, gaussian, laplace, threshold_otsu, sobel, median
-from skimage.morphology import disk, binary_dilation, erosion, binary_erosion, remove_small_objects, watershed, binary_closing, binary_opening
+from skimage.filters import threshold_local, gaussian, laplace, threshold_otsu, sobel, median, threshold_li
+from skimage.morphology import disk, binary_dilation, erosion, binary_erosion, remove_small_objects, remove_small_holes, binary_closing, binary_opening
 from skimage.restoration import denoise_nl_means, estimate_sigma
 from skimage.segmentation import random_walker, clear_border, find_boundaries
 
@@ -29,6 +29,15 @@ def preprocess_img(imgf, bkg_imgf=None):
     return img, den
 
 
+def subtract_img(imgf):
+    img, den = preprocess_img(imgf)
+    sig = estimate_sigma(img)
+    bkg = threshold_local(den, block_size=501, offset=-sig, method='gaussian')
+    sub = den - bkg
+    sub[sub < 0] = 0
+    return sub
+
+
 def measure_regions(thr, img):
     """Measure the median intensity and areas of thresholded regions."""
     lab, _ = ndi.label(thr)
@@ -39,38 +48,43 @@ def measure_regions(thr, img):
     return np.array(areas), np.array(ave_ints)
 
 
-def segment_cell(imgf, bkg_imgf=None, mask=None):
+def segment_cell(imgf, bkg_imgf=None):
     """Segment out whole cell body from fluorescence images."""
     img, den = preprocess_img(imgf, bkg_imgf)
-    sig = estimate_sigma(img)
-    bkg = threshold_local(den, block_size=501, offset=sig, method='gaussian')
-    thr = den > bkg
-    if mask is not None:
-        thr = thr | mask
-    thr = binary_erosion(thr, selem=disk(25))
-    thr = binary_dilation(thr, selem=disk(21))
-    thr = clear_border(remove_small_objects(thr, min_size=10000), buffer_size=15)
+    thr = median(den > threshold_li(den))
+    thr = remove_small_objects(thr, min_size=1000)
     return thr, den
 
 
-def segment_clusters(imgf, bkg_imgf=None, mask=None):
+def segment_clusters(imgf, bkg_imgf=None):
     """Segment out bright clusters from fluorescence images."""
     img, den = preprocess_img(imgf, bkg_imgf)
-    edg = gaussian(laplace(den), sigma=1.25)
-    sig = estimate_sigma(edg)
-    bkg = threshold_local(edg, block_size=25, offset=-5e3*sig, method='gaussian')
-    thr = edg > bkg
-    if mask is not None:
-        thr *= mask
+    sig = estimate_sigma(img)
+    log = laplace(gaussian(median(den), sigma=2))
+    bkg = threshold_local(log, block_size=25, offset=-sig, method='gaussian')
+    thr = log > bkg
     return thr, den
 
 
 def segment_nucleus(imgf, bkg_imgf=None):
     """Segment out bright nucleus from dim cytoplasm."""
     img, den = preprocess_img(imgf, bkg_imgf)
-    den = equalize_adapthist(den, clip_limit=0.02)
-    bkg = threshold_local(den, block_size=501, offset=-0.1*np.max(den), method='gaussian')
-    thr = den > bkg
-    thr = binary_erosion(thr, selem=disk(9))
-    nucl = clear_border(remove_small_objects(thr, min_size=1000), buffer_size=50)
+    sig = estimate_sigma(img)
+    bkg = threshold_local(den, block_size=501, offset=-sig, method='gaussian')
+    thr = median(den > bkg)
+    thr = remove_small_objects(thr, min_size=1000)
+    thr = remove_small_holes(thr, area_threshold=3000)
+    thr = clear_border(thr, buffer_size=1)
+    return thr, den
+
+
+def segment_dim_nucleus(imgf, bkg_imgf=None):
+    """Segment out dim nucleus from bright cytoplasm."""
+    img, den = preprocess_img(imgf, bkg_imgf)
+    gos = gaussian(sobel(den), sigma=9)
+    thr = gos > threshold_otsu(gos)
+    thr = clear_border(remove_small_objects(thr, min_size=1000))
+    cyto = erosion(thr, selem=disk(12))
+    cell = ndi.binary_fill_holes(cyto)
+    nucl = cell^cyto
     return nucl, den
