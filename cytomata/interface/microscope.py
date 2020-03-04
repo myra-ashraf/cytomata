@@ -96,7 +96,7 @@ class Microscope(object):
         self.coords = np.vstack((self.coords, [x, y, z]))
 
     def add_coords_session(self, ch):
-        self.core.setExposure(settings['mpos_exp'])
+        self.core.setExposure(self.settings['mpos_exp'])
         self.set_channel(ch)
         cv2.namedWindow('Coordinate Picker')
         self.core.startContinuousSequenceAcquisition(1)
@@ -120,7 +120,7 @@ class Microscope(object):
                     print(coord)
         cv2.destroyAllWindows()
         self.core.stopSequenceAcquisition()
-        self.core.setExposure(settings['cam_exposure'])
+        self.core.setExposure(self.settings['cam_exposure'])
 
     def snap_image(self):
         self.core.waitForSystem()
@@ -156,14 +156,14 @@ class Microscope(object):
         setup_dirs(img_dir)
         self.set_channel(ch)
         for i, yi in enumerate(ys):
-            for xi in xs:
+            for j, xi in enumerate(xs):
                 if not i % 2:
                     xi = -xi
                 self.set_position('xy', (x0 + xi, y0 + yi))
                 img = self.snap_image()
                 xstr = str(round(xi, 2))
                 ystr = str(round(yi, 2))
-                img_path = os.path.join(img_dir, xstr + '-' + ystr + '.tiff')
+                img_path = os.path.join(img_dir, str(j) + '-' + str(i) + '.tiff')
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     imsave(img_path, img)

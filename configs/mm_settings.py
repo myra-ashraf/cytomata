@@ -25,19 +25,19 @@ SETTINGS = {
     'cam_gain': 1,
     'mpos': False,
     'mpos_ch': 'mCherry',
-    'mpos_exp': 200,
+    'mpos_exp': 100,
     'mpos_mode': 'sequential'
 }
 
 
 ## Seconds-Timescale ##
 IMAGING = {
-    't_info': [(0, 61, 5), (65, 721, 5)],
-    'chs': ['YFP', 'mCherry']
+    't_info': [(0, 601, 5)],
+    'chs': ['mCherry']
 }
 
 INDUCTION = {
-    't_info': [(60, 721, 3, 0.1)],
+    't_info': [(60, 540, 5, 1)],
     'ch_ind': 'blue-light'
 }
 
