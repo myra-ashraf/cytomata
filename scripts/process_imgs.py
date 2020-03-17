@@ -34,41 +34,6 @@ from cytomata.process.detect import (
 from cytomata.utils.visual import imshow, plot, imgs_to_gif, custom_styles, custom_palette
 
 
-def compare_two_imgs(imgf1, imgf2, results_dir):
-    sub1 = subtract_img(imgf1)
-    sub2 = subtract_img(imgf2)
-    ave_int1 = np.mean(sub1[np.nonzero(sub1)])
-    print(ave_int1)
-    ave_int2 = np.mean(sub2[np.nonzero(sub2)])
-    print(ave_int2)
-    print('ave_int2/ave_int1 =', ave_int2/ave_int1)
-    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
-        fig, ax = plt.subplots(figsize=(10,8))
-        axim = ax.imshow(sub1, cmap='viridis')
-        ax.grid(False)
-        ax.axis('off')
-        fig.tight_layout(pad=0)
-        cb = fig.colorbar(axim, pad=0.01, format='%.4f')
-        cb.outline.set_linewidth(0)
-        fig.canvas.draw()
-        save_path = os.path.join(results_dir, 'img1.png')
-        fig.savefig(save_path,
-            dpi=100, bbox_inches='tight', transparent=True, pad_inches=0)
-        plt.close(fig)
-        fig, ax = plt.subplots(figsize=(10,8))
-        axim = ax.imshow(sub2, cmap='viridis')
-        ax.grid(False)
-        ax.axis('off')
-        fig.tight_layout(pad=0)
-        cb = fig.colorbar(axim, pad=0.01, format='%.4f')
-        cb.outline.set_linewidth(0)
-        fig.canvas.draw()
-        save_path = os.path.join(results_dir, 'img2.png')
-        fig.savefig(save_path,
-            dpi=100, bbox_inches='tight', transparent=True, pad_inches=0)
-        plt.close(fig)
-
-
 def approx_half_life(t, y, phase='fall'):
     """Approximate half life of reaction process using cubic spline interpolation."""
     t = np.array(t)
@@ -86,6 +51,54 @@ def approx_half_life(t, y, phase='fall'):
     idx = np.argmin((yi - y_half)**2)
     t_half = ti[idx]
     return t_half
+
+
+def test_lexa_subract():
+    img_dir = '/home/phuong/data/LINTAD/LexA/0'
+    imgfs = list_img_files(img_dir)
+    imgf = imgfs[720]
+    final = subtract_img(imgf)
+    plt.imshow(final, cmap='viridis')
+    plt.show()
+
+
+def process_lexa(img_dir, results_dir):
+    setup_dirs(os.path.join(results_dir, 'imgs'))
+    t = []
+    y = []
+    plot_imgs = []
+    for i, imgf in enumerate(tqdm(list_img_files(img_dir))):
+        fname = os.path.splitext(os.path.basename(imgf))[0]
+        sub = subtract_img(imgf)
+        med_int = np.median(sub[np.nonzero(sub)])
+        if i == 0:
+            cmin = np.min(sub)
+            cmax = 1.1*np.max(sub)
+            init_int = med_int
+        t.append(np.float(fname))
+        y.append(med_int)
+        with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+            fig, ax = plt.subplots(figsize=(10,8))
+            axim = ax.imshow(sub, cmap='viridis')
+            axim.set_clim(cmin, cmax)
+            ax.grid(False)
+            ax.axis('off')
+            fig.tight_layout(pad=0)
+            cb = fig.colorbar(axim, pad=0.01, format='%.4f')
+            cb.outline.set_linewidth(0)
+            fig.canvas.draw()
+            plot_imgs.append(np.array(fig.canvas.renderer._renderer))
+            fig.savefig(os.path.join(results_dir, 'imgs', fname + '.png'),
+                dpi=100, bbox_inches='tight', transparent=True, pad_inches=0)
+            plt.close(fig)
+    data = np.column_stack((t, y))
+    np.savetxt(os.path.join(results_dir, 'data.csv'),
+        data, delimiter=',', header='t,y', comments='')
+    imgs_to_gif(plot_imgs, os.path.join(results_dir, 'cell.gif'), fps=10)
+    t_half = approx_half_life(t, y)
+    y_label = 'Median Frame Intensity'
+    plot(t, y, xlabel='Time (s)', ylabel=y_label,
+        save_path=os.path.join(results_dir, 'plot.png'))
 
 
 def test_cad_segmentation():
@@ -236,6 +249,41 @@ def process_bilinus_multi(nuc_root_dir, bil_root_dir, results_dir):
     aggregate_stats(results_dir, xlabel, ylabel)
 
 
+def compare_two_imgs(imgf1, imgf2, results_dir):
+    sub1 = subtract_img(imgf1)
+    sub2 = subtract_img(imgf2)
+    ave_int1 = np.mean(sub1[np.nonzero(sub1)])
+    print(ave_int1)
+    ave_int2 = np.mean(sub2[np.nonzero(sub2)])
+    print(ave_int2)
+    print('ave_int2/ave_int1 =', ave_int2/ave_int1)
+    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+        fig, ax = plt.subplots(figsize=(10,8))
+        axim = ax.imshow(sub1, cmap='viridis')
+        ax.grid(False)
+        ax.axis('off')
+        fig.tight_layout(pad=0)
+        cb = fig.colorbar(axim, pad=0.01, format='%.4f')
+        cb.outline.set_linewidth(0)
+        fig.canvas.draw()
+        save_path = os.path.join(results_dir, 'img1.png')
+        fig.savefig(save_path,
+            dpi=100, bbox_inches='tight', transparent=True, pad_inches=0)
+        plt.close(fig)
+        fig, ax = plt.subplots(figsize=(10,8))
+        axim = ax.imshow(sub2, cmap='viridis')
+        ax.grid(False)
+        ax.axis('off')
+        fig.tight_layout(pad=0)
+        cb = fig.colorbar(axim, pad=0.01, format='%.4f')
+        cb.outline.set_linewidth(0)
+        fig.canvas.draw()
+        save_path = os.path.join(results_dir, 'img2.png')
+        fig.savefig(save_path,
+            dpi=100, bbox_inches='tight', transparent=True, pad_inches=0)
+        plt.close(fig)
+
+
 def aggregate_stats(results_dir, xlabel, ylabel):
     with plt.style.context(('seaborn-whitegrid', custom_styles)):
         fig, ax = plt.subplots()
@@ -285,7 +333,12 @@ if __name__ == '__main__':
     # aggregate_stats(results_dir, xlabel, ylabel)
 
 
-    imgf1 = '/home/phuong/data/LINTAD/LexA/comp/LexO.tif'
-    imgf2 = '/home/phuong/data/LINTAD/LexA/comp/LexA.tif'
-    results_dir = '/home/phuong/data/LINTAD/LexA/comp/'
-    compare_two_imgs(imgf1, imgf2, results_dir)
+    # imgf1 = '/home/phuong/data/LINTAD/LexA/comp/LexO.tif'
+    # imgf2 = '/home/phuong/data/LINTAD/LexA/comp/LexA.tif'
+    # results_dir = '/home/phuong/data/LINTAD/LexA/comp/'
+    # compare_two_imgs(imgf1, imgf2, results_dir)
+
+
+    img_dir = '/home/phuong/data/LINTAD/LexA/0'
+    results_dir = '/home/phuong/data/LINTAD/LexA/0-results'
+    process_lexa(img_dir, results_dir)
