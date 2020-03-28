@@ -14,6 +14,27 @@ plt.rcParams['axes.labelpad'] = 0
 from cytomata.utils.io import setup_dirs
 
 
+def sim_ind_translo(t, y0, u, params):
+    def ind_translo_model(t, y, uf, params):
+        u = uf(t)
+        [C, N] = y
+        kf = params['kf']
+        ku = params['ku']
+        kr = params['kr']
+        a = params['a']
+        dC = kr*N - (kf + u*ku)*C
+        dN = (-kr*N + (kf + u*ku)*C)*a
+        return [dC, dN]
+    uf = interp1d(t, u, fill_value=(0, 0))
+    result = solve_ivp(
+        fun=lambda t, y: ind_translo_model(t, y, uf, params),
+        t_span=[t[0], t[-1]], y0=y0, t_eval=t,
+        method='BDF', rtol=1e-3, atol=1e-9)
+    C = result.y[0]
+    N = result.y[1]
+    return C, N
+
+
 def sim_ind_dimer(t, y0, u, params):
     def ind_dimer_model(t, y, uf, params):
         u = uf(t)
@@ -33,25 +54,6 @@ def sim_ind_dimer(t, y0, u, params):
     B = result.y[1]
     AB = result.y[2]
     return A, B, AB
-
-
-def sim_ind_translo(t, y0, u, params):
-    def ind_translo_model(t, y, uf, params):
-        u = uf(t)
-        [C, N] = y
-        kf = params['kf']
-        kr = params['kr']
-        dC = kr*N - u*kf*C
-        dN = u*kf*C - kr*N
-        return [dC, dN]
-    uf = interp1d(t, u)
-    result = solve_ivp(
-        fun=lambda t, y: ind_translo_model(t, y, uf, params),
-        t_span=[t[0], t[-1]], y0=y0, t_eval=t,
-        method='LSODA', rtol=1e-8, atol=1e-8)
-    C = result.y[0]
-    N = result.y[1]
-    return C, N
 
 
 def sim_ind_gex(t, y0, u, params):

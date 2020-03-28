@@ -32,14 +32,18 @@ def preprocess_img(imgf, bkg_imgf=None):
 def subtract_img(imgf):
     img, den = preprocess_img(imgf)
     sig = estimate_sigma(img)
-    bkg = threshold_local(den, block_size=501, offset=-sig, method='gaussian')
-    sub = den - bkg
+    # thr = median(den > threshold_li(den))
+    bkg = threshold_local(den, block_size=701, offset=-sig, method='gaussian')
+    # plt.plot(img[280,:])
+    # plt.plot(bkg[280,:])
+    # plt.show()
+    sub = img - bkg
     sub[sub < 0] = 0
     return sub
 
 
 def measure_regions(thr, img):
-    """Measure the median intensity and areas of thresholded regions."""
+    """Measure the ave intensity and areas of thresholded regions."""
     lab, _ = ndi.label(thr)
     rprops = regionprops(lab, img)
     areas = [prop.area for prop in rprops]
@@ -52,7 +56,7 @@ def segment_cell(imgf, bkg_imgf=None):
     """Segment out whole cell body from fluorescence images."""
     img, den = preprocess_img(imgf, bkg_imgf)
     thr = median(den > threshold_li(den))
-    thr = remove_small_objects(thr, min_size=1000)
+    thr = remove_small_objects(ndi.label(thr)[0], min_size=5000)
     return thr, den
 
 
@@ -72,7 +76,7 @@ def segment_nucleus(imgf, bkg_imgf=None):
     sig = estimate_sigma(img)
     bkg = threshold_local(den, block_size=501, offset=-sig, method='gaussian')
     thr = median(den > bkg)
-    thr = remove_small_objects(thr, min_size=1000)
+    thr = remove_small_objects(ndi.label(thr)[0], min_size=500)
     thr = remove_small_holes(thr, area_threshold=3000)
     thr = clear_border(thr, buffer_size=1)
     return thr, den
