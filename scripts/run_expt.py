@@ -1,22 +1,22 @@
 import os
 import sys
 import time
-import json
+import shutil
 sys.path.append(os.path.abspath('../'))
 
 from cytomata.utils.io import setup_dirs
 from cytomata.interface.microscope import Microscope
-from configs.mm_settings import MM_CFG_FILE, SETTINGS, INDUCTION, IMAGING, AUTOFOCUS
+from configs.mm_settings import CONFIG_DIR, MM_CFG_FILE, SETTINGS, INDUCTION, IMAGING, AUTOFOCUS
 
 
 expt_name = raw_input('Expt Directory Name: ')
 expt_name = ''.join([x if x.isalnum() or x is '-' else '_' for x in expt_name])
 SETTINGS['save_dir'] = os.path.join('expts', time.strftime('%Y%m%d-') + expt_name)
-
 setup_dirs(SETTINGS['save_dir'])
-setup_dirs(os.path.join(SETTINGS['save_dir'], 'tasks_log'))
-with open(os.path.join(SETTINGS['save_dir'], 'settings.json'), 'w') as fp:
-    json.dump(SETTINGS, fp)
+settings_file = os.path.join(CONFIG_DIR, 'mm_settings.py')
+log_file = os.path.join(SETTINGS['save_dir'], 'log.txt')
+shutil.copyfile(settings_file, log_file)
+
 
 mscope = Microscope(SETTINGS, MM_CFG_FILE)
 if SETTINGS['mpos']:

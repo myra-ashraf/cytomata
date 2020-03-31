@@ -1,6 +1,5 @@
 import os
 import time
-import json
 import warnings
 from collections import defaultdict, deque
 
@@ -25,38 +24,22 @@ class Microscope(object):
         self.settings = settings
         self.save_dir = settings['save_dir']
         self.ch_group = self.settings['ch_group']
-        self.cam_device = self.settings['cam_device']
         self.obj_device = self.settings['obj_device']
-        self.lp_device = self.settings['lp_device']
         self.xy_device = self.settings['xy_device']
         self.z_device = self.settings['z_device']
         self.img_w = self.settings['img_width_um']
         self.img_h = self.settings['img_height_um']
-        self.core.setExposure(settings['cam_exposure'])
-        self.core.setProperty(settings['cam_device'], 'Gain', settings['cam_gain'])
-        self.core.setState(self.lp_device, 1)
-        self.core.assignImageSynchro(self.xy_device)
-        self.core.assignImageSynchro(self.z_device)
-        self.xt = defaultdict(list)
-        self.xx = defaultdict(list)
-        self.xy = defaultdict(list)
-        self.xz = defaultdict(list)
+        for dev in settings['img_sync']:
+            self.core.assignImageSynchro(dev)
         self.uta = defaultdict(list)
         self.utb = defaultdict(list)
-        self.ux = defaultdict(list)
-        self.uy = defaultdict(list)
-        self.uz = defaultdict(list)
         self.x0 = self.get_position('x')
         self.y0 = self.get_position('y')
         self.z0 = self.get_position('z')
         self.xlim = np.array(settings['stage_x_limit']) + self.x0
         self.ylim = np.array(settings['stage_y_limit']) + self.y0
         self.zlim = np.array(settings['stage_z_limit']) + self.z0
-        self.coords = np.array([[
-            self.x0,
-            self.y0,
-            self.z0
-        ]])
+        self.coords = np.array([[self.x0, self.y0, self.z0]])
         self.cid = 0
         self.t0 = time.time()
 
@@ -96,7 +79,6 @@ class Microscope(object):
         self.coords = np.vstack((self.coords, [x, y, z]))
 
     def add_coords_session(self, ch):
-        self.core.setExposure(self.settings['mpos_exp'])
         self.set_channel(ch)
         cv2.namedWindow('Coordinate Picker')
         self.core.startContinuousSequenceAcquisition(1)
@@ -120,73 +102,67 @@ class Microscope(object):
                     print(coord)
         cv2.destroyAllWindows()
         self.core.stopSequenceAcquisition()
-        self.core.setExposure(self.settings['cam_exposure'])
 
     def snap_image(self):
-        self.core.waitForSystem()
         self.core.snapImage()
         return self.core.getImage()
 
-    def snap_zstack(self, ch, bounds, step):
-        zi = self.get_position('z')
-        positions = list(np.arange(zi + bounds[0], zi + bounds[1], step))
+    def snap_zstack(self, chs, zdepth, step):
+        z0 = self.get_position('z')
+        zs = np.arange(zi - zdepth/2, zi + zdepth/2, step)
         tstamp = time.strftime('%Y%m%d-%H%M%S')
-        img_dir = os.path.join(self.save_dir, 'zstack_' + tstamp, ch)
-        setup_dirs(img_dir)
-        self.set_channel(ch)
+        img_dir = os.path.join(self.save_dir, tstamp + '_zstack')
         imgs = []
-        for z in positions:
-            self.set_position('z', z)
-            img = self.snap_image()
-            imgs.append(img)
-            img_path = os.path.join(img_dir, str(z) + '.tiff')
+        for ch in chs:
+            self.set_channel(ch)
+            for z in zs:
+                self.set_position('z', z)
+                img = self.snap_image()
+                imgs.append((z, ch, img))
+        for z, ch, img in imgs:
+            ch_dir = os.path.join(img_dir, ch)
+            setup_dirs(ch_dir)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                imsave(os.path.join(ch_dir, str(z) + '.tiff'), img)
+        self.set_position('z', z0)
+
+    def snap_xyfield(self, chs, n=5, step=81.92):
+        x0 = self.get_position('x')
+        y0 = self.get_position('y')
+        grid = np.arange(-(n//2)*step, (n//2)*step + step, step)
+        tstamp = time.strftime('%Y%m%d-%H%M%S')
+        img_dir = os.path.join(self.save_dir, tstamp + '_xyfield')
+        imgs = []
+        for ch in chs:
+            self.set_channel(ch)
+            for i, yi in enumerate(grid):
+                for j, xi in enumerate(grid):
+                    if not i % 2:
+                        xi = -xi
+                    self.set_position('xy', (x0 + xi, y0 + yi))
+                    img = self.snap_image()
+                    imgs.append((i, j, ch, img))
+        for i, j, ch, img in imgs:
+            ch_dir = os.path.join(img_dir, ch)
+            setup_dirs(ch_dir)
+            img_path = os.path.join(ch_dir, str(i) + '_' + str(j) + '.tiff')
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 imsave(img_path, img)
-        self.set_position('z', zi)
-        return positions, imgs
-
-    def snap_xyfield(self, ch, n=5, step=81.92):
-        x0 = self.get_position('x')
-        y0 = self.get_position('y')
-        xs = np.arange(-(n//2)*step, (n//2)*step + step, step)
-        ys = np.arange(-(n//2)*step, (n//2)*step + step, step)
-        tstamp = time.strftime('%Y%m%d-%H%M%S')
-        img_dir = os.path.join(self.save_dir, 'xyfield_' + tstamp, ch)
-        setup_dirs(img_dir)
-        self.set_channel(ch)
-        for i, yi in enumerate(ys):
-            for j, xi in enumerate(xs):
-                if not i % 2:
-                    xi = -xi
-                self.set_position('xy', (x0 + xi, y0 + yi))
-                img = self.snap_image()
-                xstr = str(round(xi, 2))
-                ystr = str(round(yi, 2))
-                img_path = os.path.join(img_dir, str(j) + '-' + str(i) + '.tiff')
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    imsave(img_path, img)
         self.set_position('xy', (x0, y0))
 
     def take_images(self, cid, chs):
         (x, y, z) = self.coords[cid]
         self.set_position('xy', (x, y))
-        self.xt[cid].append(time.time() - self.t0)
-        self.xx[cid].append(self.get_position('x'))
-        self.xy[cid].append(self.get_position('y'))
-        self.xz[cid].append(self.get_position('z'))
+        ti = time.time() - self.t0
         for ch in chs:
             self.set_channel(ch)
             img = self.snap_image()
-            img_name = str(round(self.xt[cid][-1], 2))
-            img_path = os.path.join(self.save_dir, ch, str(cid), img_name + '.tiff')
+            img_path = os.path.join(self.save_dir, ch, str(cid), str(round(ti, 1)) + '.tiff')
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 imsave(img_path, img)
-        x_path = os.path.join(self.save_dir, 'x' + str(cid) + '.csv')
-        x_data = np.column_stack((self.xt[cid], self.xx[cid], self.xy[cid], self.xz[cid]))
-        np.savetxt(x_path, x_data, delimiter=',', header='t,x,y,z', comments='')
 
     def imaging_task(self, chs):
         if self.settings['mpos']:
@@ -209,27 +185,21 @@ class Microscope(object):
         for ch in chs:
             for i in range(len(self.coords)):
                 setup_dirs(os.path.join(self.save_dir, ch, str(i)))
-        t = time.strftime('%Y%m%d-%H%M%S')
-        with open(os.path.join(self.save_dir, 'tasks_log', t + '-imaging.json'), 'w') as fp:
-            json.dump({'t_info': t_info, 'chs': chs}, fp)
 
     def pulse_light(self, cid, width, ch_ind):
         (x, y, z) = self.coords[cid]
         self.set_position('xy', (x, y))
-        self.ux[cid].append(self.get_position('x'))
-        self.uy[cid].append(self.get_position('y'))
-        self.uz[cid].append(self.get_position('z'))
-        self.set_channel(ch_ind)
-        self.core.setExposure(width*1000)
+        ch0 = self.core.getCurrentConfig(self.ch_group)
         ta = time.time() - self.t0
-        self.snap_image()
-        self.core.setExposure(self.settings['cam_exposure'])
+        self.set_channel(ch_ind)
+        time.sleep(width)
+        tb = time.time() - self.t0
+        self.set_channel(ch0)
         self.uta[cid].append(ta)
-        self.utb[cid].append(ta + width)
+        self.utb[cid].append(tb)
         u_path = os.path.join(self.save_dir, 'u' + str(cid) + '.csv')
-        u_data = np.column_stack(
-            (self.uta[cid], self.utb[cid], self.ux[cid], self.uy[cid], self.uz[cid]))
-        np.savetxt(u_path, u_data, delimiter=',', header='ta,tb,x,y,z', comments='')
+        u_data = np.column_stack((self.uta[cid], self.utb[cid]))
+        np.savetxt(u_path, u_data, delimiter=',', header='ta,tb', comments='')
 
     def induction_task(self, width, ch_ind):
         if self.settings['mpos']:
@@ -249,9 +219,6 @@ class Microscope(object):
                 'times': times,
                 'kwargs': {'width': width, 'ch_ind': ch_ind}
             })
-        t = time.strftime('%Y%m%d-%H%M%S')
-        with open(os.path.join(self.save_dir, 'tasks_log', t + '-induction.json'), 'w') as fp:
-            json.dump({'t_info': t_info, 'ch_ind': ch_ind}, fp)
 
     def measure_focus(self):
         img = self.snap_image()
@@ -291,9 +258,6 @@ class Microscope(object):
                 'times': times,
                 'kwargs': {'ch': ch}
             })
-        t = time.strftime('%Y%m%d-%H%M%S')
-        with open(os.path.join(self.save_dir, 'tasks_log', t + '-autofocus.json'), 'w') as fp:
-            json.dump({'t_info': t_info, 'ch': ch}, fp)
 
     def run_tasks(self):
         if self.tasks:
