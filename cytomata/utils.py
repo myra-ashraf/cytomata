@@ -1,13 +1,15 @@
 import os
+import imghdr
 
 import cv2
 import imageio
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+from natsort import natsorted
+from scipy.interpolate import interp1d
 from skimage import img_as_ubyte, img_as_float
 
-from cytomata.utils.io import setup_dirs
 
 
 custom_palette = [
@@ -157,3 +159,40 @@ class DynamicPlot(object):
 
     def close(self):
         plt.close(self.fig)
+
+
+def list_img_files(dir):
+    return [os.path.join(dir, fn) for fn in natsorted(os.listdir(dir), key=lambda y: y.lower())
+        if imghdr.what(os.path.join(dir, fn)) in ['tiff', 'jpeg', 'png', 'gif']]
+
+
+def setup_dirs(dirs):
+    if not os.path.exists(dirs):
+        os.makedirs(dirs)
+
+
+def rescale(aa):
+    return (aa - min(aa)) / (max(aa) - min(aa))
+
+
+def sse(aa, bb):
+    return np.sum((aa - bb)**2)
+
+
+def approx_half_life(t, y, phase='fall'):
+    """Approximate half life of reaction process using cubic spline interpolation."""
+    t = np.array(t)
+    y = np.array(y)
+    if phase == 'rise':
+        tp = t[:y.argmax()]
+        yp = y[:y.argmax()]
+    elif phase == 'fall':
+        tp = t[y.argmax():]
+        yp = y[y.argmax():]
+    y_half = (np.max(y) - np.min(y))/2
+    yf = interp1d(tp, yp, 'cubic')
+    ti = np.arange(tp[0], tp[-1], 1)
+    yi = yf(ti)
+    idx = np.argmin((yi - y_half)**2)
+    t_half = ti[idx]
+    return t_half

@@ -10,7 +10,7 @@ from skimage.filters import laplace
 from scipy.optimize import minimize_scalar
 
 import MMCorePy
-from cytomata.utils.io import setup_dirs
+from cytomata.utils import setup_dirs
 
 
 class Microscope(object):

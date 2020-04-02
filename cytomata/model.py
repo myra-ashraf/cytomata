@@ -1,5 +1,4 @@
 from scikits.odes import ode
-from scipy.integrate import solve_ivp
 
 
 def sim_ind_translo(t, y0, uf, params):

@@ -3,7 +3,7 @@ import sys
 import time
 sys.path.append(os.path.abspath('../'))
 
-from cytomata.interface.microscope import Microscope
+from cytomata.mscope import Microscope
 from configs.mm_settings import MM_CFG_FILE, SETTINGS
 
 

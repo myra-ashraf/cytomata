@@ -1,64 +1,22 @@
 import os
 import sys
 import time
-import warnings
-from collections import deque
 sys.path.append(os.path.abspath('../'))
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d, splev, splrep
 import seaborn as sns
-from matplotlib.patches import Rectangle
-from matplotlib.lines import Line2D
-from matplotlib.cm import get_cmap
-from scipy import ndimage as ndi
-from scipy.stats import skew
-from skimage import img_as_float, img_as_uint, img_as_ubyte
-from skimage.io import imread, imsave
-from skimage.exposure import equalize_adapthist, rescale_intensity
-from skimage.measure import regionprops
-from skimage.feature import peak_local_max, blob_log
-from skimage.filters import threshold_local, gaussian, rank, laplace
-from skimage.morphology import disk, dilation, erosion, remove_small_objects, opening, remove_small_holes
-from skimage.restoration import denoise_nl_means, estimate_sigma
-from skimage.segmentation import random_walker, clear_border, find_boundaries
-from skimage.color import label2rgb
-from skimage.util import invert
-from natsort import natsorted
+import matplotlib.pyplot as plt
 from tqdm import tqdm
+from scipy.stats import skew
 from imageio import mimwrite
+from scipy.interpolate import interp1d
+from matplotlib.lines import Line2D
+from skimage import img_as_float, img_as_ubyte
 
-from cytomata.utils.io import setup_dirs, list_img_files
-from cytomata.process.detect import (
-    preprocess_img, measure_regions, segment_clusters,
-    segment_object, segment_nucleus
-)
-from cytomata.utils.visual import imshow, plot, imgs_to_gif, custom_styles, custom_palette
-
-
-def rescale(vals):
-    return (vals - min(vals)) / (max(vals) - min(vals))
-
-
-def approx_half_life(t, y, phase='fall'):
-    """Approximate half life of reaction process using cubic spline interpolation."""
-    t = np.array(t)
-    y = np.array(y)
-    if phase == 'rise':
-        tp = t[:y.argmax()]
-        yp = y[:y.argmax()]
-    elif phase == 'fall':
-        tp = t[y.argmax():]
-        yp = y[y.argmax():]
-    y_half = (np.max(y) - np.min(y))/2
-    yf = interp1d(tp, yp, 'cubic')
-    ti = np.arange(tp[0], tp[-1], 1)
-    yi = yf(ti)
-    idx = np.argmin((yi - y_half)**2)
-    t_half = ti[idx]
-    return t_half
+from cytomata.process import preprocess_img, measure_regions, segment_clusters,segment_object
+from cytomata.utils.visual import (setup_dirs, list_img_files,
+    approx_half_life, rescale, imshow, plot, imgs_to_gif, custom_styles, custom_palette)
 
 
 def test_preprocess_img():

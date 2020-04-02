@@ -4,8 +4,8 @@ import time
 import shutil
 sys.path.append(os.path.abspath('../'))
 
-from cytomata.utils.io import setup_dirs
-from cytomata.interface.microscope import Microscope
+from cytomata.utils import setup_dirs
+from cytomata.mscope import Microscope
 from configs.mm_settings import CONFIG_DIR, MM_CFG_FILE, SETTINGS, INDUCTION, IMAGING, AUTOFOCUS
 
 

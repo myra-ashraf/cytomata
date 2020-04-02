@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 sys.path.append(os.path.abspath('../'))
 
 
@@ -11,17 +10,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
-from cytomata.model.ode import sim_ind_translo, sim_ind_dimer, sim_ind_gex
-from cytomata.utils.visual import imshow, plot, custom_styles, custom_palette
-from cytomata.utils.io import setup_dirs
-
-
-def rescale(aa):
-    return (aa - min(aa)) / (max(aa) - min(aa))
-
-
-def sse(aa, bb):
-    return np.sum((aa - bb)**2)
+from cytomata.model import sim_ind_translo, sim_ind_dimer, sim_ind_gex
+from cytomata.utils import setup_dirs, rescale, sse, imshow, plot, custom_styles, custom_palette
 
 
 def preproc_translo_data(y_csv, u_csv):

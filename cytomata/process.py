@@ -1,11 +1,12 @@
-import numpy as np
 import time
-import matplotlib.pyplot as plt
+
+import numpy as np
 from scipy import ndimage as ndi
 from skimage import img_as_float
 from skimage.io import imread
 from skimage.measure import regionprops
-from skimage.filters import threshold_local, gaussian, laplace, threshold_otsu, sobel, median, threshold_li
+from skimage.filters import (threshold_local, gaussian,
+    laplace, threshold_otsu, sobel, median, threshold_li)
 from skimage.morphology import disk, binary_erosion, remove_small_objects, remove_small_holes
 from skimage.restoration import denoise_nl_means, estimate_sigma
 from skimage.segmentation import clear_border
