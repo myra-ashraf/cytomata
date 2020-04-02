@@ -38,7 +38,8 @@ custom_styles = {
 
 
 def plot(x, y=None, xlabel=None, ylabel=None, title=None, labels=None, ylim=None, xlim=None,
-    figsize=custom_styles['figure.figsize'], legend_loc='best', show=False, save_path=None, dpi=100):
+    figsize=custom_styles['figure.figsize'], legend_loc='best', show=False, save_path=None,
+    xticks=None, yticks=None, dpi=100):
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, ax = plt.subplots(figsize=figsize)
         if y is not None:
@@ -58,6 +59,10 @@ def plot(x, y=None, xlabel=None, ylabel=None, title=None, labels=None, ylim=None
             ax.set_ylim(xlim)
         if ylim is not None:
             ax.set_ylim(ylim)
+        if xticks is not None:
+            ax.set_xticks(xticks)
+        if yticks is not None:
+            ax.set_yticks(yticks)
         fig.canvas.draw()
         img = np.array(fig.canvas.renderer._renderer)
         if save_path is not None:
@@ -106,7 +111,7 @@ def imgs_to_mp4(imgs, vid_path, fps=10):
 def imgs_to_gif(imgs, gif_path, fps=10):
     with imageio.get_writer(gif_path, mode='I', fps=fps) as writer:
         for img in imgs:
-            writer.append_data(img_as_float(img))
+            writer.append_data(img_as_ubyte(img))
 
 
 class DynamicPlot(object):

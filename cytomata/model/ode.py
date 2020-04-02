@@ -9,9 +9,9 @@ def sim_ind_translo(t, y0, uf, params):
         kf = params['kf']
         kr = params['kr']
         a = params['a']
-        dy[0] = -(u*ku + kf)*y[0] + kr*y[1]
-        dy[1] = ((u*ku + kf)*y[0] - kr*y[1])*a
-    options = {'rtol': 1e-9, 'atol': 1e-12, 'max_steps': 50000}
+        dy[0] = kr*y[1] - (u*ku + kf)*y[0]
+        dy[1] = -dy[0]*a
+    options = {'rtol': 1e-10, 'atol': 1e-15, 'max_steps': 50000}
     solver = ode('cvode', model, old_api=False, **options)
     solution = solver.solve(t, y0)
     return solution.values.t, solution.values.y
