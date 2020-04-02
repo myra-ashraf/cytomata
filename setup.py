@@ -26,7 +26,6 @@ setuptools.setup(
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Environment :: Console",
-        "Environment :: Web Environment",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
@@ -46,6 +45,6 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=['tests']),
     install_requires=[
         'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image', 'opencv-python',
-        'gevent', 'eel', 'tornado', 'natsort', 'lmfit', 'filterpy'
+        'natsort', 'lmfit', 'tqdm', 'scikits.odes'
     ]
 )
