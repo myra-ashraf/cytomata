@@ -8,40 +8,40 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from natsort import natsorted
 from scipy.interpolate import interp1d
-from skimage import img_as_ubyte, img_as_float
+from skimage import img_as_ubyte
 
 
 
 custom_palette = [
     '#1976D2', '#D32F2F', '#388E3C',
-    '#7B1FA2', '#C2185B', '#FBC02D',
-    '#F57C00', '#303F9F', '#0097A7',
+    '#7B1FA2', '#F57C00', '#C2185B',
+    '#FBC02D', '#303F9F', '#0097A7',
     '#5D4037', '#455A64', '#AFB42B']
 custom_styles = {
     'image.cmap': 'viridis',
-    'figure.figsize': (12, 8),
+    'figure.figsize': (16, 8),
     'text.color': '#212121',
     'axes.titleweight': 'bold',
-    'axes.titlesize': 28,
+    'axes.titlesize': 32,
     'axes.titlepad': 18,
     'axes.spines.top': False,
     'axes.spines.right': False,
-    'axes.labelsize': 22,
+    'axes.labelsize': 28,
     'axes.labelpad': 10,
     'axes.labelcolor': '#212121',
     'axes.labelweight': 600,
-    'axes.linewidth': 2,
+    'axes.linewidth': 3,
     'axes.edgecolor': '#212121',
-    'xtick.labelsize': 18,
-    'ytick.labelsize': 18,
-    'legend.fontsize': 18,
-    'lines.linewidth': 3
+    'xtick.labelsize': 24,
+    'ytick.labelsize': 24,
+    'legend.fontsize': 24,
+    'lines.linewidth': 5
 }
 
 
 def plot(x, y=None, xlabel=None, ylabel=None, title=None, labels=None, ylim=None, xlim=None,
     figsize=custom_styles['figure.figsize'], legend_loc='best', show=False, save_path=None,
-    xticks=None, yticks=None, dpi=100):
+    xticks=None, yticks=None, dpi=300):
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, ax = plt.subplots(figsize=figsize)
         if y is not None:
@@ -75,28 +75,6 @@ def plot(x, y=None, xlabel=None, ylabel=None, title=None, labels=None, ylim=None
         return img
 
 
-def imshow(img, title=None, axes=False, colorbar=False, show=False, save_path=None, dpi=300):
-    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
-        fig, ax = plt.subplots()
-        axim = ax.imshow(img)
-        if title is not None:
-            ax.set_title(title)
-        ax.grid(False)
-        if not axes:
-            ax.axis('off')
-        if colorbar:
-            cb = fig.colorbar(axim, pad=0.01, format='%.4f')
-            cb.outline.set_linewidth(0)
-        fig.canvas.draw()
-        img = np.array(fig.canvas.renderer._renderer)
-        if save_path is not None:
-            fig.savefig(save_path, dpi=dpi)
-        if show:
-            plt.show()
-        plt.close(fig)
-        return img
-
-
 def imgs_to_mp4(imgs, vid_path, fps=10):
     for i, img in enumerate(imgs):
         img = img_as_ubyte(img)
@@ -108,12 +86,6 @@ def imgs_to_mp4(imgs, vid_path, fps=10):
         video.write(img)
     cv2.destroyAllWindows()
     video.release()
-
-
-def imgs_to_gif(imgs, gif_path, fps=10):
-    with imageio.get_writer(gif_path, mode='I', fps=fps) as writer:
-        for img in imgs:
-            writer.append_data(img_as_ubyte(img))
 
 
 class DynamicPlot(object):
@@ -196,3 +168,7 @@ def approx_half_life(t, y, phase='fall'):
     idx = np.argmin((yi - y_half)**2)
     t_half = ti[idx]
     return t_half
+
+
+def clear_screen():
+    os.system('cls' if os.name=='nt' else 'clear')
