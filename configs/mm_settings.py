@@ -37,28 +37,28 @@ SETTINGS = {
 # }
 
 
-# Minutes-Timescale ##
-IMAGING = {
-    't_info': [(0, 901, 15)],
-    'chs': ['mCherry', 'YFP']
-}
-
-INDUCTION = {
-    't_info': [(180, 240, 60, 60)],
-    'ch_ind': 'blue-light'
-}
-
-
-## Hours-Timescale ##
+## Minutes-Timescale ##
 # IMAGING = {
-#     't_info': [(0, 43201, 60)],
-#     'chs': ['mCherry']
+#     't_info': [(0, 901, 15)],
+#     'chs': ['mCherry', 'YFP']
 # }
 
 # INDUCTION = {
-#     # 't_info': [(7200, 10800, 60, 5)],
-#     # 'ch_ind': 'blue-light'
+#     't_info': [(180, 240, 60, 60)],
+#     'ch_ind': 'blue-light'
 # }
+
+
+# Hours-Timescale ##
+IMAGING = {
+    't_info': [(0, 64800, 60)],
+    'chs': ['mCherry', 'DIC']
+}
+
+INDUCTION = {
+    't_info': [(10800, 11400, 60, 59)],
+    'ch_ind': 'blue-light'
+}
 
 
 AUTOFOCUS = {

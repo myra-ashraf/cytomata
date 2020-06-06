@@ -2,7 +2,7 @@ import os
 import imghdr
 
 import cv2
-import imageio
+# import imageio
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
