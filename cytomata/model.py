@@ -61,7 +61,7 @@ def sim_iexpress(t, y0, xf, params):
         n = params['n']
         kf = params['kf']
         kg = params['kg']
-        dy[0] = (ka*X**n)/(kb + X**n) - kc*y[0]
+        dy[0] = (ka*X**n)/(kb**n + X**n) - kc*y[0]
         dy[1] = kf*y[0] - kg*y[1]
     options = {'rtol': 1e-3, 'atol': 1e-6, 'max_step_size':1}
     solver = ode('cvode', model, old_api=False, **options)

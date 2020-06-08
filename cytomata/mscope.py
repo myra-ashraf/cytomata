@@ -27,10 +27,7 @@ class Microscope(object):
         self.obj_device = self.settings['obj_device']
         self.xy_device = self.settings['xy_device']
         self.z_device = self.settings['z_device']
-        self.img_w = self.settings['img_width_um']
-        self.img_h = self.settings['img_height_um']
-        for dev in settings['img_sync']:
-            self.core.assignImageSynchro(dev)
+        self.ex_shutter_dev = self.settings['ex_shutter_dev']
         self.uta = defaultdict(list)
         self.utb = defaultdict(list)
         self.x0 = self.get_position('x')
@@ -104,6 +101,7 @@ class Microscope(object):
         self.core.stopSequenceAcquisition()
 
     def snap_image(self):
+        self.core.waitForSystem()
         self.core.snapImage()
         return self.core.getImage()
 
@@ -159,7 +157,7 @@ class Microscope(object):
         for ch in chs:
             self.set_channel(ch)
             img = self.snap_image()
-            img_path = os.path.join(self.save_dir, ch, str(cid), str(round(ti, 1)) + '.tiff')
+            img_path = os.path.join(self.save_dir, ch, str(cid), str(round(ti)) + '.tiff')
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 imsave(img_path, img)
@@ -189,12 +187,11 @@ class Microscope(object):
     def pulse_light(self, cid, width, ch_ind):
         (x, y, z) = self.coords[cid]
         self.set_position('xy', (x, y))
-        ch0 = self.core.getCurrentConfig(self.ch_group)
-        ta = time.time() - self.t0
         self.set_channel(ch_ind)
+        ta = time.time() - self.t0
         time.sleep(width)
+        self.core.setState(self.ex_shutter_dev, 0)
         tb = time.time() - self.t0
-        self.set_channel(ch0)
         self.uta[cid].append(ta)
         self.utb[cid].append(tb)
         u_path = os.path.join(self.save_dir, 'u' + str(cid) + '.csv')

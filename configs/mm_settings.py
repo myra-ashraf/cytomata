@@ -10,7 +10,6 @@ SETTINGS = {
     'obj_device': 'TINosePiece',
     'xy_device': 'XYStage',
     'z_device': 'TIZDrive',
-    'img_sync': ['XYStage', 'TIZDrive', 'Wheel-A', 'Wheel-B', 'Wheel-C'],
     'img_width_px': 512,
     'img_width_um': 81.92,
     'img_height_px': 512,
@@ -25,7 +24,7 @@ SETTINGS = {
 }
 
 
-# ## Seconds-Timescale ##
+## Seconds-Timescale ##
 # IMAGING = {
 #     't_info': [(0, 601, 5)],
 #     'chs': ['mCherry']
@@ -38,27 +37,27 @@ SETTINGS = {
 
 
 ## Minutes-Timescale ##
-# IMAGING = {
-#     't_info': [(0, 901, 15)],
-#     'chs': ['mCherry', 'YFP']
-# }
-
-# INDUCTION = {
-#     't_info': [(180, 240, 60, 60)],
-#     'ch_ind': 'blue-light'
-# }
-
-
-# Hours-Timescale ##
 IMAGING = {
-    't_info': [(0, 64800, 60)],
-    'chs': ['mCherry', 'DIC']
+    't_info': [(0, 721, 15)],
+    'chs': ['mCherry', 'YFP']
 }
 
 INDUCTION = {
-    't_info': [(10800, 11400, 60, 59)],
+    't_info': [(120, 180, 15, 14)],
     'ch_ind': 'blue-light'
 }
+
+
+## Hours-Timescale ##
+# IMAGING = {
+#     't_info': [(0, 43200, 60)],
+#     'chs': ['mCherry']
+# }
+
+# INDUCTION = {
+#     't_info': [(7200, 7800, 60, 58)],
+#     'ch_ind': 'blue-light'
+# }
 
 
 AUTOFOCUS = {
