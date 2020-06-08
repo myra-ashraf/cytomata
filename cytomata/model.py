@@ -1,6 +1,5 @@
 from scikits.odes import ode
 from scikits.odes.odeint import odeint
-from scipy.integrate import solve_ivp
 
 
 def sim_itranslo(t, y0, uf, params):

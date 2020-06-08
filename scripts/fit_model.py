@@ -11,6 +11,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
+from natsort import natsorted
 
 from cytomata.model import sim_itranslo, sim_idimer, sim_iexpress, sim_ssl
 from cytomata.utils import setup_dirs, clear_screen, plot, custom_styles, custom_palette, rescale
@@ -72,16 +73,16 @@ def fit_itranslo(t, y, u, results_dir):
     params.add('kf', value=kmax/2, min=0, max=kmax)
     params.add('kr', value=kmax/2, min=0, max=kmax)
     params.add('a', value=a0, min=1, max=10)
-    # ta = time.time()
-    # results = lm.minimize(
-    #     residual, params, method='differential_evolution',
-    #     iter_cb=opt_iter, nan_policy='propagate', tol=1e-1
-    # )
-    # print('Elapsed Time: ', str(time.time() - ta))
-    # opt_params = results.params.valuesdict()
-    opt_params = dict([('ku', 0.0008942295681229174), ('kf', 0.0005048121271898231), ('kr', 0.0006244090506147587), ('a', 4.632731164948481)])
-    # with open(os.path.join(results_dir, 'opt_params.json'), 'w', encoding='utf-8') as fo:
-    #     json.dump(opt_params, fo, ensure_ascii=False, indent=4)
+    ta = time.time()
+    results = lm.minimize(
+        residual, params, method='differential_evolution',
+        iter_cb=opt_iter, nan_policy='propagate', tol=1e-1
+    )
+    print('Elapsed Time: ', str(time.time() - ta))
+    opt_params = results.params.valuesdict()
+    # opt_params = dict([('ku', 0.0008942295681229174), ('kf', 0.0005048121271898231), ('kr', 0.0006244090506147587), ('a', 4.632731164948481)])
+    with open(os.path.join(results_dir, 'opt_params.json'), 'w', encoding='utf-8') as fo:
+        json.dump(opt_params, fo, ensure_ascii=False, indent=4)
     tm, ym = sim_itranslo(t, y0, uf, opt_params)
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, (ax0, ax1) = plt.subplots(2, 1, sharex=True, figsize=(16, 10), gridspec_kw={'height_ratios': [1, 8]})
@@ -208,52 +209,52 @@ def fit_iexpress(t, y, x, u, results_dir):
     min_res = 1e15
     best_params = None
     iter_t = time.time()
-    def residual(params):
-        tm, ym = sim_iexpress(t, y0, xf, params)
-        res = np.mean((ym[:, 1] - y)**2)
-        return  res
-    def opt_iter(params, iter, res):
-        nonlocal min_res, best_params, iter_t
-        clear_screen()
-        ti = time.time()
-        print('seconds/iter:', str(ti - iter_t))
-        iter_t = ti
-        print('Iter: {} | Res: {}'.format(iter, res))
-        print(params.valuesdict())
-        if res < min_res:
-            min_res = res
-            best_params = params.valuesdict()
-        print('Best so far:')
-        print('Res:', str(min_res))
-        print(best_params)
-    ta = time.time()
+    # def residual(params):
+    #     tm, ym = sim_iexpress(t, y0, xf, params)
+    #     res = np.mean((ym[:, 1] - y)**2)
+    #     return  res
+    # def opt_iter(params, iter, res):
+    #     nonlocal min_res, best_params, iter_t
+    #     clear_screen()
+    #     ti = time.time()
+    #     print('seconds/iter:', str(ti - iter_t))
+    #     iter_t = ti
+    #     print('Iter: {} | Res: {}'.format(iter, res))
+    #     print(params.valuesdict())
+    #     if res < min_res:
+    #         min_res = res
+    #         best_params = params.valuesdict()
+    #     print('Best so far:')
+    #     print('Res:', str(min_res))
+    #     print(best_params)
+    # ta = time.time()
+    # # params = lm.Parameters()
+    # # params.add('ka', min=0.01, max=1, brute_step=0.01)
+    # # params.add('kb', min=0.1, max=10, brute_step=0.1)
+    # # params.add('kc', min=0.001, max=0.1, brute_step=0.001)
+    # # params.add('n', min=1, vary=False)
+    # # results = lm.minimize(
+    # #     residual, params, method='brute',
+    # #     iter_cb=opt_iter, nan_policy='propagate',
+    # # )
     # params = lm.Parameters()
-    # params.add('ka', min=0.01, max=1, brute_step=0.01)
-    # params.add('kb', min=0.1, max=10, brute_step=0.1)
-    # params.add('kc', min=0.001, max=0.1, brute_step=0.001)
-    # params.add('n', min=1, vary=False)
+    # params.add('ka', value=0.1, min=0, max=1)
+    # params.add('kb', value=0.1, min=0, max=1)
+    # params.add('kc', value=0.1, min=0, max=1)
+    # params.add('n', value=1, min=0, max=1)
+    # params.add('kf', value=0.1, min=0, max=1)
+    # params.add('kg', value=0.1, min=0, max=1)
+    # ta = time.time()
     # results = lm.minimize(
-    #     residual, params, method='brute',
-    #     iter_cb=opt_iter, nan_policy='propagate',
+    #     residual, params, method='dual_annealing',
+    #     iter_cb=opt_iter, nan_policy='propagate', tol=1e-3
     # )
-    params = lm.Parameters()
-    params.add('ka', value=0.1, min=0, max=1)
-    params.add('kb', value=0.1, min=0, max=1)
-    params.add('kc', value=0.1, min=0, max=1)
-    params.add('n', value=1, min=0, max=1)
-    params.add('kf', value=0.1, min=0, max=1)
-    params.add('kg', value=0.1, min=0, max=1)
-    ta = time.time()
-    results = lm.minimize(
-        residual, params, method='dual_annealing',
-        iter_cb=opt_iter, nan_policy='propagate'
-    )
-    print('Elapsed Time: ', str(time.time() - ta))
-    opt_params = params
-    opt_params = results.params.valuesdict()
-    with open(os.path.join(results_dir, 'opt_params.json'), 'w', encoding='utf-8') as fo:
-        json.dump(opt_params, fo, ensure_ascii=False, indent=4)
-    # opt_params = dict([('kf', 0.35964911635371705), ('kr', 1.9251102650885699e-07), ('ka', 0.00011779416929114106), ('kb', 0.0017298358328363683), ('kc', 0.00272869942333942), ('n', 9.999636729801574)])
+    # print('Elapsed Time: ', str(time.time() - ta))
+    # opt_params = params
+    # opt_params = results.params.valuesdict()
+    # with open(os.path.join(results_dir, 'opt_params.json'), 'w', encoding='utf-8') as fo:
+    #     json.dump(opt_params, fo, ensure_ascii=False, indent=4)
+    opt_params = dict([('ka', 0.10014001562994905), ('kb', 0.17638515989679424), ('kc', 0.002468692274783906), ('n', 0.9758946268030773), ('kf', 0.0008406127261191349), ('kg', 0.6462795804896208)])
     tm, ym = sim_iexpress(t, y0, xf, opt_params)
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, (ax0, ax1) = plt.subplots(2, 1, sharex=True, figsize=(16, 10), gridspec_kw={'height_ratios': [1, 8]})
@@ -261,7 +262,7 @@ def fit_iexpress(t, y, x, u, results_dir):
         ax0.set_yticks([0, 1])
         ax0.set_ylabel('BL')
         ax1.scatter(t, y, color='#ffcdd2', label='POI (Data)')
-        ax1.plot(tm, ym[:, 0], color='#2196F3', label='mRNA (Model)')
+        # ax1.plot(tm, ym[:, 0], color='#2196F3', label='mRNA (Model)')
         ax1.plot(tm, ym[:, 1], color='#d32f2f', label='POI (Model)')
         ax1.set_xlabel('Time (m)')
         ax1.set_ylabel('AU')
@@ -279,13 +280,38 @@ if __name__ == '__main__':
     # u_csv = '/home/phuong/data/LINTAD/LINuS/u0.csv'
     # res_dir = '/home/phuong/data/LINTAD/LINuS-results/0/'
     # t, y, u = prep_itranslo_data(y_csv, u_csv)
-    # y_csv = '/home/phuong/data/LINTAD/LINuS-1/y.csv'
-    # res_dir = '/home/phuong/data/LINTAD/LINuS-1/'
-    # df = pd.read_csv(y_csv)
-    # t = df['t'].values
-    # y = np.column_stack((df['yc'].values, df['yn'].values))
-    # u = df['u'].values
     # fit_itranslo(t, y, u, res_dir)
+
+
+    root_dir = '/home/phuong/data/LINTAD/LINuS-mock/'
+    # u_csv = '/home/phuong/data/LINTAD/LINuS/u0.csv'
+    # for data_dirname in natsorted([x[1] for x in os.walk(root_dir)][0]):
+    #     y_csv = os.path.join(root_dir, data_dirname, 'y.csv')
+    #     res_dir = os.path.join(root_dir, data_dirname)
+    #     t, y, u = prep_itranslo_data(y_csv, u_csv)
+    #     fit_itranslo(t, y, u, res_dir)
+    ku_vals = []
+    kf_vals = []
+    kr_vals = []
+    a_vals = []
+    for data_dirname in natsorted([x[1] for x in os.walk(root_dir)][0]):
+        params_path = os.path.join(root_dir, data_dirname, 'opt_params.json')
+        with open(params_path) as f:
+            params = json.load(f)
+            ku_vals.append(params['ku'])
+            kf_vals.append(params['kf'])
+            kr_vals.append(params['kr'])
+            a_vals.append(params['a'])
+    data = [ku_vals, kf_vals, kr_vals]
+    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(16, 10), gridspec_kw={'width_ratios': [6, 2]})
+        ax0 = sns.violinplot(data=data, ax=ax0, palette=['#1976D2', '#D32F2F', '#388E3C'])
+        ax0.set_xticklabels(['ku', 'kf', 'kr'])
+        ax1 = sns.violinplot(data=a_vals, ax=ax1, color='#F57C00')
+        ax1.set_xticklabels(['a'])
+        fig.savefig(os.path.join(root_dir, 'params_dist.png'),
+            dpi=200, bbox_inches='tight', transparent=False, pad_inches=0)
+        plt.close(fig)
 
 
     # y_csv = '/home/phuong/data/LINTAD/CAD-results/0/y.csv'
@@ -306,15 +332,16 @@ if __name__ == '__main__':
     # u_csv = '/home/phuong/data/LINTAD/LexA/u0.csv'
     # res_dir = '/home/phuong/data/LINTAD/LexA-results/0/'
     # t, y, x, u = prep_iexpress_data(y_csv, x_csv, u_csv)
+    # x = np.zeros_like(t)
+    # x[130:] = 1
     # fit_iexpress(t, y, x, u, res_dir)
     
     # xf = interp1d(t, x, bounds_error=False, fill_value='extrapolate')
     # y0 = [0, y[0]]
-    # params = {'kf': 0.434, 'kr': 0.00174, 'ka': 0.000122, 'kb': 0.0041, 'kc': 0.00288, 'n': 10}
+    # params = {'ka': 0.122, 'kb': 0.1, 'kc': 0.2, 'n': 1, 'kf': 0.4, 'kg': 0.1}
     # ta = time.time()
     # tm, ym = sim_iexpress(t, y0, xf, params)
     # print(time.time() - ta)
     # plt.plot(t, y)
-    # plt.plot(tm, ym[:, 1])
+    # plt.plot(tm, ym[:, 0])
     # plt.show()
-    pass

@@ -32,9 +32,9 @@ custom_styles = {
     'axes.labelweight': 600,
     'axes.linewidth': 3,
     'axes.edgecolor': '#212121',
-    'xtick.labelsize': 24,
-    'ytick.labelsize': 24,
-    'legend.fontsize': 24,
+    'xtick.labelsize': 28,
+    'ytick.labelsize': 28,
+    'legend.fontsize': 28,
     'lines.linewidth': 5
 }
 

@@ -110,6 +110,7 @@ def scan_freqs(y_csv, paramsf, paramsf1, results_dir):
 
 
 if __name__ == '__main__':
+    ## Projected TF Curve for Given Stimulation Curve ##
     # y_path = '/home/phuong/data/LINTAD/LexA-results/0/y.csv'
     # u_path = '/home/phuong/data/LINTAD/LexA/u0.csv'
     # params_path = '/home/phuong/data/LINTAD/LINuS-results/0/opt_params.json'
@@ -131,6 +132,8 @@ if __name__ == '__main__':
     # y_path = '/home/phuong/data/LINTAD/LINuS-results/0/y.csv'
     # generate_itranslo(t, u, y_path, params_path, results_dir, rand_y=False, rand_k=False)
 
+
+    ## Influence of Pulsatile vs Continuous Stim Data on Model Fitting ##
     # params_path = '/home/phuong/data/LINTAD/LINuS-results/0/opt_params.json'
     # y_path = '/home/phuong/data/LINTAD/LINuS-results/0/y.csv'
     # results_dir = '/home/phuong/data/LINTAD/LINuS-1'
@@ -153,6 +156,8 @@ if __name__ == '__main__':
     # uf = interp1d(t, u, bounds_error=False, fill_value=0)
     # generate_itranslo(t, y0, uf, params, results_dir, rand_y=False, rand_k=False)
 
+
+    ## Stim Freq Response of Fast vs. Slow BilINuS ##
     # params_path = '/home/phuong/data/LINTAD/LINuS-results/0/opt_params_slow.json'
     # params_path1 = '/home/phuong/data/LINTAD/LINuS-results/0/opt_params_faster.json'
     # y_path = '/home/phuong/data/LINTAD/LINuS-results/0/y.csv'
@@ -183,23 +188,3 @@ if __name__ == '__main__':
     # plt.plot(ym1[:, 1])
     # plt.show()
     # scan_freqs(y_path, params_path, params_path1, results_dir)
-    
-
-    y_path = '/home/phuong/data/LINTAD/LINuS-results/0/y.csv'
-    params_path = '/home/phuong/data/LINTAD/LINuS-results/0/opt_params.json'
-    t = np.arange(0, 600)
-    ydf = pd.read_csv(y_path)
-    yc0 = ydf['yc'].values[0]
-    yn0 = ydf['yn'].values[0]
-    y0 = np.array([yc0, yn0])
-    u = np.zeros_like(t)
-    for i in range(t[100], t[400], 10):
-            u[i:i+5] = 1
-    uf = interp1d(t, u, bounds_error=False, fill_value=0)
-    with open(params_path) as f:
-      params = json.load(f)
-    ta = time.time()
-    tm, ym = sim_itranslo(t, y0, uf, params)
-    print(time.time() - ta)
-    plt.plot(tm, ym)
-    plt.show()
