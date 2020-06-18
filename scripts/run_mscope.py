@@ -14,8 +14,11 @@ expt_name = ''.join([x if x.isalnum() or x is '-' else '_' for x in expt_name])
 SETTINGS['save_dir'] = os.path.join('expts', time.strftime('%Y%m%d-') + expt_name)
 setup_dirs(SETTINGS['save_dir'])
 settings_file = os.path.join(CONFIG_DIR, 'mm_settings.py')
-log_file = os.path.join(SETTINGS['save_dir'], 'log.txt')
-shutil.copyfile(settings_file, log_file)
+settings_file_save = os.path.join(SETTINGS['save_dir'], 'settings.txt')
+shutil.copyfile(settings_file, settings_file_save)
+cfg_file = os.path.join(CONFIG_DIR, 'mm_nikon2.cfg')
+cfg_file_save = os.path.join(SETTINGS['save_dir'], 'configs.txt')
+shutil.copyfile(cfg_file, cfg_file_save)
 
 
 mscope = Microscope(SETTINGS, MM_CFG_FILE)

@@ -25,27 +25,27 @@ SETTINGS = {
 
 
 ## Seconds-Timescale ##
-# IMAGING = {
-#     't_info': [(0, 601, 5)],
-#     'chs': ['mCherry']
-# }
-
-# INDUCTION = {
-#     't_info': [(60, 540, 5, 1)],
-#     'ch_ind': 'blue-light'
-# }
-
-
-## Minutes-Timescale ##
 IMAGING = {
-    't_info': [(0, 721, 15)],
-    'chs': ['mCherry', 'YFP']
+    't_info': [(0, 181, 10)],  # (start, stop, period)
+    'chs': ['TxRed']
 }
 
 INDUCTION = {
-    't_info': [(120, 180, 15, 14)],
+    't_info': [(30, 150, 10, 1)],  # (start, stop, period, width)
     'ch_ind': 'blue-light'
 }
+
+
+## Minutes-Timescale ##
+# IMAGING = {
+#     't_info': [(0, 901, 15)],
+#     'chs': ['mCherry', 'YFP']
+# }
+
+# INDUCTION = {
+#     't_info': [(120, 300, 15, 14)],
+#     'ch_ind': 'blue-light'
+# }
 
 
 ## Hours-Timescale ##

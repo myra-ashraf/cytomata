@@ -27,7 +27,6 @@ class Microscope(object):
         self.obj_device = self.settings['obj_device']
         self.xy_device = self.settings['xy_device']
         self.z_device = self.settings['z_device']
-        self.ex_shutter_dev = self.settings['ex_shutter_dev']
         self.uta = defaultdict(list)
         self.utb = defaultdict(list)
         self.x0 = self.get_position('x')
@@ -188,10 +187,12 @@ class Microscope(object):
         (x, y, z) = self.coords[cid]
         self.set_position('xy', (x, y))
         self.set_channel(ch_ind)
+        exp0 = self.core.getExposure()
+        self.core.setExposure(width*1000)
         ta = time.time() - self.t0
-        time.sleep(width)
-        self.core.setState(self.ex_shutter_dev, 0)
+        self.snap_image()
         tb = time.time() - self.t0
+        self.core.setExposure(exp0)
         self.uta[cid].append(ta)
         self.utb[cid].append(tb)
         u_path = os.path.join(self.save_dir, 'u' + str(cid) + '.csv')
