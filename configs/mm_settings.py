@@ -26,12 +26,12 @@ SETTINGS = {
 
 ## Seconds-Timescale ##
 IMAGING = {
-    't_info': [(0, 181, 10)],  # (start, stop, period)
-    'chs': ['TxRed']
+    't_info': [(0, 301, 5)],  # (start, stop, period)
+    'chs': ['mCherry']
 }
 
 INDUCTION = {
-    't_info': [(30, 150, 10, 1)],  # (start, stop, period, width)
+    't_info': [(60, 180, 15, 0.1)],  # (start, stop, period, width)
     'ch_ind': 'blue-light'
 }
 
