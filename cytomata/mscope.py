@@ -156,7 +156,7 @@ class Microscope(object):
         for ch in chs:
             self.set_channel(ch)
             img = self.snap_image()
-            img_path = os.path.join(self.save_dir, ch, str(cid), str(round(ti)) + '.tiff')
+            img_path = os.path.join(self.save_dir, ch, str(cid), str(round(ti, 1)) + '.tiff')
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 imsave(img_path, img)

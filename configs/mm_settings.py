@@ -18,22 +18,35 @@ SETTINGS = {
     'stage_z_limit': [-240, 240],
     'stage_x_limit': [-3600, 3600],
     'stage_y_limit': [-3600, 3600],
-    'mpos': False,
+    'mpos': True,
     'mpos_ch': 'mCherry',
-    'mpos_mode': 'sequential',
+    'mpos_mode': 'sequential',  # "sequential" or "parallel"
 }
 
 
 ## Seconds-Timescale ##
 IMAGING = {
-    't_info': [(0, 301, 5)],  # (start, stop, period)
+    't_info': [(0, 56, 5), (60, 62, 1), (65, 301, 5)],  # (start, stop, period)
     'chs': ['mCherry']
 }
 
+
 INDUCTION = {
-    't_info': [(60, 180, 15, 0.1)],  # (start, stop, period, width)
-    'ch_ind': 'blue-light'
+    't_info': [(60, 61, 1, 1)],  # (start, stop, period, width)
+    'ch_ind': 'BL'
 }
+
+
+# # Seconds-Timescale ## Pulsatile ##
+# IMAGING = {
+#     't_info': [(0, 301, 3)],  # (start, stop, period)
+#     'chs': ['mCherry']
+# }
+
+# INDUCTION = {
+#     't_info': [(60, 120, 3, 0.1)],  # (start, stop, period, width)
+#     'ch_ind': 'BL-mini'
+# }
 
 
 ## Minutes-Timescale ##
@@ -44,7 +57,7 @@ INDUCTION = {
 
 # INDUCTION = {
 #     't_info': [(120, 300, 15, 14)],
-#     'ch_ind': 'blue-light'
+#     'ch_ind': 'BL'
 # }
 
 
@@ -56,7 +69,7 @@ INDUCTION = {
 
 # INDUCTION = {
 #     't_info': [(7200, 7800, 60, 58)],
-#     'ch_ind': 'blue-light'
+#     'ch_ind': 'BL'
 # }
 
 
