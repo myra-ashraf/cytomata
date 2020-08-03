@@ -10,8 +10,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from scipy.integrate import simps
+from imageio import mimwrite
 
-from cytomata.model import sim_itranslo, sim_iexpress
+from cytomata.model import sim_itranslo, sim_iexpress, sim_ssl_cn
 from cytomata.utils import setup_dirs, plot, custom_styles, custom_palette
 
 
@@ -73,7 +74,11 @@ def scan_freqs(y_csv, paramsf, paramsf1, results_dir):
         uf = interp1d(t, u, bounds_error=False, fill_value=0)
         tm, ym = sim_itranslo(t, y0, uf, params)
         tm1, ym1 = sim_itranslo(t, y01, uf, params1)
-        if p == 30:
+        if p == 2:
+            plt.plot(ym[:, 1])
+            plt.plot(ym1[:, 1])
+            plt.show()
+        if p == 15:
             plt.plot(ym[:, 1])
             plt.plot(ym1[:, 1])
             plt.show()
@@ -83,31 +88,46 @@ def scan_freqs(y_csv, paramsf, paramsf1, results_dir):
         auc_outputs1.append(simps(ym1[:, 1]))
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, ax = plt.subplots()
-        ax.plot(auc_inputs, auc_outputs, color='#1976D2', label='Slow')
-        ax.plot(auc_inputs, auc_outputs1, color='#d32f2f', label='Fast')
-        ax.set_xlabel('Light Exposure')
-        ax.set_ylabel('Total Activity')
-        ax.legend(loc='best')
-        fig.savefig(os.path.join(results_dir, 'scan_freqs_u.png'),
-            dpi=100, bbox_inches='tight', transparent=False, pad_inches=0)
-        plt.close(fig)
-        fig, ax = plt.subplots()
         ax.plot(periods, auc_outputs, color='#1976D2', label='Slow')
         ax.plot(periods, auc_outputs1, color='#d32f2f', label='Fast')
         ax.set_xlabel('Signal Period')
         ax.set_ylabel('Total Activity')
         ax.legend(loc='best')
-        fig.savefig(os.path.join(results_dir, 'scan_freqs_p.png'),
-            dpi=100, bbox_inches='tight', transparent=False, pad_inches=0)
-        plt.close(fig)
-        fig, ax = plt.subplots()
-        ax.plot(periods, np.array(auc_outputs) - np.array(auc_outputs1), color='#1976D2')
-        ax.set_xlabel('Signal Period')
-        ax.set_ylabel('Slow - Fast')
-        fig.savefig(os.path.join(results_dir, 'scan_freqs_diff.png'),
+        fig.savefig(os.path.join(results_dir, 'scan_freqs.png'),
             dpi=100, bbox_inches='tight', transparent=False, pad_inches=0)
         plt.close(fig)
 
+
+def gen_ssl_cn(paramsf, results_dir):
+    imgs = []
+    for p in [1, 4, 10, 20, 40]:
+        y0 = [4, 1, 0, 4, 2, 0]
+        t = np.arange(0, 1200)
+        u = np.zeros_like(t)
+        for i in range(t[100], t[700], p):
+            u[i:i+1] = 1
+        uf = interp1d(t, u, bounds_error=False, fill_value=0)
+        with open(paramsf) as f:
+          params = json.load(f)
+        tm, ym = sim_ssl_cn(t, y0, uf, params)
+        with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+            fig, (ax0, ax1) = plt.subplots(2, 1, sharex=True,
+                figsize=(16, 10),gridspec_kw={'height_ratios': [1, 8]})
+            ax0.plot(t, u)
+            ax0.set_yticks([0, 1])
+            ax0.set_ylabel('BL')
+            ax1.plot(tm, ym[:, 2], color='#1976D2', label='LC')
+            ax1.plot(tm, ym[:, 5], color='#d32f2f', label='HN')
+            ax1.set_xlabel('Time (s)')
+            ax1.set_ylabel('AU')
+            ax1.legend(loc='best')
+            fig.tight_layout()
+            fig.canvas.draw()
+            imgs.append(np.array(fig.canvas.renderer._renderer))
+            fig.savefig(os.path.join(results_dir, 'y{}_slow_translo.png'.format(str(p))),
+                dpi=100, bbox_inches='tight', transparent=False, pad_inches=0)
+            plt.close(fig)
+    mimwrite(os.path.join(results_dir, 'sps_st.gif'), imgs, fps=0.5)
 
 if __name__ == '__main__':
     ## Projected TF Curve for Given Stimulation Curve ##
@@ -187,4 +207,9 @@ if __name__ == '__main__':
     # plt.plot(ym[:, 1])
     # plt.plot(ym1[:, 1])
     # plt.show()
+
     # scan_freqs(y_path, params_path, params_path1, results_dir)
+
+    paramsf = '/home/phuong/data/SSL/cyto_nucl/opt_params.json'
+    results_dir = '/home/phuong/data/SSL/cyto_nucl/'
+    gen_ssl_cn(paramsf, results_dir)

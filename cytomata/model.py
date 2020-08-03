@@ -70,7 +70,7 @@ def sim_iexpress(t, y0, xf, params):
 
 
 def sim_ssl(t, y0, uf, params):
-    def model(t, y):
+    def model(t, y, dy):
         u = uf(t)
         [Ai, Bi, C, Aa, Ba, CA, CB] = y
         kua = params['ku']
@@ -88,6 +88,30 @@ def sim_ssl(t, y0, uf, params):
         dy[4] = u*kub*Bi - krb*Ba + kdb*CB - kab*Ba*C
         dy[5] = -kda*CA + kaa*Aa*C
         dy[6] = -kdb*CB + kab*Ba*C
+    options = {'rtol': 1e-3, 'atol': 1e-6, 'max_step_size':1}
+    solver = ode('cvode', model, old_api=False, **options)
+    solution = solver.solve(t, y0)
+    return solution.values.t, solution.values.y
+
+
+def sim_ssl_cn(t, y0, uf, params):
+    def model(t, y, dy):
+        u = uf(t)
+        [L, C, LC, H, N, HN] = y
+        kcu = params['kcu']
+        kcf = params['kcf']
+        kcr = params['kcr']
+        kcn = params['kcn']
+        knc = params['knc']
+        knu = params['knu']
+        knf = params['knf']
+        knr = params['knr']
+        dy[0] = -(u*kcu + kcf)*L*C + kcr*LC
+        dy[1] = -(u*kcu + kcf)*L*C + kcr*LC - kcn*C + knc*N
+        dy[2] = -kcr*LC + (u*kcu + kcf)*L*C
+        dy[3] = -(u*knu + knf)*H*N + knr*HN
+        dy[4] = -(u*knu + knf)*H*N + knr*HN - knc*N + kcn*C
+        dy[5] = -knr*HN + (u*knu + knf)*H*N
     options = {'rtol': 1e-3, 'atol': 1e-6, 'max_step_size':1}
     solver = ode('cvode', model, old_api=False, **options)
     solution = solver.solve(t, y0)

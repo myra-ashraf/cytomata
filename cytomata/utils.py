@@ -2,14 +2,13 @@ import os
 import imghdr
 
 import cv2
-# import imageio
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from natsort import natsorted
 from scipy.interpolate import interp1d
 from skimage import img_as_ubyte
-
+from cytomata import turbo_cmap
 
 
 custom_palette = [
@@ -17,6 +16,7 @@ custom_palette = [
     '#7B1FA2', '#F57C00', '#C2185B',
     '#FBC02D', '#303F9F', '#0097A7',
     '#5D4037', '#455A64', '#AFB42B']
+
 custom_styles = {
     'image.cmap': 'viridis',
     'figure.figsize': (16, 8),
