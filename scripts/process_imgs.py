@@ -1,8 +1,7 @@
 import os
 import sys
-import shutil
+import time
 import warnings
-from collections import deque, defaultdict
 from itertools import cycle
 sys.path.append(os.path.abspath('../'))
 
@@ -11,9 +10,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib import font_manager
-from matplotlib.ticker import FormatStrFormatter
-from mpl_toolkits.axes_grid1.anchored_artists import AnchoredDrawingArea, AnchoredSizeBar
-from matplotlib.patches import Circle, Rectangle
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from tqdm import tqdm
 from natsort import natsorted
 from scipy.stats import sem
@@ -23,57 +20,10 @@ from scipy.integrate import simps
 from skimage import img_as_ubyte
 from skimage.measure import label, regionprops
 from skimage.transform import rotate
-from skimage import img_as_float
-from skimage.io import imread
 
-from cytomata.GHT import threshold_GHT
-from cytomata.process import preprocess_img, segment_object, segment_clusters
-from cytomata.utils import setup_dirs, list_img_files, rescale, plot, custom_styles, custom_palette
-
-
-def test_preprocess_img(img_path):
-    img, raw, bkg = preprocess_img(img_path)
-    plt.imshow(img, cmap='turbo')
-    plt.show()
-
-
-def test_segment_object(img_path):
-    img, raw, bkg, den = preprocess_img(img_path)
-    thr = segment_object(den)
-    plt.imshow(den, cmap='turbo')
-    plt.contour(thr, linewidths=0.3, colors='w')
-    plt.show()
-
-
-def test_GHT(img_path):
-    img = img_as_float(imread(img_path))
-    thr = threshold_GHT(img)
-    print(thr)
-    plt.imshow((img > thr), cmap='gray')
-    # plt.contour(thr, linewidths=0.3, colors='w')
-    plt.show()
-
-
-def test_segment_translo(bilinus_img_path, nucleus_img_path):
-    nucl_img, nucl_tval = preprocess_img(nucleus_img_path)
-    cell_img, cell_tval = preprocess_img(bilinus_img_path)
-    nucl_thr = segment_object(nucl_img, cb=5, er=3)
-    cell_thr = segment_object(cell_img, er=5)
-    plt.imshow(cell_img, cmap='turbo')
-    plt.contour(cell_thr, linewidths=0.3, colors='w')
-    plt.contour(nucl_thr, linewidths=0.2, colors='r')
-    plt.show()
-
-
-def test_segment_clusters(cad_img_path):
-    cell, img = segment_object(cad_img_path, offset=5, er=9)
-    dots, _ = segment_clusters(cad_img_path)
-    dots = np.logical_and(dots, cell)
-    anti = np.logical_xor(dots, cell)
-    plt.imshow(img, cmap='turbo')
-    plt.contour(anti, linewidths=0.1, colors='w')
-    plt.contour(dots, linewidths=0.1, colors='r')
-    plt.show()
+from cytomata.plot import plot_cell_img, plot_bkg_profile, plot_uy
+from cytomata.process import preprocess_img, segment_object, segment_clusters, process_u_csv
+from cytomata.utils import setup_dirs, list_img_files, rescale, custom_styles, custom_palette
 
 
 def process_translo(nucleus_dir, translo_dir, results_dir):
@@ -156,8 +106,8 @@ def process_translo(nucleus_dir, translo_dir, results_dir):
     np.savetxt(os.path.join(results_dir, 'y.csv'),
         data, delimiter=',', header='t,yc,yn', comments='')
     y = np.column_stack((yc, yn))
-    plot(t, y, xlabel='Time (s)', ylabel='AU',
-        labels=['Cytoplasm', 'Nucleus'], save_path=os.path.join(results_dir, 'plot.png'))
+    # plot(t, y, xlabel='Time (s)', ylabel='AU',
+    #     labels=['Cytoplasm', 'Nucleus'], save_path=os.path.join(results_dir, 'plot.png'))
     mimwrite(os.path.join(results_dir, 'nucl.gif'), nu_imgs, fps=n_imgs//12)
     mimwrite(os.path.join(results_dir, 'cell.gif'), tr_imgs, fps=n_imgs//12)
 
@@ -269,11 +219,11 @@ def process_cad(img_dir, results_dir):
     np.savetxt(os.path.join(results_dir, 'y.csv'),
         data, delimiter=',', header='t,ya,yd', comments='')
     y = np.column_stack((ya, yd))
-    plot(t, y, xlabel='Time (s)', ylabel='AU',
-        labels=['Anti Region', 'Dots Region'], save_path=os.path.join(results_dir, 'plot.png'))
+    # plot(t, y, xlabel='Time (s)', ylabel='AU',
+    #     labels=['Anti Region', 'Dots Region'], save_path=os.path.join(results_dir, 'plot.png'))
     y = np.column_stack((rescale(ya), rescale(yd)))
-    plot(t, y, xlabel='Time (s)', ylabel='AU',
-        labels=['Anti Region', 'Dots Region'], save_path=os.path.join(results_dir, 'plot01.png'))
+    # plot(t, y, xlabel='Time (s)', ylabel='AU',
+    #     labels=['Anti Region', 'Dots Region'], save_path=os.path.join(results_dir, 'plot01.png'))
     mimwrite(os.path.join(results_dir, 'cell.gif'), imgs, fps=len(imgs)//12)
     return t, ya, yd
 
@@ -378,134 +328,6 @@ def combine_uy(root_dir, fold_change=True):
         fig.savefig(os.path.join(root_dir, plot_name),
             dpi=100, bbox_inches='tight', transparent=False)
         plt.close(fig)
-
-
-def process_nes_nls(img_dir, results_dir, u_csv=None):
-    """Analyze gene expression dataset and generate figures."""
-    setup_dirs(os.path.join(results_dir, 'imgs'))
-    setup_dirs(os.path.join(results_dir, 'debug'))
-    t = []
-    yc = []
-    yn = []
-    imgs = []
-    t_bl_on = []
-    for imgf in list_img_files(img_dir):
-        t.append(np.float(os.path.splitext(os.path.basename(imgf))[0]))
-    if u_csv is not None:
-        shutil.copyfile(u_csv, os.path.join(results_dir, 'u.csv'))
-        udf = pd.read_csv(u_csv)
-        t = np.around(t)
-        tu = np.around(np.arange(t[0], t[-1], 0.1), 1)
-        uta = np.around(udf['ta'].values, 1)
-        utb = np.around(udf['tb'].values, 1)
-        u = np.zeros_like(tu)
-        for ta, tb in zip(uta, utb):
-            t_bl_on += list(np.arange(round(ta, 1), round(tb, 1) + 0.01, 0.1))
-            ia = list(tu).index(ta)
-            ib = list(tu).index(tb)
-            u[ia:ib] = 1
-    t_annotate_bl = []
-    for tbl in t_bl_on:
-        t_annotate_bl.append(min(t, key=lambda ti : abs(ti - tbl)))
-    c_thr = None
-    n_thr = None
-    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
-        for i, imgf in enumerate(tqdm(list_img_files(img_dir))):
-            fname = os.path.splitext(os.path.basename(imgf))[0]
-            img, raw, bkg = preprocess_img(imgf)
-            if i == 0:
-                c_thr = segment_object(img, method='triangle', rs=6000, fh=1000, offset=-5, er=13)
-                n_thr = segment_object(img, method='otsu', offset=-50)
-                cell = np.logical_or(c_thr, n_thr)
-                c_thr = np.logical_xor(cell, n_thr)
-            # if len(n_thrs) > 100:
-            #     n_thrs.popleft()
-            # n_thr = n_thri.copy()
-            # if i > 0:
-            #     for n_th in n_thrs:
-            #         n_thr = n_thr * n_th
-            # n_thrs.append(n_thri)
-            # if len(c_thrs) > 100:
-            #     c_thrs.popleft()
-            # c_thr = c_thri.copy()
-            # if i > 0:
-            #     for c_th in c_thrs:
-            #         c_thr = c_thr * c_th
-            # c_thrs.append(c_thri)
-            croi = c_thr*img
-            nroi = n_thr*img
-            cnz = croi[np.nonzero(croi)]
-            nnz = nroi[np.nonzero(nroi)]
-            c_ave_int = np.median(cnz)
-            n_ave_int = np.median(nnz)
-            yc.append(c_ave_int)
-            yn.append(n_ave_int)
-            if i == 0:
-                cmin = np.min(img)
-                cmax = 2*np.max(img)
-            fig, ax = plt.subplots(figsize=(10,8))
-            axim = ax.imshow(img, cmap='turbo')
-            axim.set_clim(cmin, cmax)
-            t_text = 't = ' + fname + 's'
-            ax.annotate(t_text, (16, 32), color='white', fontsize=20)
-            fontprops = font_manager.FontProperties(size=20)
-            asb = AnchoredSizeBar(ax.transData, 100, u'16\u03bcm',
-                color='white', size_vertical=2, fontproperties=fontprops,
-                loc='lower left', pad=0.1, borderpad=0.5, sep=5, frameon=False)
-            ax.add_artist(asb)
-            if u_csv and round(float(fname), 1) in t_annotate_bl:
-                w, h = img.shape
-                ax.add_patch(Rectangle((3, 3), w-7, h-7,
-                    linewidth=5, edgecolor='#00B0FF', facecolor='none'))
-            ax.grid(False)
-            ax.axis('off')
-            cb = fig.colorbar(axim, pad=0.01, format='%.3f',
-                extend='both', extendrect=True, extendfrac=0.03)
-            cb.outline.set_linewidth(0)
-            fig.tight_layout(pad=0)
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                ax.contour(c_thr, linewidths=0.8, colors='w')
-                ax.contour(n_thr, linewidths=0.2, alpha=0.5, colors='k')
-            fig.canvas.draw()
-            fig.savefig(os.path.join(results_dir, 'imgs', fname + '.png'),
-                dpi=100, bbox_inches='tight', pad_inches=0)
-            imgs.append(img_as_ubyte(np.array(fig.canvas.renderer._renderer)))
-            plt.close(fig)
-            bg_rows = np.argsort(np.var(img, axis=1))[-100:-1:10]
-            row_i = np.random.choice(bg_rows.shape[0])
-            bg_row = bg_rows[row_i]
-            fig, ax = plt.subplots(figsize=(10,8))
-            ax.plot(raw[bg_row, :])
-            ax.plot(bkg[bg_row, :])
-            ax.set_title(str(bg_row))
-            bg_path = os.path.join(results_dir, 'debug', '{}.png'.format(fname))
-            fig.savefig(bg_path, dpi=100)
-            plt.close(fig)
-        if u_csv is None:
-            fig, ax = plt.subplots(figsize=(10,8))
-        else:
-            fig, (ax0, ax) = plt.subplots(2, 1, sharex=True, figsize=(16, 10), gridspec_kw={'height_ratios': [1, 8]})
-            ax0.plot(tu, u)
-            ax0.set_yticks([0, 1])
-            ax0.set_ylabel('BL')
-        ax.plot(t, yc, color='#d32f2f', label='Cytoplasm')
-        ax.plot(t, yn, color='#388E3C', label='Nucleus')
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('AU')
-        ax.legend(loc='best')
-        fig.tight_layout()
-        fig.canvas.draw()
-        fig.savefig(os.path.join(results_dir, 'y.png'),
-            dpi=300, bbox_inches='tight', transparent=False, pad_inches=0)
-        plt.close(fig)
-    data = np.column_stack((t, yc, yn))
-    np.savetxt(os.path.join(results_dir, 'y.csv'),
-        data, delimiter=',', header='t,yc,yn', comments='')
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        mimwrite(os.path.join(results_dir, 'cell.gif'), imgs, fps=len(imgs)//12)
-    return t, yc, yn
 
 
 def compare_plots(root_dir, labels, fold_change=True):
@@ -731,61 +553,6 @@ def process_pqr(fp0_img_dir, fp1_img_dir, results_dir):
     return y
 
 
-def process_FRET(donor_dir, fret_dir, results_dir):
-    setup_dirs(os.path.join(results_dir, 'imgs', 'donor'))
-    setup_dirs(os.path.join(results_dir, 'imgs', 'fret'))
-    y0 = []
-    y1 = []
-    yn = []
-    donor_imgfs = list_img_files(donor_dir)
-    fret_imgfs = list_img_files(fret_dir)
-    for i, (don_imgf, fre_imgf) in enumerate(tqdm(zip(donor_imgfs, fret_imgfs), total=len(donor_imgfs))):
-        don_thr, don_img = segment_object(don_imgf)
-        fre_thr, fre_img = segment_object(fre_imgf)
-        don_roi = don_img * don_thr
-        fre_roi = fre_img * fre_thr
-        don_pix = don_roi[np.nonzero(don_roi)]
-        fre_pix = fre_roi[np.nonzero(fre_roi)]
-        don_ave_int = np.mean(don_pix)
-        fre_ave_int = np.mean(fre_pix)
-        y0.append(don_ave_int)
-        y1.append(fre_ave_int)
-        yn.append(fre_ave_int/don_ave_int)
-        cmin = min(np.min(don_pix), np.min(fre_pix))
-        cmax = 1.1*max(np.max(don_pix), np.max(fre_pix))
-        with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
-            fig, ax = plt.subplots(figsize=(10,8))
-            axim = ax.imshow(don_img, cmap='turbo')
-            axim.set_clim(cmin, cmax)
-            ax.grid(False)
-            ax.axis('off')
-            fig.tight_layout(pad=0)
-            cb = fig.colorbar(axim, pad=0.01, format='%.4f',
-                extend='min', extendrect=True, extendfrac=0.025)
-            cb.outline.set_linewidth(0)
-            fig.canvas.draw()
-            fig.savefig(os.path.join(results_dir, 'imgs', 'donor', str(i) + '.png'),
-                dpi=100, bbox_inches='tight', transparent=True, pad_inches=0)
-            plt.close(fig)
-        with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
-            fig, ax = plt.subplots(figsize=(10,8))
-            axim = ax.imshow(fre_img, cmap='turbo')
-            axim.set_clim(cmin, cmax)
-            ax.grid(False)
-            ax.axis('off')
-            fig.tight_layout(pad=0)
-            cb = fig.colorbar(axim, pad=0.01, format='%.4f',
-                extend='min', extendrect=True, extendfrac=0.025)
-            cb.outline.set_linewidth(0)
-            fig.canvas.draw()
-            fig.savefig(os.path.join(results_dir, 'imgs', 'fret', str(i) + '.png'),
-                dpi=100, bbox_inches='tight', transparent=True, pad_inches=0)
-            plt.close(fig)
-    data = np.column_stack((y0, y1, yn))
-    np.savetxt(os.path.join(results_dir, 'data.csv'),
-        data, delimiter=',', header='d,f,f/d', comments='')
-
-
 def compare_imgs(img_paths, results_dir):
     setup_dirs(os.path.join(results_dir, 'imgs'))
     setup_dirs(os.path.join(results_dir, 'debug'))
@@ -843,117 +610,6 @@ def compare_imgs(img_paths, results_dir):
         plt.close(fig)
 
 
-def process_iexpress(img_dir, results_dir, u_csv=None, seg_params={'rs': 5000, 'fh': 400, 'cb': None, 'factor': 1}):
-    """Analyze gene expression dataset and generate figures."""
-    setup_dirs(os.path.join(results_dir, 'imgs'))
-    setup_dirs(os.path.join(results_dir, 'debug'))
-    t = []
-    y = []
-    imgs = []
-    t_bl_on = []
-    for imgf in list_img_files(img_dir):
-        t.append(np.float(os.path.splitext(os.path.basename(imgf))[0]))
-    if u_csv is not None:
-        shutil.copyfile(u_csv, os.path.join(results_dir, 'u.csv'))
-        udf = pd.read_csv(u_csv)
-        t = np.around(t, 1)
-        tu = np.around(np.arange(t[0], t[-1], 0.1), 1)
-        uta = np.around(udf['ta'].values, 1)
-        utb = np.around(udf['tb'].values, 1)
-        u = np.zeros_like(tu)
-        for ta, tb in zip(uta, utb):
-            t_bl_on += list(np.arange(round(ta, 1), round(tb, 1) + 0.01, 0.1))
-            ia = list(tu).index(ta)
-            ib = list(tu).index(tb)
-            u[ia:ib+1] = 1
-    t_annotate_bl = []
-    for tbl in t_bl_on:
-        t_annotate_bl.append(min(t, key=lambda ti : abs(ti - tbl)))
-    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
-        for i, imgf in enumerate(tqdm(list_img_files(img_dir))):
-            fname = os.path.splitext(os.path.basename(imgf))[0]
-            img, raw, bkg, den = preprocess_img(imgf)
-            thr = segment_object(den, **seg_params)
-            roi = thr*img
-            nz = roi[np.nonzero(roi)]
-            ave_int = np.median(nz)
-            y.append(ave_int)
-            if i == 0:
-                cmin = np.min(img)
-                cmax = 2*np.max(img)
-            fig, ax = plt.subplots(figsize=(10,8))
-            axim = ax.imshow(den, cmap='turbo')
-            axim.set_clim(cmin, cmax)
-            t_text = 't = ' + fname + 's'
-            ax.annotate(t_text, (16, 32), color='white', fontsize=20)
-            fontprops = font_manager.FontProperties(size=20)
-            asb = AnchoredSizeBar(ax.transData, 100, u'16\u03bcm',
-                color='white', size_vertical=2, fontproperties=fontprops,
-                loc='lower left', pad=0.1, borderpad=0.5, sep=5, frameon=False)
-            ax.add_artist(asb)
-            if u_csv and round(float(fname), 1) in t_annotate_bl:
-                w, h = img.shape
-                ax.add_patch(Rectangle((3, 3), w-7, h-7,
-                    linewidth=5, edgecolor='#00B0FF', facecolor='none'))
-            ax.grid(False)
-            ax.axis('off')
-            cb = fig.colorbar(axim, pad=0.01, format='%.3f',
-                extend='both', extendrect=True, extendfrac=0.03)
-            cb.outline.set_linewidth(0)
-            fig.tight_layout(pad=0)
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                ax.contour(thr, linewidths=0.3, colors='w')
-            fig.canvas.draw()
-            fig.savefig(os.path.join(results_dir, 'imgs', fname + '.png'),
-                dpi=100, bbox_inches='tight', pad_inches=0)
-            imgs.append(img_as_ubyte(np.array(fig.canvas.renderer._renderer)))
-            plt.close(fig)
-            bg_rows = np.argsort(np.var(img, axis=1))[-100:-1:10]
-            row_i = np.random.choice(bg_rows.shape[0])
-            bg_row = bg_rows[row_i]
-            fig, ax = plt.subplots(figsize=(10,8))
-            ax.plot(raw[bg_row, :])
-            ax.plot(bkg[bg_row, :])
-            ax.set_title(str(bg_row))
-            bg_path = os.path.join(results_dir, 'debug', '{}.png'.format(fname))
-            fig.savefig(bg_path, dpi=100)
-            plt.close(fig)
-        if u_csv is None:
-            fig, ax = plt.subplots(figsize=(16,8))
-        else:
-            fig, (ax0, ax) = plt.subplots(2, 1, sharex=True, figsize=(16, 10), gridspec_kw={'height_ratios': [1, 8]})
-            ax0.plot(tu, u)
-            ax0.set_yticks([0, 1])
-            ax0.set_ylabel('BL')
-        ax.plot(t, y, color='#d32f2f')
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('Median Intensity')
-        ytiks, ystep = np.linspace(np.min(y), np.max(y), 6, endpoint=True, retstep=True)
-        ylim = (ytiks[0] - ystep/4, ytiks[-1] + ystep/4)
-        ax.set_yticks(ytiks)
-        ax.set_ylim(ylim)
-        ax1 = ax.twinx()
-        ax1.plot(t, y/y[0], color='#d32f2f')
-        # ax1.grid(False)
-        ax1.set_yticks(ytiks/y[0])
-        ax1.set_ylim(ylim/y[0])
-        ax1.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
-        ax1.set_ylabel('Fold Change')
-        fig.tight_layout()
-        fig.canvas.draw()
-        fig.savefig(os.path.join(results_dir, 'y.png'),
-            dpi=300, bbox_inches='tight', transparent=False)
-        plt.close(fig)
-    data = np.column_stack((t, y))
-    np.savetxt(os.path.join(results_dir, 'y.csv'),
-        data, delimiter=',', header='t,y', comments='')
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        mimwrite(os.path.join(results_dir, 'cell.gif'), imgs, fps=len(imgs)//12)
-    return t, y
-
-
 def compare_AUCs(root_dir, t_lim=(60, 120)):
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, ax = plt.subplots(figsize=(16,8))
@@ -985,6 +641,41 @@ def compare_AUCs(root_dir, t_lim=(60, 120)):
     fig.savefig(os.path.join(root_dir, 'freqscan.png'),
         dpi=200, bbox_inches='tight', transparent=False)
     plt.close(fig)
+
+
+def process_fluo_timelapse(img_dir, save_dir, u_csv=None, cmax_mult=2,
+    seg_params={'rs': 5000, 'fh': 400, 'cb': None, 'factor': 1}):
+    """Analyze fluorescence timelapse images and generate figures."""
+    t = [np.float(os.path.splitext(os.path.basename(imgf))[0]) for imgf in list_img_files(img_dir)]
+    y = []
+    tu = []
+    u = []
+    imgs = []
+    t_ann_img = []
+    if u_csv:
+        tu, u, t_ann_img = process_u_csv(t, u_csv, save_dir)
+    for i, imgf in enumerate(tqdm(list_img_files(img_dir))):
+        fname = os.path.splitext(os.path.basename(imgf))[0]
+        img, raw, bkg, den = preprocess_img(imgf)
+        plot_bkg_profile(fname, raw, bkg, save_dir)
+        thr = segment_object(den, **seg_params)
+        roi = thr*img
+        nz = roi[np.nonzero(roi)]
+        ave_int = np.median(nz)
+        y.append(ave_int)
+        if i == 0:
+            cmin = np.min(img)
+            cmax = cmax_mult*np.max(img)
+        sig_ann = round(float(fname), 1) in t_ann_img
+        cell_img = plot_cell_img(fname, den, thr, cmin, cmax, save_dir, sig_ann)
+        imgs.append(cell_img)
+    plot_uy(t, y, tu, u, save_dir)
+    data = np.column_stack((t, y))
+    np.savetxt(os.path.join(save_dir, 'y.csv'),
+        data, delimiter=',', header='t,y', comments='')
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        mimwrite(os.path.join(save_dir, 'cell.gif'), imgs, fps=len(imgs)//12)
 
 
 if __name__ == '__main__':
@@ -1034,7 +725,7 @@ if __name__ == '__main__':
     # for img_dirname in natsorted([x[1] for x in os.walk(root_dir)][0]):
     #     img_dir = os.path.join(root_dir, img_dirname)
     #     res_dir = os.path.join(results_dir, img_dirname)
-    #     process_iexpress(img_dir, res_dir)
+    #     process_fluo_timelapse(img_dir, res_dir)
 
 
     # don_dir = '/home/phuong/data/reed/dishB_YPet/yfp/'
@@ -1049,12 +740,12 @@ if __name__ == '__main__':
     # process_pqr(fp0_img_dir, fp1_img_dir, results_dir)
 
     i = 0
-    root_dir = '/home/phuong/data/20200731-pcDNA-LINTAD-4LexO_YB_mScI/'
+    root_dir = '/home/phuong/data/ILID/3NLS-RA-HF/single-pulse/20200714-NLS-RA-iLIDHF-2/'
     results_dir = os.path.join(root_dir, 'results', str(i))
     img_dir = os.path.join(root_dir, 'mCherry', str(i))
     u_csv = os.path.join(root_dir, 'u{}.csv'.format(i))
-    process_iexpress(img_dir, results_dir, u_csv,
-        {'rs': None, 'fh': None, 'cb': None, 'er': None, 'factor': 0.1})
+    process_fluo_timelapse(img_dir, results_dir, u_csv, cmax_mult=2,
+        seg_params={'rs': 5000, 'fh': 400, 'cb': None, 'er': None, 'factor': 10})
 
 
     # for j in [2, 5, 8, 13]:
@@ -1064,7 +755,7 @@ if __name__ == '__main__':
     #         print(results_dir)
     #         img_dir = os.path.join(root_dir, 'mCherry', str(i))
     #         u_csv = os.path.join(root_dir, 'u{}.csv'.format(i))
-    #         process_iexpress(img_dir, results_dir, u_csv)
+    #         process_fluo_timelapse(img_dir, results_dir, u_csv)
 
     # root_dir = '/home/phuong/data/ILID/ddFPRA-iLIDLS/20200721-LS-pulsatile/results/'
     # combine_uy(root_dir, fold_change=False)

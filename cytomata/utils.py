@@ -17,6 +17,7 @@ custom_palette = [
     '#FBC02D', '#303F9F', '#0097A7',
     '#5D4037', '#455A64', '#AFB42B']
 
+
 custom_styles = {
     'image.cmap': 'viridis',
     'figure.figsize': (16, 8),
@@ -39,100 +40,6 @@ custom_styles = {
 }
 
 
-def plot(x, y=None, xlabel=None, ylabel=None, title=None, labels=None, ylim=None, xlim=None,
-    figsize=custom_styles['figure.figsize'], legend_loc='best', show=False, save_path=None,
-    xticks=None, yticks=None, dpi=300):
-    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
-        fig, ax = plt.subplots(figsize=figsize)
-        if y is not None:
-            ax.plot(x, y)
-        else:
-            ax.plot(x)
-        if xlabel is not None:
-            ax.set_xlabel(xlabel)
-        if ylabel is not None:
-            ax.set_ylabel(ylabel)
-        if title is not None:
-            ax.set_title(title, loc='left')
-        if labels is not None:
-            labels = [labels] if type(labels) is str else labels
-            ax.legend(labels=labels, loc=legend_loc)
-        if xlim is not None:
-            ax.set_ylim(xlim)
-        if ylim is not None:
-            ax.set_ylim(ylim)
-        if xticks is not None:
-            ax.set_xticks(xticks)
-        if yticks is not None:
-            ax.set_yticks(yticks)
-        fig.canvas.draw()
-        img = np.array(fig.canvas.renderer._renderer)
-        if save_path is not None:
-            fig.savefig(save_path, dpi=dpi, bbox_inches='tight')
-        if show:
-            plt.show()
-        plt.close(fig)
-        return img
-
-
-def imgs_to_mp4(imgs, vid_path, fps=10):
-    for i, img in enumerate(imgs):
-        img = img_as_ubyte(img)
-        if i == 0:
-            height, width = imgs[0].shape[:2]
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            vid_path = vid_path + '.mp4' if not vid_path.endswith('.mp4') else vid_path
-            video = cv2.VideoWriter(vid_path, fourcc, fps, (width, height))
-        video.write(img)
-    cv2.destroyAllWindows()
-    video.release()
-
-
-class DynamicPlot(object):
-    """"""
-    def __init__(self, x, y, xlabel, ylabel, title=None, labels=None, save_dir=None):
-        self.save_dir = save_dir
-        self.fig, self.ax = plt.subplots()
-        self.lines = self.ax.plot(x, y)
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
-        if labels is not None:
-            labels = [labels] if type(labels) is str else labels
-            ax.legend(labels=labels, loc='best')
-        if title is not None:
-            ax.set_title(title, loc='left')
-        self.fig.canvas.draw()
-        self.count = 0
-        plt.show(block=False)
-        if self.save_dir is not None:
-            setup_dirs(self.save_dir)
-            save_path = os.path.join(self.save_dir, str(self.count) + '.png')
-            self.fig.savefig(save_path, dpi=100)
-
-    def update(self, x, y):
-        self.count += 1
-        if len(x.shape) > 1:
-            for xi, l in zip(x.T , self.lines):
-                l.set_xdata(xi)
-        else:
-            self.lines[0].set_xdata(x)
-        if len(y.shape) > 1:
-            for yi, l in zip(y.T, self.lines):
-                l.set_ydata(yi)
-        else:
-            self.lines[0].set_ydata(y)
-        self.ax.relim()
-        self.ax.autoscale_view()
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
-        if self.save_dir is not None:
-            save_path = os.path.join(self.save_dir, str(self.count) + '.png')
-            self.fig.savefig(save_path, dpi=100)
-
-    def close(self):
-        plt.close(self.fig)
-
-
 def list_img_files(dir):
     return [os.path.join(dir, fn) for fn in natsorted(os.listdir(dir), key=lambda y: y.lower())
         if imghdr.what(os.path.join(dir, fn)) in ['tiff', 'jpeg', 'png', 'gif']]
@@ -141,6 +48,10 @@ def list_img_files(dir):
 def setup_dirs(dirs):
     if not os.path.exists(dirs):
         os.makedirs(dirs)
+
+
+def clear_screen():
+    os.system('cls' if os.name=='nt' else 'clear')
 
 
 def rescale(aa):
@@ -170,5 +81,14 @@ def approx_half_life(t, y, phase='fall'):
     return t_half
 
 
-def clear_screen():
-    os.system('cls' if os.name=='nt' else 'clear')
+def imgs_to_mp4(imgs, vid_path, fps=10):
+    for i, img in enumerate(imgs):
+        img = img_as_ubyte(img)
+        if i == 0:
+            height, width = imgs[0].shape[:2]
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            vid_path = vid_path + '.mp4' if not vid_path.endswith('.mp4') else vid_path
+            video = cv2.VideoWriter(vid_path, fourcc, fps, (width, height))
+        video.write(img)
+    cv2.destroyAllWindows()
+    video.release()
