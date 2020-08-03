@@ -24,9 +24,9 @@ def sim_idimer(t, y0, uf, params):
         kf = params['kf']
         kr = params['kr']
         dy[0] = -(u*ku + kf)*y[0]*y[1] + kr*y[2]
-        dy[1] = dy[0]
-        dy[2] = -dy[0]
-    options = {'rtol': 1e-3, 'atol': 1e-6, 'max_step_size': 10}
+        dy[1] = -(u*ku + kf)*y[0]*y[1] + kr*y[2]
+        dy[2] = (u*ku + kf)*y[0]*y[1] - kr*y[2]
+    options = {'rtol': 1e-3, 'atol': 1e-6, 'max_step_size': 1}
     solver = ode('cvode', model, old_api=False, **options)
     solution = solver.solve(t, y0)
     return solution.values.t, solution.values.y

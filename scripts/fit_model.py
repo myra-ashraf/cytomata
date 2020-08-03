@@ -14,7 +14,7 @@ from scipy.interpolate import interp1d
 from natsort import natsorted
 
 from cytomata.model import sim_itranslo, sim_idimer, sim_iexpress, sim_ssl
-from cytomata.utils import setup_dirs, clear_screen, plot, custom_styles, custom_palette, rescale
+from cytomata.utils import setup_dirs, clear_screen, custom_styles, custom_palette, rescale
 
 
 def prep_itranslo_data(y_csv, u_csv):
@@ -133,7 +133,10 @@ def fit_idimer(t, y, u, results_dir):
     iter_t = time.time()
     def residual(params):
         tm, ym = sim_idimer(t, y0, uf, params)
-        res = np.sum((ym - y)**2)
+        res = (ym[:, 2] - y[:, 2])
+        res[:600] *= 10
+        res = np.sum(res**2)
+        # res = np.sum((ym[:, 2] - y[:, 2])**2)
         return  res
     def opt_iter(params, iter, res):
         nonlocal min_res, best_params, iter_t
@@ -149,15 +152,24 @@ def fit_idimer(t, y, u, results_dir):
         print('Best so far:')
         print('Res:', str(min_res))
         print(best_params)
-    kmax = 10**np.floor(np.log10(np.max(y)))
+    ta = time.time()
     params = lm.Parameters()
-    params.add('ku', value=0.1, min=0, max=1)
-    params.add('kf', value=0.01, min=0, max=0.1)
-    params.add('kr', value=0.01, min=0, max=0.1)
+    params.add('kf', min=0, max=0.1, brute_step=0.01)
+    params.add('kr', min=0, max=0.1, brute_step=0.01)
+    params.add('ku', min=0, max=100, brute_step=5)
+    results = lm.minimize(
+        residual, params, method='brute',
+        iter_cb=opt_iter, nan_policy='propagate',
+    )
+    params0 = results.params.valuesdict()
+    params = lm.Parameters()
+    params.add('kf', value=params0['kf'], min=0, max=0.1)
+    params.add('kr', value=params0['kr'], min=0, max=0.1)
+    params.add('ku', value=params0['ku'], min=0, max=100)
     ta = time.time()
     results = lm.minimize(
-        residual, params, method='differential_evolution',
-        iter_cb=opt_iter, nan_policy='propagate', tol=1e-7
+        residual, params, method='nelder',
+        iter_cb=opt_iter, nan_policy='propagate', tol=1e-9
     )
     print('Elapsed Time: ', str(time.time() - ta))
     opt_params = results.params.valuesdict()
@@ -283,40 +295,40 @@ if __name__ == '__main__':
     # fit_itranslo(t, y, u, res_dir)
 
 
-    root_dir = '/home/phuong/data/LINTAD/LINuS-mock/'
+    # root_dir = '/home/phuong/data/LINTAD/LINuS-mock/'
     # u_csv = '/home/phuong/data/LINTAD/LINuS/u0.csv'
     # for data_dirname in natsorted([x[1] for x in os.walk(root_dir)][0]):
     #     y_csv = os.path.join(root_dir, data_dirname, 'y.csv')
     #     res_dir = os.path.join(root_dir, data_dirname)
     #     t, y, u = prep_itranslo_data(y_csv, u_csv)
     #     fit_itranslo(t, y, u, res_dir)
-    ku_vals = []
-    kf_vals = []
-    kr_vals = []
-    a_vals = []
-    for data_dirname in natsorted([x[1] for x in os.walk(root_dir)][0]):
-        params_path = os.path.join(root_dir, data_dirname, 'opt_params.json')
-        with open(params_path) as f:
-            params = json.load(f)
-            ku_vals.append(params['ku'])
-            kf_vals.append(params['kf'])
-            kr_vals.append(params['kr'])
-            a_vals.append(params['a'])
-    data = [ku_vals, kf_vals, kr_vals]
-    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
-        fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(16, 10), gridspec_kw={'width_ratios': [6, 2]})
-        ax0 = sns.violinplot(data=data, ax=ax0, palette=['#1976D2', '#D32F2F', '#388E3C'])
-        ax0.set_xticklabels(['ku', 'kf', 'kr'])
-        ax1 = sns.violinplot(data=a_vals, ax=ax1, color='#F57C00')
-        ax1.set_xticklabels(['a'])
-        fig.savefig(os.path.join(root_dir, 'params_dist.png'),
-            dpi=200, bbox_inches='tight', transparent=False, pad_inches=0)
-        plt.close(fig)
+    # ku_vals = []
+    # kf_vals = []
+    # kr_vals = []
+    # a_vals = []
+    # for data_dirname in natsorted([x[1] for x in os.walk(root_dir)][0]):
+    #     params_path = os.path.join(root_dir, data_dirname, 'opt_params.json')
+    #     with open(params_path) as f:
+    #         params = json.load(f)
+    #         ku_vals.append(params['ku'])
+    #         kf_vals.append(params['kf'])
+    #         kr_vals.append(params['kr'])
+    #         a_vals.append(params['a'])
+    # data = [ku_vals, kf_vals, kr_vals]
+    # with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+    #     fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(16, 10), gridspec_kw={'width_ratios': [6, 2]})
+    #     ax0 = sns.violinplot(data=data, ax=ax0, palette=['#1976D2', '#D32F2F', '#388E3C'])
+    #     ax0.set_xticklabels(['ku', 'kf', 'kr'])
+    #     ax1 = sns.violinplot(data=a_vals, ax=ax1, color='#F57C00')
+    #     ax1.set_xticklabels(['a'])
+    #     fig.savefig(os.path.join(root_dir, 'params_dist.png'),
+    #         dpi=200, bbox_inches='tight', transparent=False, pad_inches=0)
+    #     plt.close(fig)
 
 
-    # y_csv = '/home/phuong/data/LINTAD/CAD-results/0/y.csv'
-    # u_csv = '/home/phuong/data/LINTAD/CAD/u0.csv'
-    # res_dir = '/home/phuong/data/LINTAD/CAD-results/0/'
+    y_csv = '/home/phuong/data/ILID/RA-LS/20200721-LS-single/results/0//y.csv'
+    u_csv = '/home/phuong/data/ILID/RA-LS/20200721-LS-single/results/0/u.csv'
+    res_dir = '/home/phuong/data/ILID/RA-LS/20200721-LS-single/results/0/'
     # t, y, u = prep_idimer_data(y_csv, u_csv)
     # y0 = y[0, :]
     # uf = interp1d(t, u, bounds_error=False, fill_value=0)
@@ -324,7 +336,17 @@ if __name__ == '__main__':
     # tm, ym = sim_idimer(t, y0, uf, params)
     # plt.plot(tm, ym[:, 2])
     # plt.show()
-    # fit_idimer(t, y, u, res_dir)
+    u_data = pd.read_csv(u_csv)
+    tu = u_data['t'].values
+    u = u_data['u'].values
+    y_data = pd.read_csv(y_csv)
+    t = y_data['t'].values
+    y = y_data['y'].values
+    yf = interp1d(t, y, fill_value='extrapolate')
+    y = np.array([yf(ti) for ti in tu])
+    ya = (-y + 2*np.min(y) + (np.max(y)-np.min(y)))
+    y = np.column_stack([ya, ya, y])
+    fit_idimer(tu, y, u, res_dir)
 
 
     # y_csv = '/home/phuong/data/LINTAD/LexA-results/0/y.csv'
