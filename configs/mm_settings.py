@@ -18,15 +18,15 @@ SETTINGS = {
     'stage_z_limit': [-240, 240],
     'stage_x_limit': [-3600, 3600],
     'stage_y_limit': [-3600, 3600],
-    'mpos': False,
+    'mpos': True,
     'mpos_ch': 'mCherry',
     'mpos_mode': 'sequential',  # "sequential" or "parallel"
 }
 
 
-# ## Seconds-Timescale ##
+## Seconds-Timescale ##
 IMAGING = {
-    't_info': [(0, 56, 5), (60, 62, 1), (65, 301, 5)],  # (start, stop, period)
+    't_info': [(0, 56, 5), (60, 63, 2), (65, 301, 5)],  # (start, stop, period)
     'chs': ['mCherry']
 }
 
@@ -36,14 +36,29 @@ INDUCTION = {
 }
 
 
-# # Seconds-Timescale ## Pulsatile ##
+# Seconds-Timescale ## Pulsatile ##
 # IMAGING = {
-#     't_info': [(0, 361, 3)],  # (start, stop, period)
+#     't_info': [(0, 181, 3)],  # (start, stop, period)
 #     'chs': ['mCherry']
 # }
 
 # INDUCTION = {
-#     't_info': [(60, 120, 2, 0.1), (120, 240, 20, 0.1)],  # (start, stop, period, width)
+#     't_info': [(60, 120, 1, 0.05)],  # (start, stop, period, width)
+#     'ch_ind': 'BL'
+# }
+
+
+# ## Seconds-Timescale ## Pulsatile Cycle##
+# IMAGING = {
+#     't_info': [(0, 601, 3)],  # (start, stop, period)
+#     'chs': ['mCherry']
+# }
+
+# INDUCTION = {
+#     't_info': [
+#         (60, 120, 2, 0.1), (120, 240, 20, 0.1),
+#         (240, 300, 2, 0.1), (300, 420, 20, 0.1),
+#         (420, 480, 2, 0.1), (480, 540, 20, 0.1)],  # (start, stop, period, width)
 #     'ch_ind': 'BL'
 # }
 
@@ -62,12 +77,12 @@ INDUCTION = {
 
 # Hours-Timescale ##
 # IMAGING = {
-#     't_info': [(0, 43200, 60)],
-#     'chs': ['YFP', 'DIC']
+#     't_info': [(0, 43200, 300)],
+#     'chs': ['mCherry']
 # }
 
 # INDUCTION = {
-#     't_info': [(3600, 7201, 60, 15)],
+#     't_info': [(3600, 7201, 60, 58)],
 #     'ch_ind': 'BL10x'
 # }
 
