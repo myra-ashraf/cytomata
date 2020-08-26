@@ -19,7 +19,7 @@ custom_palette = [
 
 
 custom_styles = {
-    'image.cmap': 'viridis',
+    'image.cmap': 'turbo',
     'figure.figsize': (16, 8),
     'text.color': '#212121',
     'axes.titleweight': 'bold',

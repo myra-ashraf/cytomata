@@ -25,26 +25,27 @@ def preprocess_img(imgf):
     tval = threshold_li(bkg)
     broi = bkg*(bkg < tval)
     broi = broi[broi > 0]
-    tval = np.percentile(broi, 25)
+    tval = np.percentile(broi, 50)
     bkg[bkg > tval] = tval
     bkg = gaussian(bkg, 50)
     img = img - bkg
     img[img < 0] = 0
     den = denoise_nl_means(img, h=sig, sigma=sig, patch_size=3, patch_distance=5)
-    den = den - 2*sig
+    den = den - 3*sig
     den[den < 0] = 0
     return img, raw, bkg, den
 
 
-def segment_object(img, rs=5000, fh=500, cb=None, er=11, factor=1):
+def segment_object(img, factor=1, rs=5000, fh=500, er=11, cb=None):
     """Segment out bright objects from fluorescence image."""
-    img = median(img)
-    thv_iso = threshold_isodata(img) / 15
-    thv_ots = threshold_otsu(img) / 15
-    thv_yen = threshold_yen(img) / 15
+    img = median(img, disk(1))
+    if not np.any(img):
+        return img.astype(bool)
+    thv_ots = threshold_otsu(img) / 8
+    thv_yen = threshold_yen(img) / 2
     thv_li = threshold_li(img) / 4
-    offset = (np.median(img[np.nonzero(img)])*2.25)**2
-    thv = np.median([thv_iso, thv_ots, thv_yen, thv_li])*factor + offset
+    offset = (np.percentile(img[img > 0], 90) + 1)**3 / 100
+    thv = (np.median([thv_ots, thv_yen, thv_li]) + offset)*factor
     thr = img > thv
     if er is not None:
         thr = binary_erosion(thr, selem=disk(er))
@@ -60,8 +61,10 @@ def segment_object(img, rs=5000, fh=500, cb=None, er=11, factor=1):
 
 def segment_clusters(img):
     """Segment out bright clusters from fluorescence image."""
-    log = laplace(gaussian(img, sigma=1.5))
-    thr = log > 0.1*np.std(img.ravel())
+    log = laplace(gaussian(img, sigma=1.25))
+    # thr = log > 0.1*np.std(img.ravel())
+    thv_li = threshold_li(log) / 15
+    thr = log > thv_li
     return thr
 
 
