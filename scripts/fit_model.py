@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from natsort import natsorted
 
-from cytomata.model import sim_itranslo, sim_idimer, sim_iexpress, sim_ssl
+from cytomata.model import sim_itranslo, sim_idimer, sim_iexpress, sim_ssl, sim_CaM_M13
 from cytomata.utils import setup_dirs, clear_screen, custom_styles, custom_palette, rescale
 
 
@@ -125,16 +125,19 @@ def prep_idimer_data(y_csv, u_csv):
     y = np.column_stack([ya, ya, yd])
     return t, y, u
 
+
 def fit_idimer(t, y, u, results_dir):
-    y0 = y[0, :]
+    # ya = (-y + 2*np.min(y) + (np.max(y)-np.min(y)))
+    # y0 = [ya[0], ya[0], y[0]]
+    y0 = [0.5, 0.5, y[0]]
     uf = interp1d(t, u, bounds_error=False, fill_value=0)
     min_res = 1e15
     best_params = None
     iter_t = time.time()
     def residual(params):
         tm, ym = sim_idimer(t, y0, uf, params)
-        res = (ym[:, 2] - y[:, 2])
-        res[:600] *= 10
+        res = (ym[:, 2] - y)
+        # res[:600] *= 10
         res = np.sum(res**2)
         # res = np.sum((ym[:, 2] - y[:, 2])**2)
         return  res
@@ -152,27 +155,32 @@ def fit_idimer(t, y, u, results_dir):
         print('Best so far:')
         print('Res:', str(min_res))
         print(best_params)
-    ta = time.time()
+    # ta = time.time()
+    # params = lm.Parameters()
+    # params.add('kf', min=0, max=0.1, brute_step=0.01)
+    # params.add('kr', min=0, max=0.1, brute_step=0.01)
+    # params.add('ku', min=0, max=1, brute_step=0.1)
+    # results = lm.minimize(
+    #     residual, params, method='brute',
+    #     iter_cb=opt_iter, nan_policy='propagate',
+    # )
+    # params0 = results.params.valuesdict()
+    # params = lm.Parameters()
+    # params.add('kf', value=params0['kf'], min=0, max=0.1)
+    # params.add('kr', value=params0['kr'], min=0, max=0.1)
+    # params.add('ku', value=params0['ku'], min=0, max=1)
+    # ta = time.time()
     params = lm.Parameters()
-    params.add('kf', min=0, max=0.1, brute_step=0.01)
-    params.add('kr', min=0, max=0.1, brute_step=0.01)
-    params.add('ku', min=0, max=100, brute_step=5)
+    params.add('kf', value=0.0, min=0.0, max=1.0)
+    params.add('kr', value=0.0, min=0.0, max=1.0)
+    params.add('ku', value=0.0, min=0.0, max=1.0)
     results = lm.minimize(
-        residual, params, method='brute',
-        iter_cb=opt_iter, nan_policy='propagate',
-    )
-    params0 = results.params.valuesdict()
-    params = lm.Parameters()
-    params.add('kf', value=params0['kf'], min=0, max=0.1)
-    params.add('kr', value=params0['kr'], min=0, max=0.1)
-    params.add('ku', value=params0['ku'], min=0, max=100)
-    ta = time.time()
-    results = lm.minimize(
-        residual, params, method='nelder',
+        residual, params, method='differential_evolution',
         iter_cb=opt_iter, nan_policy='propagate', tol=1e-9
     )
-    print('Elapsed Time: ', str(time.time() - ta))
+    # # print('Elapsed Time: ', str(time.time() - ta))
     opt_params = results.params.valuesdict()
+    # opt_params = dict([('kf', 0.00015374365541664936), ('kr', 0.003233611739077602), ('ku', 0.03129990345578715)])
     with open(os.path.join(results_dir, 'opt_params.json'), 'w', encoding='utf-8') as fo:
         json.dump(opt_params, fo, ensure_ascii=False, indent=4)
     tm, ym = sim_idimer(t, y0, uf, opt_params)
@@ -181,7 +189,7 @@ def fit_idimer(t, y, u, results_dir):
         ax0.plot(t, u)
         ax0.set_yticks([0, 1])
         ax0.set_ylabel('BL')
-        ax1.plot(t, y[:, 2], color='#ffcdd2', label='AB (Data)')
+        ax1.plot(t, y, color='#ffcdd2', label='AB (Data)')
         ax1.plot(tm, ym[:, 2], color='#d32f2f', label='AB (Model)')
         ax1.set_xlabel('Time (s)')
         ax1.set_ylabel('AU')
@@ -287,6 +295,85 @@ def fit_iexpress(t, y, x, u, results_dir):
     return opt_params
 
 
+def fit_CaM_M13(t, y, u, results_dir):
+    y0 = [1, 0, 1, y[0]]
+    uf = interp1d(t, u, bounds_error=False, fill_value=0)
+    min_res = 1e15
+    best_params = None
+    iter_t = time.time()
+    def residual(params):
+        tm, ym = sim_CaM_M13(t, y0, uf, params)
+        res = (ym[:, -1] - y)
+        res = np.sum(res**2)
+        return  res
+    def opt_iter(params, iter, res):
+        nonlocal min_res, best_params, iter_t
+        clear_screen()
+        ti = time.time()
+        print('seconds/iter:', str(ti - iter_t))
+        iter_t = ti
+        print('Iter: {} | Res: {}'.format(iter, res))
+        print(params.valuesdict())
+        if res < min_res:
+            min_res = res
+            best_params = params.valuesdict()
+        print('Best so far:')
+        print('Res:', str(min_res))
+        print(best_params)
+    # ta = time.time()
+    # params = lm.Parameters()
+    # params.add('ku', min=0, max=10, brute_step=0.1)
+    # params.add('k1f', min=0, max=1, brute_step=0.1)
+    # params.add('k1r', min=0, max=1, brute_step=0.1)
+    # params.add('k2f', min=0, max=1, brute_step=0.1)
+    # params.add('k2r', min=0, max=1, brute_step=0.1)
+    # results = lm.minimize(
+    #     residual, params, method='brute',
+    #     iter_cb=opt_iter, nan_policy='propagate',
+    # )
+    # params0 = results.params.valuesdict()
+    # params = lm.Parameters()
+    # params.add('ku', value=params0['ku'], min=0, max=10)
+    # params.add('k1f', value=params0['k1f'], min=0, max=1)
+    # params.add('k1r', value=params0['k1r'], min=0, max=1)
+    # params.add('k2f', value=params0['k2f'], min=0, max=1)
+    # params.add('k2r', value=params0['k2r'], min=0, max=1)
+    # params = lm.Parameters()
+    # params.add('ku', value=0.0, min=0.0, max=10.0)
+    # params.add('k1f', value=0.0, min=0.0, max=1.0)
+    # params.add('k1r', value=0.0, min=0.0, max=10.0)
+    # params.add('k2f', value=0.0, min=0.0, max=1.0)
+    # params.add('k2r', value=0.0, min=0.0, max=1.0)
+    # # tb = time.time()
+    # results = lm.minimize(
+    #     residual, params, method='differential_evolution',
+    #     iter_cb=opt_iter, nan_policy='propagate', tol=1e-7
+    # )
+    # print('Brute Force Elapsed Time: ', str(time.time() - ta))
+    # print('Nelder Elapsed Time: ', str(time.time() - tb))
+    # opt_params = results.params.valuesdict()
+    opt_params = dict([('ku', 1.7562632366719382), ('k1f', 0.9586249323356815), ('k1r', 9.894784296023431), ('k2f', 0.05658443657334927), ('k2r', 0.2977263438893646)])
+    with open(os.path.join(results_dir, 'opt_params.json'), 'w', encoding='utf-8') as fo:
+        json.dump(opt_params, fo, ensure_ascii=False, indent=4)
+    tm, ym = sim_CaM_M13(t, y0, uf, opt_params)
+    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+        fig, (ax0, ax1) = plt.subplots(2, 1, sharex=True, figsize=(16, 10), gridspec_kw={'height_ratios': [1, 8]})
+        ax0.plot(t, u)
+        ax0.set_yticks([0, 1])
+        ax0.set_ylabel('BL')
+        ax1.plot(t, y, color='#1976D2', marker='o', label='AB (Data)')
+        ax1.plot(tm, ym[:, -1], color='#d32f2f', label='AB (Model)')
+        ax1.set_xlabel('Time (s)')
+        ax1.set_ylabel('AU')
+        ax1.legend(loc='best')
+        fig.tight_layout()
+        fig.canvas.draw()
+        fig.savefig(os.path.join(results_dir, 'fit.png'),
+            dpi=300, bbox_inches='tight', transparent=False, pad_inches=0)
+        plt.close(fig)
+    return opt_params
+
+
 if __name__ == '__main__':
     # y_csv = '/home/phuong/data/LINTAD/LINuS-results/0/y.csv'
     # u_csv = '/home/phuong/data/LINTAD/LINuS/u0.csv'
@@ -326,16 +413,34 @@ if __name__ == '__main__':
     #     plt.close(fig)
 
 
-    y_csv = '/home/phuong/data/ILID/RA-LS/20200721-LS-single/results/0//y.csv'
-    u_csv = '/home/phuong/data/ILID/RA-LS/20200721-LS-single/results/0/u.csv'
-    res_dir = '/home/phuong/data/ILID/RA-LS/20200721-LS-single/results/0/'
-    # t, y, u = prep_idimer_data(y_csv, u_csv)
-    # y0 = y[0, :]
-    # uf = interp1d(t, u, bounds_error=False, fill_value=0)
-    # params = {'ku': 0.09, 'kf': 0.0003, 'kr': 0.01}
-    # tm, ym = sim_idimer(t, y0, uf, params)
-    # plt.plot(tm, ym[:, 2])
-    # plt.show()
+    # y_csv = '/home/phuong/data/ILID/RA-LS/20200721-LS-step/results/0/y.csv'
+    # u_csv = '/home/phuong/data/ILID/RA-LS/20200721-LS-step/results/0/u.csv'
+    # res_dir = '/home/phuong/data/ILID/RA-LS/20200721-LS-step/results/0/'
+    # # y_csv = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/y.csv'
+    # # u_csv = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/u.csv'
+    # # res_dir = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/'
+    # u_data = pd.read_csv(u_csv)
+    # tu = u_data['t'].values
+    # u = u_data['u'].values
+    # uf = interp1d(tu, u, bounds_error=False, fill_value=0)
+    # y_data = pd.read_csv(y_csv)
+    # t = y_data['t'].values
+    # y = y_data['y'].values
+    # yf = interp1d(t, y, fill_value='extrapolate')
+    # y = np.array([yf(ti) for ti in tu])
+    # ya = (-y + 2*np.min(y) + (np.max(y)-np.min(y)))
+    # # y0 = [1, 1, y[0]]
+    # params = {'kf': 0.005, 'kr': 0.5, 'ku': 0.005}
+    # # tm, ym = sim_idimer(tu, y0, uf, params)
+    # # plt.plot(tu, y)
+    # # plt.plot(tm, ym[:, 2])
+    # # plt.show()
+    # fit_idimer(tu, y, u, res_dir)
+
+
+    y_csv = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/y.csv'
+    u_csv = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/u.csv'
+    res_dir = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/'
     u_data = pd.read_csv(u_csv)
     tu = u_data['t'].values
     u = u_data['u'].values
@@ -344,9 +449,8 @@ if __name__ == '__main__':
     y = y_data['y'].values
     yf = interp1d(t, y, fill_value='extrapolate')
     y = np.array([yf(ti) for ti in tu])
-    ya = (-y + 2*np.min(y) + (np.max(y)-np.min(y)))
-    y = np.column_stack([ya, ya, y])
-    fit_idimer(tu, y, u, res_dir)
+    # ya = (-y + 2*np.min(y) + (np.max(y)-np.min(y)))
+    fit_CaM_M13(tu, y, u, res_dir)
 
 
     # y_csv = '/home/phuong/data/LINTAD/LexA-results/0/y.csv'

@@ -13,19 +13,21 @@ from skimage import img_as_ubyte
 from cytomata.utils import setup_dirs, custom_styles, custom_palette
 
 
-def plot_cell_img(fname, img, thr, cmin, cmax, save_dir, sig_ann=False, t_unit='s', sb_microns=16):
+def plot_cell_img(fname, img, thr, cmin, cmax, save_dir, sig_ann=False, t_unit=None, sb_microns=None):
     setup_dirs(os.path.join(save_dir, 'imgs'))
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, ax = plt.subplots(figsize=(10,8))
         axim = ax.imshow(img, cmap='turbo')
         axim.set_clim(cmin, cmax)
-        t_text = 't = ' + fname + t_unit
-        ax.annotate(t_text, (16, 32), color='white', fontsize=20)
-        fontprops = font_manager.FontProperties(size=20)
-        asb = AnchoredSizeBar(ax.transData, 100, u'{}\u03bcm'.format(sb_microns),
-            color='white', size_vertical=2, fontproperties=fontprops,
-            loc='lower left', pad=0.1, borderpad=0.5, sep=5, frameon=False)
-        ax.add_artist(asb)
+        if t_unit:
+            t_text = 't = ' + fname + t_unit
+            ax.annotate(t_text, (16, 32), color='white', fontsize=20)
+        if sb_microns is not None:
+            fontprops = font_manager.FontProperties(size=20)
+            asb = AnchoredSizeBar(ax.transData, 100, u'{}\u03bcm'.format(sb_microns),
+                color='white', size_vertical=2, fontproperties=fontprops,
+                loc='lower left', pad=0.1, borderpad=0.5, sep=5, frameon=False)
+            ax.add_artist(asb)
         if sig_ann:
             w, h = img.shape
             ax.add_patch(Rectangle((3, 3), w-7, h-7,
@@ -62,8 +64,12 @@ def plot_bkg_profile(fname, img, bkg, save_dir):
         plt.close(fig)
 
 
-def plot_uy(t, y, tu, u, save_dir, xlabel='Time (s)', ylabel='Median Intensity', ulabel='BL'):
+def plot_uy(t, y, tu, u, save_dir, fname='y.png', xlabel='Time (s)', ylabel='Median Intensity', ulabel='BL'):
     setup_dirs(save_dir)
+    t = np.array(t)
+    y = np.array(y)
+    tu = np.array(tu)
+    u = np.array(u)
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         if len(tu) > 0:
             fig, (ax0, ax) = plt.subplots(
@@ -86,10 +92,10 @@ def plot_uy(t, y, tu, u, save_dir, xlabel='Time (s)', ylabel='Median Intensity',
         ax1.plot(t, y/y[0], color='#d32f2f')
         ax1.set_yticks(ytiks/y[0])
         ax1.set_ylim(ylim/y[0])
-        ax1.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+        ax1.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
         ax1.set_ylabel('Fold Change')
         fig.tight_layout()
         fig.canvas.draw()
-        fig.savefig(os.path.join(save_dir, 'y.png'),
+        fig.savefig(os.path.join(save_dir, fname),
             dpi=300, bbox_inches='tight', transparent=False)
         plt.close(fig)

@@ -116,3 +116,22 @@ def sim_ssl_cn(t, y0, uf, params):
     solver = ode('cvode', model, old_api=False, **options)
     solution = solver.solve(t, y0)
     return solution.values.t, solution.values.y
+
+
+def sim_CaM_M13(t, y0, uf, params):
+    def model(t, y, dy):
+        u = uf(t)
+        [Ai, Aa, B, AB] = y
+        ku = params['ku']
+        k1f = params['k1f']
+        k1r = params['k1r']
+        k2f = params['k2f']
+        k2r = params['k2r']
+        dy[0] = -(u*ku + k1f)*Ai + k1r*Aa
+        dy[1] = -k1r*Aa - k2f*Aa*B + (u*ku + k1f)*Ai + k2r*AB
+        dy[2] = -k2f*Aa*B + k2r*AB
+        dy[3] = -k2r*AB + k2f*Aa*B
+    options = {'rtol': 1e-3, 'atol': 1e-6, 'max_step_size':1}
+    solver = ode('cvode', model, old_api=False, **options)
+    solution = solver.solve(t, y0)
+    return solution.values.t, solution.values.y

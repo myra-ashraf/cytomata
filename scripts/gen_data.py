@@ -12,8 +12,8 @@ from scipy.interpolate import interp1d
 from scipy.integrate import simps
 from imageio import mimwrite
 
-from cytomata.model import sim_itranslo, sim_iexpress, sim_ssl_cn
-from cytomata.utils import setup_dirs, plot, custom_styles, custom_palette
+from cytomata.model import sim_itranslo, sim_iexpress, sim_ssl_cn, sim_CaM_M13, sim_idimer
+from cytomata.utils import setup_dirs, custom_styles, custom_palette
 
 
 def generate_itranslo(t, y0, uf, params, results_dir, rand_y=False, rand_k=False):
@@ -129,6 +129,31 @@ def gen_ssl_cn(paramsf, results_dir):
             plt.close(fig)
     mimwrite(os.path.join(results_dir, 'sps_st.gif'), imgs, fps=0.5)
 
+
+def gen_CaM_M13(t, y0, uf, params, results_dir):
+    setup_dirs(results_dir)
+    tm, ym = sim_itranslo(t, y0, uf, params)
+    data = np.column_stack((tm, ym, u))
+    np.savetxt(os.path.join(results_dir, 'y.csv'),
+        data, delimiter=',', header='t,yc,yn,u', comments='')
+    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+        fig, (ax0, ax1) = plt.subplots(2, 1, sharex=True,
+            figsize=(16, 10),gridspec_kw={'height_ratios': [1, 8]})
+        ax0.plot(t, u)
+        ax0.set_yticks([0, 1])
+        ax0.set_ylabel('BL')
+        # ax1.plot(tm, ym[:, 0], color='#1976D2', label='Cytoplasm')
+        ax1.plot(tm, ym[:, 1], color='#d32f2f', label='Nucleus')
+        ax1.set_xlabel('Time (s)')
+        ax1.set_ylabel('AU')
+        ax1.legend(loc='best')
+        fig.tight_layout()
+        fig.canvas.draw()
+        fig.savefig(os.path.join(results_dir, 'y.png'),
+            dpi=100, bbox_inches='tight', transparent=False, pad_inches=0)
+        plt.close(fig)
+
+
 if __name__ == '__main__':
     ## Projected TF Curve for Given Stimulation Curve ##
     # y_path = '/home/phuong/data/LINTAD/LexA-results/0/y.csv'
@@ -210,6 +235,39 @@ if __name__ == '__main__':
 
     # scan_freqs(y_path, params_path, params_path1, results_dir)
 
-    paramsf = '/home/phuong/data/SSL/cyto_nucl/opt_params.json'
-    results_dir = '/home/phuong/data/SSL/cyto_nucl/'
-    gen_ssl_cn(paramsf, results_dir)
+    # paramsf = '/home/phuong/data/SSL/cyto_nucl/opt_params.json'
+    # results_dir = '/home/phuong/data/SSL/cyto_nucl/'
+    # gen_ssl_cn(paramsf, results_dir)
+
+
+    results_dir = '/home/phuong/data/CaM-M13/sim/'
+    t = np.arange(0, 600)
+    u = np.zeros_like(t)
+    uf = interp1d(t, u, bounds_error=False, fill_value=0)
+    y0 = [1, 0.1, 1, 0.0167]
+    # params = {
+    #     "ku": 1.7562632366719382,
+    #     "k1f": 0.9586249323356815,
+    #     "k1r": 9.894784296023431,
+    #     "k2f": 0.05658443657334927,
+    #     "k2r": 0.2977263438893646
+    # }
+    params = {
+        "ku": 1.7562632366719382,
+        "k1f": 0.9586249323356815,
+        "k1r": 9.894784296023431,
+        "k2f": 0.005658443657334927,
+        "k2r": 0.03277263438893646
+    }
+    tm, ym = sim_CaM_M13(t, y0, uf, params)
+    y0 = ym[0, :]
+    t = np.arange(0, 300)
+    u = np.zeros_like(t)
+    u[120:125] = 1
+    uf = interp1d(t, u, bounds_error=False, fill_value=0)
+    tm, ym = sim_CaM_M13(t, y0, uf, params)
+    # for i, v in enumerate(['Ai', 'Aa', 'B', 'AB']):
+    plt.plot(tm, ym[:, -1], label='AB')
+    plt.legend(loc='best')
+    plt.show()
+

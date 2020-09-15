@@ -13,13 +13,15 @@ from matplotlib import font_manager
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from tqdm import tqdm
 from natsort import natsorted
-from scipy.stats import sem
+from scipy.stats import sem, mode
 from imageio import mimwrite
 from scipy.interpolate import interp1d
 from scipy.integrate import simps
 from skimage import img_as_ubyte
 from skimage.measure import label, regionprops
 from skimage.transform import rotate
+from skimage.filters import median
+from skimage.morphology import disk
 
 from cytomata.plot import plot_cell_img, plot_bkg_profile, plot_uy
 from cytomata.process import preprocess_img, segment_object, segment_clusters, process_u_csv
@@ -47,8 +49,8 @@ def process_translo(nucleus_dir, translo_dir, results_dir):
         cyto = np.logical_xor(cell, nucl)
         nroi = nucl*tr_img
         croi = cyto*tr_img
-        nnz = nroi[np.nonzero(nroi)]
-        cnz = croi[np.nonzero(croi)]
+        nnz = nroi[nroi > 0]
+        cnz = croi[croi > 0]
         nucl_int = np.median(nnz)
         cyto_int = np.median(cnz)
         fname = os.path.splitext(os.path.basename(tr_imgf))[0]
@@ -167,6 +169,7 @@ def process_fluo_timelapse(img_dir, save_dir, u_csv=None, cmax_mult=2,
     """Analyze fluorescence timelapse images and generate figures."""
     t = [np.float(os.path.splitext(os.path.basename(imgf))[0]) for imgf in list_img_files(img_dir)]
     y = []
+    areas = []
     tu = []
     u = []
     imgs = []
@@ -179,14 +182,15 @@ def process_fluo_timelapse(img_dir, save_dir, u_csv=None, cmax_mult=2,
         plot_bkg_profile(fname, raw, bkg, save_dir)
         thr = segment_object(den, **seg_params)
         roi = thr*img
-        nz = roi[np.nonzero(roi)]
+        nz = roi[roi > 0]
         ave_int = np.median(nz)
         y.append(ave_int)
         if i == 0:
             cmin = np.min(img)
             cmax = cmax_mult*np.max(img)
         sig_ann = round(float(fname), 1) in t_ann_img
-        cell_img = plot_cell_img(fname, den, thr, cmin, cmax, save_dir, sig_ann)
+        cell_img = plot_cell_img(fname, den, thr, cmin, cmax,
+                save_dir, sig_ann, t_unit='s', sb_microns=16)
         imgs.append(cell_img)
     plot_uy(t, y, tu, u, save_dir)
     data = np.column_stack((t, y))
@@ -197,11 +201,13 @@ def process_fluo_timelapse(img_dir, save_dir, u_csv=None, cmax_mult=2,
         mimwrite(os.path.join(save_dir, 'cell.gif'), imgs, fps=len(imgs)//12)
 
 
-def combine_uy(root_dir, fold_change=True):
+def combine_uy(root_dir, fold_change=True, plot_u=True):
     with plt.style.context(('seaborn-whitegrid', custom_styles)):
-        fig, (ax0, ax) = plt.subplots(
-            2, 1, sharex=True, figsize=(16, 10), gridspec_kw={'height_ratios': [1, 8]}
-        )
+        if plot_u:
+            fig, (ax0, ax) = plt.subplots(2, 1, sharex=True,
+                figsize=(16, 10), gridspec_kw={'height_ratios': [1, 8]})
+        else:
+            fig, ax = plt.subplots(figsize=(10,8)) 
         combined_y = pd.DataFrame()
         combined_u = pd.DataFrame()
         for i, data_dir in enumerate(natsorted([x[1] for x in os.walk(root_dir)][0])):
@@ -217,10 +223,11 @@ def combine_uy(root_dir, fold_change=True):
             combined_y = pd.concat([combined_y, y], axis=1)
             ax.plot(y, color='#1976D2', alpha=0.5, linewidth=2)
             u_csv = os.path.join(root_dir, data_dir, 'u.csv')
-            u_data = pd.read_csv(u_csv)
-            tu = u_data['t'].values
-            u = pd.Series(u_data['u'].values, index=tu, name=i)
-            combined_u = pd.concat([combined_u, u], axis=1)
+            if plot_u:
+                u_data = pd.read_csv(u_csv)
+                tu = u_data['t'].values
+                u = pd.Series(u_data['u'].values, index=tu, name=i)
+                combined_u = pd.concat([combined_u, u], axis=1)
         y_ave = combined_y.mean(axis=1).rename('y_ave')
         y_std = combined_y.std(axis=1).rename('y_std')
         y_sem = combined_y.sem(axis=1).rename('y_sem')
@@ -235,9 +242,10 @@ def combine_uy(root_dir, fold_change=True):
         if fold_change:
             ax.set_ylabel('Fold Change')
         ax.legend(loc='best')
-        ax0.plot(tu, u, color='#1976D2')
-        ax0.set_yticks([0, 1])
-        ax0.set_ylabel('BL')
+        if plot_u:
+            ax0.plot(tu, u, color='#1976D2')
+            ax0.set_yticks([0, 1])
+            ax0.set_ylabel('BL')
         plot_name = 'y_combined.png'
         fig.savefig(os.path.join(root_dir, plot_name),
             dpi=100, bbox_inches='tight', transparent=False)
@@ -260,8 +268,8 @@ def process_ratio_fluo(fp0_img_dir, fp1_img_dir, results_dir):
         thr = segment_object(img0, offset=0, er=7)
         roi0 = thr*img0
         roi1 = thr*img1
-        nz0 = roi0[np.nonzero(roi0)]
-        nz1 = roi1[np.nonzero(roi1)]
+        nz0 = roi0[roi0 > 0]
+        nz1 = roi1[roi1 > 0]
         ave_int0 = np.median(nz0)
         ave_int1 = np.median(nz1)
         y0.append(ave_int0)
@@ -375,7 +383,7 @@ def compare_fluo_imgs(img_paths, results_dir):
             img, raw, bkg, den = preprocess_img(imgf)
             thr = segment_object(den, method=None, rs=100, fh=None, offset=0, er=None, cb=None)
             roi = thr*img
-            nz = roi[np.nonzero(roi)]
+            nz = roi[roi > 0]
             ave_int = np.median(nz)
             ave_ints.append(ave_int)
             cmin = np.min(img)
@@ -437,8 +445,8 @@ def compare_AUCs(root_dir, t_lim=(60, 120)):
                 span = df[(df['t'] >= t_lim[0]) & (df['t'] <= t_lim[1])]
                 tspan = span['t'].values
                 yspan = rescale(span['y'].values)
-                plt.plot(tspan, yspan)
-                plt.show()
+                # plt.plot(tspan, yspan)
+                # plt.show()
                 auc = simps(yspan, tspan)
                 freq_i_aucs.append(auc)
                 ax.plot([int(freq_i)], [auc], marker='o', color=color)
@@ -451,6 +459,67 @@ def compare_AUCs(root_dir, t_lim=(60, 120)):
     fig.savefig(os.path.join(root_dir, 'freqscan.png'),
         dpi=200, bbox_inches='tight', transparent=False)
     plt.close(fig)
+
+
+def process_10x_imgs(img_dir, save_dir, cmax_mult=2,
+    seg_params={'rs': 50, 'fh': None, 'cb': None, 'er': None, 'factor': 1}):
+    """Analyze fluorescence 10x images and generate figures."""
+    y = []
+    imgs = []
+    for i, imgf in enumerate(tqdm(list_img_files(img_dir))):
+        fname = os.path.splitext(os.path.basename(imgf))[0]
+        img, raw, bkg, den = preprocess_img(imgf)
+        plot_bkg_profile(fname, raw, bkg, save_dir)
+        thr = segment_object(den, **seg_params)
+        roi = thr*img
+        nz = roi[roi > 0]
+        ave_int = np.median(nz)
+        if np.isnan(ave_int):
+            ave_int = 0
+        y.append(ave_int)
+        if i == 0:
+            cmin = np.min(img)
+            cmax = cmax_mult*np.max(img)
+        cell_img = plot_cell_img(fname, den, thr, cmin, cmax, save_dir)
+        imgs.append(cell_img)
+    np.savetxt(os.path.join(save_dir, 'y.csv'),
+        np.array(y), delimiter=',', header='y', comments='')
+
+
+def barplot_expts(root_dir):
+    y_data = pd.read_csv(os.path.join(root_dir, 'y.csv'))
+    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+        fig, ax = plt.subplots(figsize=(16,8))
+        g = sns.barplot(x="System", y="Response", data=y_data,
+            ax=ax)
+        # g.ax.set_yscale("log")
+        # g.ax.set_xticks([-0.2, 1.2])
+        # plt.legend(loc='upper center', prop={"size": 20})
+        plt.savefig(os.path.join(root_dir, 'y.png'), dpi=200, transparent=False, bbox_inches='tight')
+        plt.close()
+
+
+def compare_groups(root_dir):
+    y_data = pd.read_csv(os.path.join(root_dir, 'y.csv'))
+    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+        g = sns.catplot(x="System", y="Response", hue="Group", data=y_data,
+            height=8, aspect=1.5, kind='bar', legend=False)
+        g.ax.set_yscale("log")
+        g.ax.set_xticks([-0.2, 1.2])
+        plt.legend(loc='upper center', prop={"size": 20})
+        plt.savefig(os.path.join(root_dir, 'y.png'), dpi=200, transparent=False, bbox_inches='tight')
+        plt.close()
+
+
+def compare_before_after(root_dir):
+    y_data = pd.read_csv(os.path.join(root_dir, 'y.csv'))
+    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+        g = sns.catplot(x="System", y="Response", hue="Timepoint", data=y_data,
+            height=8, aspect=1.5, kind='bar', legend=False)
+        handles, labels = g.ax.get_legend_handles_labels()
+        g.ax.legend(handles, ['0hr', '24hr (BL 1min every 10min)'], loc='best', prop={"size": 20})
+        plt.savefig(os.path.join(root_dir, 'y.png'), dpi=200, transparent=False, bbox_inches='tight')
+        plt.close()
 
 
 if __name__ == '__main__':
@@ -472,25 +541,26 @@ if __name__ == '__main__':
     # results_dir = '/home/phuong/data/ILID/Controls/NES-mCh-PQR-3NLS-mTq2/'
     # process_pqr(fp0_img_dir, fp1_img_dir, results_dir)
 
-    # i = 8
-    # root_dir = '/home/phuong/data/ILID/ddFPRA-iLIDLS/20200721-LS-single/'
+    # for j in range(4):
+    # i = 0
+    # root_dir = '/home/phuong/data/ILID/ddFP/20200811-B3-RA_imgOnly/'
     # results_dir = os.path.join(root_dir, 'results', str(i))
     # img_dir = os.path.join(root_dir, 'mCherry', str(i))
     # u_csv = os.path.join(root_dir, 'u{}.csv'.format(i))
-    # process_fluo_timelapse(img_dir, results_dir, u_csv, cmax_mult=2,
-    #     seg_params={'rs': 5000, 'fh': 400, 'cb': None, 'er': None, 'factor': 2})
+    # process_fluo_timelapse(img_dir, results_dir, u_csv=None, cmax_mult=1.5,
+    #     seg_params={'rs': None, 'fh': None, 'cb': None, 'er': None, 'factor': 1})
 
 
-    # for i in range(9):
-    #     root_dir = '/home/phuong/data/ILID/ddFPRA-iLIDLS/20200721-LS-single/'
+    # for i in range(12, 13):
+    #     root_dir = '/home/phuong/data/ILID/ddFP/20200811-B3-RA_spike/'
     #     results_dir = os.path.join(root_dir, 'results', str(i))
     #     img_dir = os.path.join(root_dir, 'mCherry', str(i))
     #     u_csv = os.path.join(root_dir, 'u{}.csv'.format(i))
-    #     process_fluo_timelapse(img_dir, results_dir, u_csv, cmax_mult=2,
-    #         seg_params={'rs': 5000, 'fh': 400, 'cb': None, 'er': None, 'factor': 10})
+    #     process_fluo_timelapse(img_dir, results_dir, u_csv=u_csv, cmax_mult=2,
+    #     seg_params={'rs': 8000, 'fh': 500, 'cb': None, 'er': None, 'factor': 3})
 
-    root_dir = '/home/phuong/data/ILID/RA-LS/20200721-LS-single/results/'
-    combine_uy(root_dir, fold_change=True)
+    root_dir = '/home/phuong/data/ILID/ddFP/20200811-B3-RA_spike/results/'
+    combine_uy(root_dir, fold_change=True, plot_u=True)
 
     # root_dir = '/home/phuong/data/ILID/ddFPRA-iLIDLS/20200718-RA-LS-noBL-mch32/compare/'
     # compare_plots(root_dir, ['Imaging Only', 'With BL Induction'], fold_change=False)
@@ -505,5 +575,18 @@ if __name__ == '__main__':
     # compare_imgs(img_paths, results_dir)
 
 
-    # root_dir = '/home/phuong/data/ILID/ddFPRA-iLIDLS/freq-scan/freq_trend/'
+    # root_dir = '/home/phuong/data/ILID/RA-HF/freq-scan/freq-trend/'
     # compare_AUCs(root_dir)
+
+    # base_dir = '/home/phuong/data/ILID/Basal/'
+    # for bd in natsorted([x[1] for x in os.walk(base_dir)][0]):
+    #     root_dir = os.path.join(base_dir, bd)
+    # root_dir = '/home/phuong/data/GExpress/20200806/20200806-LINTAD1-4LexO-mScI-6hrs/'
+    # img_dir = os.path.join(root_dir, 'Default')
+    # save_dir = os.path.join(root_dir, 'results')
+    # process_10x_imgs(img_dir, save_dir, cmax_mult=1,
+    #     seg_params={'rs': 20, 'fh': None, 'cb': None, 'er': None, 'factor': 1})
+
+
+    # root_dir = '/home/phuong/data/ILID/Basal/compare/'
+    # barplot_expts(root_dir)
