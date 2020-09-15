@@ -27,6 +27,8 @@ class Microscope(object):
         self.obj_device = self.settings['obj_device']
         self.xy_device = self.settings['xy_device']
         self.z_device = self.settings['z_device']
+        for dev in self.settings['img_sync']:
+            self.core.assignImageSynchro(dev)
         self.uta = defaultdict(list)
         self.utb = defaultdict(list)
         self.x0 = self.get_position('x')
@@ -100,9 +102,9 @@ class Microscope(object):
         self.core.stopSequenceAcquisition()
 
     def snap_image(self):
-        self.core.waitForSystem()
         self.core.snapImage()
-        return self.core.getImage()
+        img = self.core.getImage()
+        return img
 
     def snap_zstack(self, chs, zdepth, step):
         z0 = self.get_position('z')
@@ -150,9 +152,12 @@ class Microscope(object):
         self.set_position('xy', (x0, y0))
 
     def take_images(self, cid, chs):
-        (x, y, z) = self.coords[cid]
-        self.set_position('xy', (x, y))
         ti = time.time() - self.t0
+        (x, y, z) = self.coords[cid]
+        x0 = self.get_position('x')
+        y0 = self.get_position('y')
+        if np.absolute(x - x0) > 1 and np.absolute(y - y0) > 1:
+            self.set_position('xy', (x, y))
         for ch in chs:
             self.set_channel(ch)
             img = self.snap_image()
@@ -248,13 +253,13 @@ class Microscope(object):
         else:
             self.autofocus(self.cid, ch, bounds, max_iter, offset)
 
-    def queue_autofocus(self, t_info, ch):
+    def queue_autofocus(self, t_info, ch, bounds, max_iter, offset):
         for (start, stop, period) in t_info:
             times = deque(np.arange(start + self.t0, stop + self.t0, period))
             self.tasks.append({
                 'func': self.autofocus_task,
                 'times': times,
-                'kwargs': {'ch': ch}
+                'kwargs': {'ch': ch, 'bounds': bounds, 'max_iter': max_iter, 'offset': offset}
             })
 
     def run_tasks(self):

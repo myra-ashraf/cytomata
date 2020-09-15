@@ -6,6 +6,7 @@ MM_CFG_FILE = os.path.join(CONFIG_DIR, 'mm_nikon2.cfg')
 
 
 SETTINGS = {
+    'img_sync': ['XYStage', 'TIZDrive', 'Wheel-A', 'Wheel-B', 'Wheel-C', 'TIFilterBlock1'],
     'ch_group': 'Channel',
     'obj_device': 'TINosePiece',
     'xy_device': 'XYStage',
@@ -18,7 +19,7 @@ SETTINGS = {
     'stage_z_limit': [-240, 240],
     'stage_x_limit': [-3600, 3600],
     'stage_y_limit': [-3600, 3600],
-    'mpos': True,
+    'mpos': False,
     'mpos_ch': 'mCherry',
     'mpos_mode': 'sequential',  # "sequential" or "parallel"
 }
@@ -26,7 +27,7 @@ SETTINGS = {
 
 ## Seconds-Timescale ##
 IMAGING = {
-    't_info': [(0, 56, 5), (60, 63, 2), (65, 301, 5)],  # (start, stop, period)
+    't_info': [(0, 56, 5), (60, 62, 1), (65, 301, 5)],  # (start, stop, period)
     'chs': ['mCherry']
 }
 
@@ -36,14 +37,14 @@ INDUCTION = {
 }
 
 
-# Seconds-Timescale ## Pulsatile ##
+## Seconds-Timescale ## Pulsatile ##
 # IMAGING = {
-#     't_info': [(0, 181, 3)],  # (start, stop, period)
+#     't_info': [(0, 301, 5)],  # (start, stop, period)
 #     'chs': ['mCherry']
 # }
 
 # INDUCTION = {
-#     't_info': [(60, 120, 1, 0.05)],  # (start, stop, period, width)
+#     't_info': [(60, 181, 20, 0.1)],  # (start, stop, period, width)
 #     'ch_ind': 'BL'
 # }
 
@@ -75,22 +76,21 @@ INDUCTION = {
 # }
 
 
-# Hours-Timescale ##
+## Hours-Timescale ##
 # IMAGING = {
-#     't_info': [(0, 43200, 300)],
-#     'chs': ['mCherry']
+#     't_info': [(0, 64801, 300)],
+#     'chs': ['YFP', 'DIC']
 # }
 
 # INDUCTION = {
-#     't_info': [(3600, 7201, 60, 58)],
+#     't_info': [(0, 64801, 60, 5)],
 #     'ch_ind': 'BL10x'
 # }
 
-
 AUTOFOCUS = {
-    # 't_info': [(0, 43200, 300)],
+    # 't_info': [(0, 64801, 300)],
     # 'ch': 'DIC',
-    # bounds: [-5.0, 5.0],
-    # max_iter: 5,
-    # offset: 0
+    # 'bounds': [-2.0, 2.0],
+    # 'max_iter': 5,
+    # 'offset': 0
 }
