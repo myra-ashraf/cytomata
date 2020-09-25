@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import warnings
+from collections import deque
 from itertools import cycle
 sys.path.append(os.path.abspath('../'))
 
@@ -208,6 +209,7 @@ def combine_uy(root_dir, fold_change=True, plot_u=True):
                 figsize=(16, 10), gridspec_kw={'height_ratios': [1, 8]})
         else:
             fig, ax = plt.subplots(figsize=(10,8)) 
+        combined_t = pd.DataFrame()
         combined_y = pd.DataFrame()
         combined_u = pd.DataFrame()
         for i, data_dir in enumerate(natsorted([x[1] for x in os.walk(root_dir)][0])):
@@ -217,9 +219,11 @@ def combine_uy(root_dir, fold_change=True, plot_u=True):
             y = y_data['y'].values
             yf = interp1d(t, y, fill_value='extrapolate')
             t = np.arange(round(t[0]), round(t[-1]) + 1, 1)
+            t = pd.Series(t, index=t, name=i)
+            combined_t = pd.concat([combined_t, t], axis=1)
             y = pd.Series([yf(ti) for ti in t], index=t, name=i)
             if fold_change:
-                y = y/y[0]
+                y = y/np.mean(y[:5])
             combined_y = pd.concat([combined_y, y], axis=1)
             ax.plot(y, color='#1976D2', alpha=0.5, linewidth=2)
             u_csv = os.path.join(root_dir, data_dir, 'u.csv')
@@ -228,11 +232,12 @@ def combine_uy(root_dir, fold_change=True, plot_u=True):
                 tu = u_data['t'].values
                 u = pd.Series(u_data['u'].values, index=tu, name=i)
                 combined_u = pd.concat([combined_u, u], axis=1)
+        t_ave = combined_t.mean(axis=1).rename('t')
         y_ave = combined_y.mean(axis=1).rename('y_ave')
         y_std = combined_y.std(axis=1).rename('y_std')
         y_sem = combined_y.sem(axis=1).rename('y_sem')
-        data = pd.concat([y_ave, y_std, y_sem], axis=1).dropna()
-        data.to_csv(os.path.join(root_dir, 'y_combined.csv'))
+        data = pd.concat([t_ave, y_ave, y_std, y_sem], axis=1).dropna()
+        data.to_csv(os.path.join(root_dir, 'y_combined.csv'), index=False)
         y_ave = data['y_ave']
         y_ci = data['y_sem']*1.96
         ax.fill_between(t, (y_ave - y_ci), (y_ave + y_ci), color='#1976D2', alpha=.2, label='95% CI')
@@ -328,8 +333,8 @@ def compare_plots(root_dir, labels, fold_change=True):
     with plt.style.context(('seaborn-whitegrid', custom_styles)):
         fig, (ax0, ax) = plt.subplots(2, 1, sharex=True, figsize=(16, 10), gridspec_kw={'height_ratios': [1, 8]})
         combined_y = pd.DataFrame()
-        # combined_uta = pd.DataFrame()
-        # combined_utb = pd.DataFrame()
+        combined_uta = pd.DataFrame()
+        combined_utb = pd.DataFrame()
         for i, data_dir in enumerate(natsorted([x[1] for x in os.walk(root_dir)][0])):
             y_csv_fp = os.path.join(root_dir, data_dir, 'y.csv')
             y_data = pd.read_csv(y_csv_fp)
@@ -339,35 +344,35 @@ def compare_plots(root_dir, labels, fold_change=True):
             t = np.arange(round(t[0]), round(t[-1]) + 1, 1)
             y = pd.Series([yf(ti) for ti in t], index=t, name=i)
             if fold_change:
-                y = y/y[0]
+                y = y/np.mean(y[:5])
             combined_y = pd.concat([combined_y, y], axis=1)
-            # u_csv_fp = os.path.join(root_dir, data_dir, 'u.csv')
-            # u_data = pd.read_csv(u_csv_fp)
-            # uta = np.around(u_data['ta'].values, 1)
-            # utb = np.around(u_data['tb'].values, 1)
-            # uta = pd.Series(uta, name=i)
-            # utb = pd.Series(utb, name=i)
-            # combined_uta = pd.concat([combined_uta, uta], axis=1)
-            # combined_utb = pd.concat([combined_utb, utb], axis=1)
+            u_csv_fp = os.path.join(root_dir, data_dir, 'u.csv')
+            u_data = pd.read_csv(u_csv_fp)
+            uta = np.around(u_data['ta'].values, 1)
+            utb = np.around(u_data['tb'].values, 1)
+            uta = pd.Series(uta, name=i)
+            utb = pd.Series(utb, name=i)
+            combined_uta = pd.concat([combined_uta, uta], axis=1)
+            combined_utb = pd.concat([combined_utb, utb], axis=1)
             ax.plot(y, alpha=0.7)
-        # uta_ave = combined_uta.mean(axis=1).rename('uta_ave')
-        # utb_ave = combined_utb.mean(axis=1).rename('utb_ave')
-        # tu = np.around(np.arange(t[0], t[-1], 0.1), 1)
-        # u = np.zeros_like(tu)
-        # for ta, tb in zip(uta, utb):
-        #     ia = list(tu).index(ta)
-        #     ib = list(tu).index(tb)
-        #     u[ia:ib] = 1
+        uta_ave = combined_uta.mean(axis=1).rename('uta_ave')
+        utb_ave = combined_utb.mean(axis=1).rename('utb_ave')
+        tu = np.around(np.arange(t[0], t[-1], 0.1), 1)
+        u = np.zeros_like(tu)
+        for ta, tb in zip(uta, utb):
+            ia = list(tu).index(ta)
+            ib = list(tu).index(tb)
+            u[ia:ib] = 1
         ax.set_xlabel('Time (s)')
         ax.set_ylabel('AU')
         ax.legend(labels=labels, loc='best')
         if fold_change:
             ax.set_ylabel('Fold Change')
-        # ax0.plot(tu, u, color='#1976D2')
-        # ax0.set_yticks([0, 1])
-        # ax0.set_ylabel('BL')
+        ax0.plot(tu, u, color='#1976D2')
+        ax0.set_yticks([0, 1])
+        ax0.set_ylabel('BL')
         fig.savefig(os.path.join(root_dir, 'y_compare.png'),
-            dpi=100, bbox_inches='tight', transparent=False, pad_inches=0)
+            dpi=100, bbox_inches='tight', transparent=False)
         plt.close(fig)
 
 
@@ -490,8 +495,7 @@ def barplot_expts(root_dir):
     y_data = pd.read_csv(os.path.join(root_dir, 'y.csv'))
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, ax = plt.subplots(figsize=(16,8))
-        g = sns.barplot(x="System", y="Response", data=y_data,
-            ax=ax)
+        g = sns.barplot(x="System", y="Response", data=y_data, ax=ax)
         # g.ax.set_yscale("log")
         # g.ax.set_xticks([-0.2, 1.2])
         # plt.legend(loc='upper center', prop={"size": 20})
@@ -541,29 +545,28 @@ if __name__ == '__main__':
     # results_dir = '/home/phuong/data/ILID/Controls/NES-mCh-PQR-3NLS-mTq2/'
     # process_pqr(fp0_img_dir, fp1_img_dir, results_dir)
 
-    # for j in range(4):
     # i = 0
-    # root_dir = '/home/phuong/data/ILID/ddFP/20200811-B3-RA_imgOnly/'
+    # root_dir = '/home/phuong/data/ILID/RA-16I/20200915-B3-sspBu_RA-16I-0/'
     # results_dir = os.path.join(root_dir, 'results', str(i))
     # img_dir = os.path.join(root_dir, 'mCherry', str(i))
     # u_csv = os.path.join(root_dir, 'u{}.csv'.format(i))
-    # process_fluo_timelapse(img_dir, results_dir, u_csv=None, cmax_mult=1.5,
-    #     seg_params={'rs': None, 'fh': None, 'cb': None, 'er': None, 'factor': 1})
+    # process_fluo_timelapse(img_dir, results_dir, u_csv=None, cmax_mult=2,
+    #     seg_params={'rs': 5000, 'fh': 500, 'cb': None, 'er': None, 'factor': 1})
 
 
-    # for i in range(12, 13):
-    #     root_dir = '/home/phuong/data/ILID/ddFP/20200811-B3-RA_spike/'
+    # for i in range(9,10):
+    #     root_dir = '/home/phuong/data/ILID/RA-16I/20200921-B3-sspBu_RA-16I_spike/'
     #     results_dir = os.path.join(root_dir, 'results', str(i))
     #     img_dir = os.path.join(root_dir, 'mCherry', str(i))
     #     u_csv = os.path.join(root_dir, 'u{}.csv'.format(i))
     #     process_fluo_timelapse(img_dir, results_dir, u_csv=u_csv, cmax_mult=2,
-    #     seg_params={'rs': 8000, 'fh': 500, 'cb': None, 'er': None, 'factor': 3})
+    #     seg_params={'rs': 8000, 'fh': 500, 'cb': None, 'er': None, 'factor': 2})
 
-    root_dir = '/home/phuong/data/ILID/ddFP/20200811-B3-RA_spike/results/'
-    combine_uy(root_dir, fold_change=True, plot_u=True)
+    # root_dir = '/home/phuong/data/ILID/RA-16I/20200921-B3-sspBu_RA-16I_spike/results/'
+    # combine_uy(root_dir, fold_change=True, plot_u=True)
 
-    # root_dir = '/home/phuong/data/ILID/ddFPRA-iLIDLS/20200718-RA-LS-noBL-mch32/compare/'
-    # compare_plots(root_dir, ['Imaging Only', 'With BL Induction'], fold_change=False)
+    root_dir = '/home/phuong/data/ILID/spike/'
+    compare_plots(root_dir, ['B3 + RA', 'sspBu + 16I', 'sspBu + 27V'], fold_change=False)
 
     # img_paths = [
     #     '/home/phuong/data/Controls/L3K2/1.5.tif',
@@ -581,12 +584,13 @@ if __name__ == '__main__':
     # base_dir = '/home/phuong/data/ILID/Basal/'
     # for bd in natsorted([x[1] for x in os.walk(base_dir)][0]):
     #     root_dir = os.path.join(base_dir, bd)
-    # root_dir = '/home/phuong/data/GExpress/20200806/20200806-LINTAD1-4LexO-mScI-6hrs/'
+    
+    # root_dir = '/home/phuong/data/GExpress/20200907/20200907_4TetO-YFP/'
     # img_dir = os.path.join(root_dir, 'Default')
     # save_dir = os.path.join(root_dir, 'results')
     # process_10x_imgs(img_dir, save_dir, cmax_mult=1,
-    #     seg_params={'rs': 20, 'fh': None, 'cb': None, 'er': None, 'factor': 1})
+    #     seg_params={'rs': 20, 'fh': None, 'cb': None, 'er': None, 'factor': 0.1})
 
 
-    # root_dir = '/home/phuong/data/ILID/Basal/compare/'
+    # root_dir = '/home/phuong/data/GExpress/20200907/compare/'
     # barplot_expts(root_dir)

@@ -438,19 +438,19 @@ if __name__ == '__main__':
     # fit_idimer(tu, y, u, res_dir)
 
 
-    y_csv = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/y.csv'
-    u_csv = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/u.csv'
-    res_dir = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/'
-    u_data = pd.read_csv(u_csv)
-    tu = u_data['t'].values
-    u = u_data['u'].values
-    y_data = pd.read_csv(y_csv)
-    t = y_data['t'].values
-    y = y_data['y'].values
-    yf = interp1d(t, y, fill_value='extrapolate')
-    y = np.array([yf(ti) for ti in tu])
-    # ya = (-y + 2*np.min(y) + (np.max(y)-np.min(y)))
-    fit_CaM_M13(tu, y, u, res_dir)
+    # y_csv = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/y.csv'
+    # u_csv = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/u.csv'
+    # res_dir = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/'
+    # u_data = pd.read_csv(u_csv)
+    # tu = u_data['t'].values
+    # u = u_data['u'].values
+    # y_data = pd.read_csv(y_csv)
+    # t = y_data['t'].values
+    # y = y_data['y'].values
+    # yf = interp1d(t, y, fill_value='extrapolate')
+    # y = np.array([yf(ti) for ti in tu])
+    # # ya = (-y + 2*np.min(y) + (np.max(y)-np.min(y)))
+    # fit_CaM_M13(tu, y, u, res_dir)
 
 
     # y_csv = '/home/phuong/data/LINTAD/LexA-results/0/y.csv'
@@ -471,3 +471,28 @@ if __name__ == '__main__':
     # plt.plot(t, y)
     # plt.plot(tm, ym[:, 0])
     # plt.show()
+
+    t = np.arange(0, 100, 1)
+    omega = 20
+    tau = 32
+    n = 4
+    C = []
+    for ti in t:
+        if ti >= 32 and ti < 35:
+            Ci = 0.1 + 0.9*np.sin(omega*(ti - tau))**n
+        else:
+            Ci = 0.1
+        C.append(Ci)
+    # plt.plot(t, C)
+    # plt.show()
+    C0 = np.ones_like(t) * 0.1
+    Cf = interp1d(t, C0, bounds_error=False, fill_value=0.1)
+    y0 = [0, 0, 0, 0, 0]
+    t, y = sim_CaM_M13(t, y0, Cf)
+    y0 = y[-1, :]
+    Cf = interp1d(t, C, bounds_error=False, fill_value=0.1)
+    t, y = sim_CaM_M13(t, y0, Cf)
+    Pb = y[:, 2] + y[:, 3] + y[:, 4]
+    # plt.plot(t, C)
+    plt.plot(t, y[:, 3])
+    plt.show()

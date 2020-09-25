@@ -24,9 +24,9 @@ def preprocess_img(imgf):
     sig = estimate_sigma(img)
     tval = threshold_li(bkg)
     broi = bkg*(bkg < tval)
-    broi = broi[broi > 0]
+    broi = broi[broi >= 0]
     tval = np.percentile(broi, 50)
-    bkg[bkg > tval] = tval
+    bkg[bkg >= tval] = tval
     bkg = gaussian(bkg, 50)
     img = img - bkg
     img[img < 0] = 0
@@ -41,12 +41,13 @@ def segment_object(img, factor=1, rs=5000, fh=500, er=11, cb=None):
     img = median(img, disk(1))
     if not np.any(img):
         return img.astype(bool)
-    thv_ots = threshold_otsu(img) / 8
-    thv_yen = threshold_yen(img) / 2
-    thv_li = threshold_li(img) / 4
+    thv_ots = threshold_otsu(img) / 12
+    thv_yen = threshold_yen(img) / 4
+    thv_li = threshold_li(img) / 5
     offset = (np.percentile(img[img > 0], 90) + 1)**3 / 100
     thv = (np.median([thv_ots, thv_yen, thv_li]) + offset)*factor
     thr = img > thv
+    thr = binary_opening(thr, selem=disk(9))
     if er is not None:
         thr = binary_erosion(thr, selem=disk(er))
     if rs is not None:
@@ -78,6 +79,8 @@ def process_u_csv(ty, u_csv, save_dir):
     utb = np.around(udf['tb'].values, 1)
     u = np.zeros_like(tu)
     for ta, tb in zip(uta, utb):
+        if ta > ty[-1]:
+            continue
         t_on += list(np.arange(round(ta, 1), round(tb, 1) + 0.01, 0.1))
         ia = list(tu).index(ta)
         ib = list(tu).index(tb)

@@ -118,20 +118,36 @@ def sim_ssl_cn(t, y0, uf, params):
     return solution.values.t, solution.values.y
 
 
-def sim_CaM_M13(t, y0, uf, params):
+def sim_CaM_M13(t, y0, Cf):
+    import numpy as np
     def model(t, y, dy):
-        u = uf(t)
-        [Ai, Aa, B, AB] = y
-        ku = params['ku']
-        k1f = params['k1f']
-        k1r = params['k1r']
-        k2f = params['k2f']
-        k2r = params['k2r']
-        dy[0] = -(u*ku + k1f)*Ai + k1r*Aa
-        dy[1] = -k1r*Aa - k2f*Aa*B + (u*ku + k1f)*Ai + k2r*AB
-        dy[2] = -k2f*Aa*B + k2r*AB
-        dy[3] = -k2r*AB + k2f*Aa*B
-    options = {'rtol': 1e-3, 'atol': 1e-6, 'max_step_size':1}
+        [CaM, CaM_2C, CaM_P, CaM_2C_P, CaM_4C_P] = y
+        C = Cf(t)
+        CaM_tot = 10
+        P_tot = 10
+        k1 = 65
+        k2 = 850
+        k3 = 6
+        k4 = 12
+        k11 = 65
+        k21 = 425
+        k31 = 6
+        k41 = 0.06
+        k51 = 46
+        k61 = 348
+        k71 = 46
+        k81 = 0.008
+        k91 = 46
+        k101 = 0.0012
+        Pb = CaM_P + CaM_2C_P + CaM_4C_P
+        CaM_4C = CaM_tot - (Pb + CaM_2C + CaM)
+        Pf = P_tot - Pb
+        dy[0] = k61*CaM_P + k4*CaM_2C - CaM*(k3*C**2 + k51*Pf)
+        dy[1] = k81*CaM_2C_P + k3*CaM*C**2 + k2*CaM_4C - CaM_2C*(k1*C**2 + k71*Pf + k4)
+        dy[2] = k51*CaM*Pf + k41*CaM_2C_P - CaM_P*(k31*C**2 + k61)
+        dy[3] = k31*CaM_P*C**2 + k71*CaM_2C*Pf + k21*CaM_4C_P - CaM_2C_P*(k41 + k11*C**2 + k81)
+        dy[4] = k91*CaM_4C*Pf + k11*CaM_2C*C**2 - CaM_4C_P*(k21 + k101)
+    options = {'rtol': 1e-6, 'atol': 1e-12, 'max_step_size':1}
     solver = ode('cvode', model, old_api=False, **options)
     solution = solver.solve(t, y0)
     return solution.values.t, solution.values.y
