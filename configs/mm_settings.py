@@ -19,7 +19,7 @@ SETTINGS = {
     'stage_z_limit': [-240, 240],
     'stage_x_limit': [-3600, 3600],
     'stage_y_limit': [-3600, 3600],
-    'mpos': False,
+    'mpos': True,
     'mpos_ch': 'mCherry',
     'mpos_mode': 'sequential',  # "sequential" or "parallel"
 }

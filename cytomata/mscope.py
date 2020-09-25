@@ -74,7 +74,7 @@ class Microscope(object):
         x = self.get_position('x')
         y = self.get_position('y')
         z = self.get_position('z')
-        self.coords = np.vstack((self.coords, [x, y, z]))
+        self.coords = np.vstack(([x, y, z], self.coords))
 
     def add_coords_session(self, ch):
         self.set_channel(ch)
@@ -94,7 +94,7 @@ class Microscope(object):
                 for coord in self.coords:
                     print(coord)
             elif k == 8:  # Backspace - Remove Prev Coord
-                self.coords = self.coords[:-1]
+                self.coords = self.coords[1:]
                 print('--Coords List--')
                 for coord in self.coords:
                     print(coord)
@@ -153,11 +153,6 @@ class Microscope(object):
 
     def take_images(self, cid, chs):
         ti = time.time() - self.t0
-        (x, y, z) = self.coords[cid]
-        x0 = self.get_position('x')
-        y0 = self.get_position('y')
-        if np.absolute(x - x0) > 1 and np.absolute(y - y0) > 1:
-            self.set_position('xy', (x, y))
         for ch in chs:
             self.set_channel(ch)
             img = self.snap_image()
@@ -170,6 +165,8 @@ class Microscope(object):
         if self.settings['mpos']:
             if self.settings['mpos_mode'] == 'parallel':
                 for i in range(len(self.coords)):
+                    (x, y, z) = self.coords[cid]
+                    self.set_position('xy', (x, y))
                     self.take_images(i, chs)
             elif self.settings['mpos_mode'] == 'sequential':
                 self.take_images(self.cid, chs)
@@ -189,8 +186,6 @@ class Microscope(object):
                 setup_dirs(os.path.join(self.save_dir, ch, str(i)))
 
     def pulse_light(self, cid, width, ch_ind):
-        (x, y, z) = self.coords[cid]
-        self.set_position('xy', (x, y))
         self.set_channel(ch_ind)
         exp0 = self.core.getExposure()
         self.core.setExposure(width*1000)
@@ -208,6 +203,8 @@ class Microscope(object):
         if self.settings['mpos']:
             if self.settings['mpos_mode'] == 'parallel':
                 for i in range(len(self.coords)):
+                    (x, y, z) = self.coords[cid]
+                    self.set_position('xy', (x, y))
                     self.pulse_light(i, width, ch_ind)
             elif self.settings['mpos_mode'] == 'sequential':
                 self.pulse_light(self.cid, width, ch_ind)
@@ -229,8 +226,6 @@ class Microscope(object):
 
     def autofocus(self, cid, ch, bounds=[-3.0, 3.0], max_iter=5, offset=0):
         self.set_channel(ch)
-        (x, y, z) = self.coords[cid]
-        self.set_position('xy', (x, y))
         zi = self.get_position('z')
         zl = np.max([zi + bounds[0], self.z0 - 50.0])
         zu = np.min([zi + bounds[1], self.z0 + 50.0])
@@ -247,6 +242,8 @@ class Microscope(object):
         if self.settings['mpos']:
             if self.settings['mpos_mode'] == 'parallel':
                 for i in range(len(self.coords)):
+                    (x, y, z) = self.coords[cid]
+                    self.set_position('xy', (x, y))
                     self.autofocus(i, ch, bounds, max_iter, offset)
             elif self.settings['mpos_mode'] == 'sequential':
                 self.autofocus(self.cid, ch, bounds, max_iter, offset)

@@ -33,6 +33,8 @@ mscope.snap_image()
 if SETTINGS['mpos'] and SETTINGS['mpos_mode'] == 'sequential':
     for cid in range(len(mscope.coords)):
         mscope.cid = cid
+        (x, y, z) = mscope.coords[cid]
+        mscope.set_position('xy', (x, y))
         mscope.t0 = time.time()
         if IMAGING:
             mscope.queue_imaging(**IMAGING)
