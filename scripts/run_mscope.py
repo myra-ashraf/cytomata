@@ -25,9 +25,10 @@ mscope = Microscope(SETTINGS, MM_CFG_FILE)
 if SETTINGS['mpos']:
     mscope.add_coords_session(SETTINGS['mpos_ch'])
 
-mscope.core.waitForSystem()
+mscope.core.enableContinuousFocus(True)
 mscope.set_channel(IMAGING['chs'][0])
 mscope.snap_image()
+mscope.core.waitForSystem()
 
 # Event Loop
 if SETTINGS['mpos'] and SETTINGS['mpos_mode'] == 'sequential':

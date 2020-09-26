@@ -26,27 +26,27 @@ SETTINGS = {
 
 
 ## Seconds-Timescale ##
-IMAGING = {
-    't_info': [(0, 56, 5), (60, 62, 1), (65, 301, 5)],  # (start, stop, period)
-    'chs': ['mCherry']
-}
-
-INDUCTION = {
-    't_info': [(60, 61, 1, 1)],  # (start, stop, period, width)
-    'ch_ind': 'BL'
-}
-
-
-## Seconds-Timescale ## Pulsatile ##
 # IMAGING = {
-#     't_info': [(0, 301, 5)],  # (start, stop, period)
+#     't_info': [(0, 56, 5), (60, 62, 1), (65, 301, 5)],  # (start, stop, period)
 #     'chs': ['mCherry']
 # }
 
 # INDUCTION = {
-#     't_info': [(60, 181, 20, 0.1)],  # (start, stop, period, width)
+#     't_info': [(60, 61, 1, 1)],  # (start, stop, period, width)
 #     'ch_ind': 'BL'
 # }
+
+
+## Seconds-Timescale ## Pulsatile ##
+IMAGING = {
+    't_info': [(0, 301, 5)],  # (start, stop, period)
+    'chs': ['mCherry']
+}
+
+INDUCTION = {
+    't_info': [(60, 181, 20, 0.1)],  # (start, stop, period, width)
+    'ch_ind': 'BL'
+}
 
 
 # ## Seconds-Timescale ## Pulsatile Cycle##
