@@ -25,31 +25,15 @@ mscope = Microscope(SETTINGS, MM_CFG_FILE)
 if SETTINGS['mpos']:
     mscope.add_coords_session(SETTINGS['mpos_ch'])
 
-mscope.core.enableContinuousFocus(True)
+# Warmup hack to fix glitches with stage and camera
+mscope.set_position('xy', (mscope.x0 + 1, mscope.y0 + 1))
+mscope.set_position('xy', (mscope.x0, mscope.y0))
 mscope.set_channel(IMAGING['chs'][0])
 mscope.snap_image()
 mscope.core.waitForSystem()
 
-# Event Loop
-if SETTINGS['mpos'] and SETTINGS['mpos_mode'] == 'sequential':
-    for cid in range(len(mscope.coords)):
-        mscope.cid = cid
-        (x, y, z) = mscope.coords[cid]
-        mscope.set_position('xy', (x, y))
-        mscope.t0 = time.time()
-        if IMAGING:
-            mscope.queue_imaging(**IMAGING)
-        if INDUCTION:
-            mscope.queue_induction(**INDUCTION)
-        if AUTOFOCUS:
-            mscope.queue_autofocus(**AUTOFOCUS)
-        while True:
-            done = mscope.run_tasks()
-            if done:
-                break
-            else:
-                time.sleep(0.001)
-else:
+
+def run_mscope():
     mscope.t0 = time.time()
     if IMAGING:
         mscope.queue_imaging(**IMAGING)
@@ -63,3 +47,14 @@ else:
             break
         else:
             time.sleep(0.001)
+
+
+# Event Loop
+if SETTINGS['mpos'] and SETTINGS['mpos_mode'] == 'sequential':
+    for cid in range(len(mscope.coords)):
+        mscope.cid = cid
+        (x, y, z) = mscope.coords[cid]
+        mscope.set_position('xy', (x, y))
+        run_mscope() 
+else:
+    run_mscope()
