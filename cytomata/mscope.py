@@ -10,7 +10,7 @@ from skimage.filters import laplace
 from scipy.optimize import minimize_scalar
 
 import MMCorePy
-from cytomata.utils import setup_dirs
+from cytomata.utils import setup_dirs, clear_screen
 
 
 class Microscope(object):
@@ -64,9 +64,11 @@ class Microscope(object):
             if (value[0] > self.xlim[0] and value[0] < self.xlim[1] and
             value[1] > self.ylim[0] and value[1] < self.ylim[1]):
                 self.core.setXYPosition(self.xy_device, value[0], value[1])
+                print('MOVE TO XY:', value)
         elif axis.lower() == 'z' and self.z_device:
             if value > self.zlim[0] and value < self.zlim[1]:
                 self.core.setPosition(self.z_device, value)
+                print('MOVE TO Z:', value)
         else:
             raise ValueError('Invalid axis arg in Microscope.set_position(axis).')
 
@@ -100,6 +102,7 @@ class Microscope(object):
                     print(coord)
         cv2.destroyAllWindows()
         self.core.stopSequenceAcquisition()
+        clear_screen()
 
     def snap_image(self):
         self.core.snapImage()

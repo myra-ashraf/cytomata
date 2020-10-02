@@ -17,8 +17,8 @@ SETTINGS = {
     'img_height_um': 81.92,
     'pixel_size': 0.16,
     'stage_z_limit': [-240, 240],
-    'stage_x_limit': [-3600, 3600],
-    'stage_y_limit': [-3600, 3600],
+    'stage_x_limit': [-9600, 9600],
+    'stage_y_limit': [-9600, 9600],
     'mpos': True,
     'mpos_ch': 'mCherry',
     'mpos_mode': 'sequential',  # "sequential" or "parallel"
@@ -44,7 +44,7 @@ IMAGING = {
 }
 
 INDUCTION = {
-    't_info': [(60, 181, 20, 0.1)],  # (start, stop, period, width)
+    't_info': [(60, 181, 20, 1), (183, 241, 3, 1)],  # (start, stop, period, width)
     'ch_ind': 'BL'
 }
 
