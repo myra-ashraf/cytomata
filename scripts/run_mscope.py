@@ -22,14 +22,10 @@ shutil.copyfile(cfg_file, cfg_file_save)
 
 
 mscope = Microscope(SETTINGS, MM_CFG_FILE)
+mscope.set_position('xy', (mscope.x0, mscope.y0))
 if SETTINGS['mpos']:
     mscope.add_coords_session(SETTINGS['mpos_ch'])
 
-print('xlim:', mscope.xlim)
-print('ylim:', mscope.ylim)
-mscope.set_channel(IMAGING['chs'][0])
-mscope.snap_image()
-mscope.core.waitForSystem()
 
 # Event Loop
 if SETTINGS['mpos'] and SETTINGS['mpos_mode'] == 'sequential':
