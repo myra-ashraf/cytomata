@@ -11,7 +11,7 @@ from configs.mm_settings import CONFIG_DIR, MM_CFG_FILE, SETTINGS, INDUCTION, IM
 
 expt_name = raw_input('Expt Directory Name: ')
 expt_name = ''.join([x if x.isalnum() or x is '-' else '_' for x in expt_name])
-SETTINGS['save_dir'] = os.path.join('expts', time.strftime('%Y%m%d-') + expt_name)
+SETTINGS['save_dir'] = os.path.join('expts', time.strftime('%Y%m%d_') + expt_name)
 setup_dirs(SETTINGS['save_dir'])
 settings_file = os.path.join(CONFIG_DIR, 'mm_settings.py')
 settings_file_save = os.path.join(SETTINGS['save_dir'], 'settings.txt')
@@ -22,7 +22,6 @@ shutil.copyfile(cfg_file, cfg_file_save)
 
 
 mscope = Microscope(SETTINGS, MM_CFG_FILE)
-mscope.set_position('xy', (mscope.x0, mscope.y0))
 if SETTINGS['mpos']:
     mscope.add_coords_session(SETTINGS['mpos_ch'])
 
@@ -31,8 +30,6 @@ if SETTINGS['mpos']:
 if SETTINGS['mpos'] and SETTINGS['mpos_mode'] == 'sequential':
     for cid in range(len(mscope.coords)):
         mscope.cid = cid
-        (x, y, z) = mscope.coords[cid]
-        mscope.set_position('xy', (x, y))
         mscope.t0 = time.time()
         if IMAGING:
             mscope.queue_imaging(**IMAGING)

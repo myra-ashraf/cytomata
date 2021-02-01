@@ -4,6 +4,9 @@ import os
 CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
 MM_CFG_FILE = os.path.join(CONFIG_DIR, 'mm_nikon2.cfg')
 
+IMAGING = None
+INDUCTION = None
+AUTFOCUS = None
 
 SETTINGS = {
     'img_sync': ['XYStage', 'TIZDrive', 'Wheel-A', 'Wheel-B', 'Wheel-C', 'TIFilterBlock1'],

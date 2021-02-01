@@ -8,7 +8,7 @@ from skimage.io import imread
 from skimage.measure import label
 from skimage.filters import median
 from skimage.filters import (gaussian, laplace, median,
-    threshold_li, threshold_yen, threshold_isodata, threshold_otsu)
+    threshold_li, threshold_yen, threshold_otsu)
 from skimage.morphology import (remove_small_objects, remove_small_holes,
     disk, binary_erosion, binary_opening)
 from skimage.restoration import denoise_nl_means, estimate_sigma
