@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from natsort import natsorted
 
-from cytomata.model import sim_itranslo, sim_idimer, sim_iexpress, sim_ssl, sim_CaM_M13
+from cytomata.model import sim_itranslo, sim_idimer, sim_iexpress, sim_ssl, sim_CaM_M13, sim_ilid, sim_fresca
 from cytomata.utils import setup_dirs, clear_screen, custom_styles, custom_palette, rescale
 
 
@@ -296,7 +296,6 @@ def fit_iexpress(t, y, x, u, results_dir):
 
 
 def fit_CaM_M13(t, y, u, results_dir):
-    y0 = [1, 0, 1, y[0]]
     uf = interp1d(t, u, bounds_error=False, fill_value=0)
     min_res = 1e15
     best_params = None
@@ -374,6 +373,61 @@ def fit_CaM_M13(t, y, u, results_dir):
     return opt_params
 
 
+def fit_ilid(t, y, u, results_dir):
+    y0 = [y[0], 0]
+    uf = interp1d(t, u, bounds_error=False, fill_value=0)
+    min_res = 1e15
+    best_params = None
+    iter_t = time.time()
+    def residual(params):
+        tm, ym = sim_ilid(t, y0, uf, params)
+        res = ym[:, 1] - (y - y[0])
+        res = np.sum(res**2)
+        return  res
+    def opt_iter(params, iter, res):
+        nonlocal min_res, best_params, iter_t
+        clear_screen()
+        ti = time.time()
+        print('seconds/iter:', str(ti - iter_t))
+        iter_t = ti
+        print('Iter: {} | Res: {}'.format(iter, res))
+        print(params.valuesdict())
+        if res < min_res:
+            min_res = res
+            best_params = params.valuesdict()
+        print('Best so far:')
+        print('Res:', str(min_res))
+        print(best_params)
+    params = lm.Parameters()
+    params.add('kf', value=1.0, min=0.0, max=100.0)
+    params.add('kr', value=1.0, min=0.0, max=100.0)
+    results = lm.minimize(
+        residual, params, method='nelder',
+        iter_cb=opt_iter, nan_policy='propagate', tol=1e-5
+    )
+    opt_params = results.params.valuesdict()
+    opt_params = {k:float(v) for k, v in opt_params.items()}
+    with open(os.path.join(results_dir, 'opt_params.json'), 'w', encoding='utf-8') as fo:
+        json.dump(opt_params, fo, ensure_ascii=False, indent=4)
+    tm, ym = sim_ilid(t, y0, uf, opt_params)
+    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+        fig, (ax0, ax1) = plt.subplots(2, 1, sharex=True, figsize=(16, 10), gridspec_kw={'height_ratios': [1, 8]})
+        ax0.plot(t, u)
+        ax0.set_yticks([0, 1])
+        ax0.set_ylabel('BL')
+        ax1.plot(t, (y - y[0]), color='#ffcdd2', label='Data', alpha=0.5)
+        ax1.plot(tm, ym[:, 1], color='#d32f2f', label='Model')
+        ax1.set_xlabel('Time (s)')
+        ax1.set_ylabel('AU')
+        ax1.legend(loc='best')
+        fig.tight_layout()
+        fig.canvas.draw()
+        fig.savefig(os.path.join(results_dir, 'fit.png'),
+            dpi=300, bbox_inches='tight', transparent=False)
+        plt.close(fig)
+    return opt_params
+
+
 if __name__ == '__main__':
     # y_csv = '/home/phuong/data/LINTAD/LINuS-results/0/y.csv'
     # u_csv = '/home/phuong/data/LINTAD/LINuS/u0.csv'
@@ -413,29 +467,88 @@ if __name__ == '__main__':
     #     plt.close(fig)
 
 
-    # y_csv = '/home/phuong/data/ILID/RA-LS/20200721-LS-step/results/0/y.csv'
-    # u_csv = '/home/phuong/data/ILID/RA-LS/20200721-LS-step/results/0/u.csv'
-    # res_dir = '/home/phuong/data/ILID/RA-LS/20200721-LS-step/results/0/'
-    # # y_csv = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/y.csv'
-    # # u_csv = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/u.csv'
-    # # res_dir = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/'
+    # root_dir = '/home/phuong/data/ILID/RA-16I/20200921-B3-sspBu_RA-16I_spike/results/'
+    # u_csv = os.path.join(root_dir, 'u_combined.csv')
+    # y_csv = os.path.join(root_dir, 'y_combined.csv')
     # u_data = pd.read_csv(u_csv)
-    # tu = u_data['t'].values
-    # u = u_data['u'].values
+    # tu = u_data['tu_ave'].values
+    # u = u_data['u_ave'].values
     # uf = interp1d(tu, u, bounds_error=False, fill_value=0)
     # y_data = pd.read_csv(y_csv)
     # t = y_data['t'].values
-    # y = y_data['y'].values
+    # y = y_data['y_ave'].values
+    # # y = y - y[0]
     # yf = interp1d(t, y, fill_value='extrapolate')
     # y = np.array([yf(ti) for ti in tu])
-    # ya = (-y + 2*np.min(y) + (np.max(y)-np.min(y)))
-    # # y0 = [1, 1, y[0]]
-    # params = {'kf': 0.005, 'kr': 0.5, 'ku': 0.005}
-    # # tm, ym = sim_idimer(tu, y0, uf, params)
-    # # plt.plot(tu, y)
-    # # plt.plot(tm, ym[:, 2])
-    # # plt.show()
-    # fit_idimer(tu, y, u, res_dir)
+    # fit_ilid(tu, y, u, root_dir)
+
+    # t = np.arange(0, 600)
+    # y0 = [y[0], 0]
+    # u = np.zeros_like(t)
+    # # p = 20
+    # # w = 1
+    # # for i in range(t[60], t[480], p):
+    # #     u[i:i+w] = 1
+    # u[60:480] = 1
+    # params = {
+    #     "ka": 1.029336557988737,
+    #     "kb": 1.2472229538949358,
+    #     "kc": 0.34861647650637984,
+    #     "n": 1.0961954940397614
+    # }
+    # uf = interp1d(t, u, bounds_error=False, fill_value=0)
+    # tm, ym = sim_ilid(t, y0, uf, params)
+    # with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+    #     fig, (ax0, ax1) = plt.subplots(2, 1, sharex=True, figsize=(16, 10), gridspec_kw={'height_ratios': [1, 8]})
+    #     ax0.plot(t, u)
+    #     ax0.set_yticks([0, 1])
+    #     ax0.set_ylabel('BL')
+    #     ax1.plot(tm, ym[:, 0], color='#1976D2', label='A')
+    #     ax1.plot(tm, ym[:, 1], color='#d32f2f', label='B')
+    #     ax1.set_xlabel('Time (s)')
+    #     ax1.set_ylabel('AU')
+    #     ax1.legend(loc='best')
+    #     fig.tight_layout()
+    #     fig.canvas.draw()
+    #     save_dir = '/home/phuong/data/ILID/RA-HF/20200921-B3-sspBu_RA-27V_spike/results/'
+    #     fig.savefig(os.path.join(save_dir, 'sim.png'),
+    #         dpi=300, bbox_inches='tight', transparent=False)
+    #     plt.close(fig)
+
+
+    y0 = [0.1, 0, 0.5, 0, 0.05]
+    # uf = interp1d(tu, u, bounds_error=False, fill_value=0)
+    t = np.arange(0, 600)
+    u = np.zeros_like(t)
+    p = 20
+    w = 1
+    for i in range(t[60], t[540], p):
+        u[i:i+w] = 1
+    uf = interp1d(t, u, bounds_error=False, fill_value=0)
+    params = {
+        'k1f': 0.23593737155206962,
+        'k1r': 0.005057247900003281,
+        'k2f': 0.5858908062641166,
+        'k2r': 0.3465577497760164,
+    }
+    tm, ym = sim_fresca(t, y0, uf, params)
+    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
+        fig, (ax0, ax1) = plt.subplots(2, 1, sharex=True, figsize=(16, 10), gridspec_kw={'height_ratios': [1, 8]})
+        ax0.plot(t, u)
+        ax0.set_yticks([0, 1])
+        ax0.set_ylabel('BL')
+        ax1.plot(tm, ym[:, 1], color='#1976D2', label='iLID_slow')
+        ax1.plot(tm, ym[:, 3], color='#d32f2f', label='iLID_fast')
+        ax1.plot(tm, ym[:, 4], color='#388E3C', label='sspB')
+        ax1.set_xlabel('Time (s)')
+        ax1.set_ylabel('AU')
+        ax1.legend(loc='best')
+        fig.tight_layout()
+        fig.canvas.draw()
+        save_dir = '/home/phuong/data/ILID/FResCA/'
+        fig.savefig(os.path.join(save_dir, 'sim1.png'),
+            dpi=300, bbox_inches='tight', transparent=False)
+        plt.close(fig)
 
 
     # y_csv = '/home/phuong/data/ILID/RA-HF/20200804-RA-HF/results/5/y.csv'
@@ -472,27 +585,27 @@ if __name__ == '__main__':
     # plt.plot(tm, ym[:, 0])
     # plt.show()
 
-    t = np.arange(0, 100, 1)
-    omega = 20
-    tau = 32
-    n = 4
-    C = []
-    for ti in t:
-        if ti >= 32 and ti < 35:
-            Ci = 0.1 + 0.9*np.sin(omega*(ti - tau))**n
-        else:
-            Ci = 0.1
-        C.append(Ci)
-    # plt.plot(t, C)
+    # t = np.arange(0, 100, 1)
+    # omega = 20
+    # tau = 32
+    # n = 4
+    # C = []
+    # for ti in t:
+    #     if ti >= 32 and ti < 35:
+    #         Ci = 0.1 + 0.9*np.sin(omega*(ti - tau))**n
+    #     else:
+    #         Ci = 0.1
+    #     C.append(Ci)
+    # # plt.plot(t, C)
+    # # plt.show()
+    # C0 = np.ones_like(t) * 0.1
+    # Cf = interp1d(t, C0, bounds_error=False, fill_value=0.1)
+    # y0 = [0, 0, 0, 0, 0]
+    # t, y = sim_CaM_M13(t, y0, Cf)
+    # y0 = y[-1, :]
+    # Cf = interp1d(t, C, bounds_error=False, fill_value=0.1)
+    # t, y = sim_CaM_M13(t, y0, Cf)
+    # Pb = y[:, 2] + y[:, 3] + y[:, 4]
+    # # plt.plot(t, C)
+    # plt.plot(t, y[:, 3])
     # plt.show()
-    C0 = np.ones_like(t) * 0.1
-    Cf = interp1d(t, C0, bounds_error=False, fill_value=0.1)
-    y0 = [0, 0, 0, 0, 0]
-    t, y = sim_CaM_M13(t, y0, Cf)
-    y0 = y[-1, :]
-    Cf = interp1d(t, C, bounds_error=False, fill_value=0.1)
-    t, y = sim_CaM_M13(t, y0, Cf)
-    Pb = y[:, 2] + y[:, 3] + y[:, 4]
-    # plt.plot(t, C)
-    plt.plot(t, y[:, 3])
-    plt.show()

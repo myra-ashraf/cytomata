@@ -6,6 +6,7 @@ from scipy import ndimage as ndi
 from skimage import img_as_float
 from skimage.io import imread
 from skimage.measure import label
+from skimage.filters import median
 from skimage.filters import (gaussian, laplace, median,
     threshold_li, threshold_yen, threshold_isodata, threshold_otsu)
 from skimage.morphology import (remove_small_objects, remove_small_holes,
@@ -24,30 +25,28 @@ def preprocess_img(imgf):
     sig = estimate_sigma(img)
     tval = threshold_li(bkg)
     broi = bkg*(bkg < tval)
-    broi = broi[broi >= 0]
-    tval = np.percentile(broi, 50)
+    rfrac = np.percentile(raw, 25)/np.percentile(raw, 75)
+    rfrac = np.max([0.35, rfrac])
+    tval = np.percentile(broi, rfrac * 100)
     bkg[bkg >= tval] = tval
     bkg = gaussian(bkg, 50)
     img = img - bkg
     img[img < 0] = 0
     den = denoise_nl_means(img, h=sig, sigma=sig, patch_size=3, patch_distance=5)
-    den = den - 3*sig
+    den = den - 2*sig
     den[den < 0] = 0
     return img, raw, bkg, den
 
 
 def segment_object(img, factor=1, rs=5000, fh=500, er=11, cb=None):
     """Segment out bright objects from fluorescence image."""
-    img = median(img, disk(1))
     if not np.any(img):
         return img.astype(bool)
-    thv_ots = threshold_otsu(img) / 12
-    thv_yen = threshold_yen(img) / 4
-    thv_li = threshold_li(img) / 5
-    offset = (np.percentile(img[img > 0], 90) + 1)**3 / 100
-    thv = (np.median([thv_ots, thv_yen, thv_li]) + offset)*factor
+    thv_ots = threshold_otsu(img) / 6
+    thv_yen = threshold_yen(img) / 2
+    thv_li = threshold_li(img) / 2
+    thv = np.median([thv_ots, thv_yen, thv_li]) * factor
     thr = img > thv
-    thr = binary_opening(thr, selem=disk(9))
     if er is not None:
         thr = binary_erosion(thr, selem=disk(er))
     if rs is not None:
@@ -56,7 +55,7 @@ def segment_object(img, factor=1, rs=5000, fh=500, er=11, cb=None):
         thr = remove_small_holes(thr.astype(bool), area_threshold=fh)
     if cb is not None:
         thr = clear_border(thr, buffer_size=cb)
-    thr = median(thr)
+    thr = median(thr, disk(3))
     return thr
 
 

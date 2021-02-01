@@ -38,9 +38,10 @@ def plot_cell_img(fname, img, thr, cmin, cmax, save_dir, sig_ann=False, t_unit=N
             extend='both', extendrect=True, extendfrac=0.03)
         cb.outline.set_linewidth(0)
         fig.tight_layout(pad=0)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            ax.contour(thr, linewidths=0.3, colors='w')
+        if thr is not None:
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                ax.contour(thr, linewidths=0.3, colors='w')
         fig.canvas.draw()
         fig.savefig(os.path.join(save_dir, 'imgs', fname + '.png'),
             dpi=100, bbox_inches='tight', pad_inches=0)
@@ -64,7 +65,7 @@ def plot_bkg_profile(fname, img, bkg, save_dir):
         plt.close(fig)
 
 
-def plot_uy(t, y, tu, u, save_dir, fname='y.png', xlabel='Time (s)', ylabel='Median Intensity', ulabel='BL'):
+def plot_uy(t, y, tu, u, save_dir, fname='y.png', xlabel='Time (s)', ylabel='Fold Change', ulabel='BL'):
     setup_dirs(save_dir)
     t = np.array(t)
     y = np.array(y)
@@ -81,19 +82,19 @@ def plot_uy(t, y, tu, u, save_dir, fname='y.png', xlabel='Time (s)', ylabel='Med
             ax0.set_ylabel(ulabel)
         else:
             fig, ax = plt.subplots(figsize=(16,8))
-        ax.plot(t, y, color='#d32f2f')
+        ax.plot(t, y/np.mean(y[:5]), color='#d32f2f')
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
-        ytiks, ystep = np.linspace(np.min(y), np.max(y), 6, endpoint=True, retstep=True)
-        ylim = (ytiks[0] - ystep/4, ytiks[-1] + ystep/4)
-        ax.set_yticks(ytiks)
-        ax.set_ylim(ylim)
-        ax1 = ax.twinx()
-        ax1.plot(t, y/np.mean(y[:5]), color='#d32f2f')
-        ax1.set_yticks(ytiks/np.mean(y[:5]))
-        ax1.set_ylim(ylim/np.mean(y[:5]))
-        ax1.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
-        ax1.set_ylabel('Fold Change')
+        # ytiks, ystep = np.linspace(np.min(y), np.max(y), 6, endpoint=True, retstep=True)
+        # ylim = (ytiks[0] - ystep/4, ytiks[-1] + ystep/4)
+        # ax.set_yticks(ytiks)
+        # ax.set_ylim(ylim)
+        # ax1 = ax.twinx()
+        # ax1.plot(t, y/np.mean(y[:5]), color='#d32f2f')
+        # ax1.set_yticks(ytiks/np.mean(y[:5]))
+        # ax1.set_ylim(ylim/np.mean(y[:5]))
+        # ax1.yaxis.set_major_formatter(FormatStrFormatter('%.3f'))
+        # ax1.set_ylabel('Fold Change')
         fig.tight_layout()
         fig.canvas.draw()
         fig.savefig(os.path.join(save_dir, fname),

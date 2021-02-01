@@ -165,8 +165,8 @@ def combine_translo(results_dir):
         plt.close(fig)
 
 
-def process_fluo_timelapse(img_dir, save_dir, u_csv=None, cmax_mult=2,
-    seg_params={'rs': 5000, 'fh': 400, 'cb': None, 'factor': 1}):
+def process_fluo_timelapse(img_dir, save_dir, u_csv=None, cmax_mult=2, t_unit='s',
+    sb_microns=220, seg_params={'rs': 5000, 'fh': 400, 'cb': None, 'factor': 1}):
     """Analyze fluorescence timelapse images and generate figures."""
     t = [np.float(os.path.splitext(os.path.basename(imgf))[0]) for imgf in list_img_files(img_dir)]
     y = []
@@ -177,21 +177,30 @@ def process_fluo_timelapse(img_dir, save_dir, u_csv=None, cmax_mult=2,
     t_ann_img = []
     if u_csv:
         tu, u, t_ann_img = process_u_csv(t, u_csv, save_dir)
+    factor = seg_params['factor']
     for i, imgf in enumerate(tqdm(list_img_files(img_dir))):
         fname = os.path.splitext(os.path.basename(imgf))[0]
+        fname = str(round(float(fname), 2))
         img, raw, bkg, den = preprocess_img(imgf)
         plot_bkg_profile(fname, raw, bkg, save_dir)
+        if i == 0:
+            kval = np.mean(img[img > 0])
+        seg_params['factor'] = (np.mean(img[img > 0])/kval) + factor - 1
         thr = segment_object(den, **seg_params)
         roi = thr*img
         nz = roi[roi > 0]
-        ave_int = np.median(nz)
+        ave_int = np.mean(nz)
+        if np.isnan(ave_int):
+            ave_int = np.mean(img)
+        # thr = None
+        # ave_int = np.mean(img)
         y.append(ave_int)
         if i == 0:
             cmin = np.min(img)
-            cmax = cmax_mult*np.max(img)
+            cmax = cmax_mult*np.percentile(img, 99)
         sig_ann = round(float(fname), 1) in t_ann_img
         cell_img = plot_cell_img(fname, den, thr, cmin, cmax,
-                save_dir, sig_ann, t_unit='s', sb_microns=16)
+                save_dir, sig_ann, t_unit=t_unit, sb_microns=sb_microns)
         imgs.append(cell_img)
     plot_uy(t, y, tu, u, save_dir)
     data = np.column_stack((t, y))
@@ -211,6 +220,7 @@ def combine_uy(root_dir, fold_change=True, plot_u=True):
             fig, ax = plt.subplots(figsize=(10,8)) 
         combined_t = pd.DataFrame()
         combined_y = pd.DataFrame()
+        combined_tu = pd.DataFrame()
         combined_u = pd.DataFrame()
         for i, data_dir in enumerate(natsorted([x[1] for x in os.walk(root_dir)][0])):
             y_csv = os.path.join(root_dir, data_dir, 'y.csv')
@@ -225,21 +235,28 @@ def combine_uy(root_dir, fold_change=True, plot_u=True):
             if fold_change:
                 y = y/np.mean(y[:5])
             combined_y = pd.concat([combined_y, y], axis=1)
-            ax.plot(y, color='#1976D2', alpha=0.5, linewidth=2)
+            # ax.plot(y, color='#1976D2', alpha=0.5, marker='.', markersize=2, linewidth=0)
             u_csv = os.path.join(root_dir, data_dir, 'u.csv')
             if plot_u:
                 u_data = pd.read_csv(u_csv)
                 tu = u_data['t'].values
+                tu = pd.Series(tu, index=tu, name=i)
                 u = pd.Series(u_data['u'].values, index=tu, name=i)
+                combined_tu = pd.concat([combined_tu, tu], axis=1)
                 combined_u = pd.concat([combined_u, u], axis=1)
         t_ave = combined_t.mean(axis=1).rename('t')
         y_ave = combined_y.mean(axis=1).rename('y_ave')
         y_std = combined_y.std(axis=1).rename('y_std')
         y_sem = combined_y.sem(axis=1).rename('y_sem')
-        data = pd.concat([t_ave, y_ave, y_std, y_sem], axis=1).dropna()
-        data.to_csv(os.path.join(root_dir, 'y_combined.csv'), index=False)
-        y_ave = data['y_ave']
-        y_ci = data['y_sem']*1.96
+        if plot_u:
+            tu_ave = combined_tu.mean(axis=1).rename('tu_ave')
+            u_ave = combined_u.mean(axis=1).rename('u_ave')
+            u_data = pd.concat([tu_ave, u_ave], axis=1).dropna()
+            u_data.to_csv(os.path.join(root_dir, 'u_combined.csv'), index=False)
+        y_data = pd.concat([t_ave, y_ave, y_std, y_sem], axis=1).dropna()
+        y_data.to_csv(os.path.join(root_dir, 'y_combined.csv'), index=False)
+        y_ave = y_data['y_ave']
+        y_ci = y_data['y_sem']*1.96
         ax.fill_between(t, (y_ave - y_ci), (y_ave + y_ci), color='#1976D2', alpha=.2, label='95% CI')
         ax.plot(y_ave, color='#1976D2', label='Ave')
         ax.set_xlabel('Time (s)')
@@ -329,53 +346,42 @@ def process_ratio_fluo(fp0_img_dir, fp1_img_dir, results_dir):
     return y
 
 
-def compare_plots(root_dir, labels, fold_change=True):
+def compare_plots(root_dir, labels, fold_change=True, plot_u=True):
     with plt.style.context(('seaborn-whitegrid', custom_styles)):
+        color_cycle = cycle(custom_palette[1:])
         fig, (ax0, ax) = plt.subplots(2, 1, sharex=True, figsize=(16, 10), gridspec_kw={'height_ratios': [1, 8]})
-        combined_y = pd.DataFrame()
-        combined_uta = pd.DataFrame()
-        combined_utb = pd.DataFrame()
         for i, data_dir in enumerate(natsorted([x[1] for x in os.walk(root_dir)][0])):
-            y_csv_fp = os.path.join(root_dir, data_dir, 'y.csv')
-            y_data = pd.read_csv(y_csv_fp)
+            y_csv = os.path.join(root_dir, data_dir, 'y_combined.csv')
+            y_data = pd.read_csv(y_csv)
             t = y_data['t'].values
-            y = y_data['y'].values
-            yf = interp1d(t, y, fill_value='extrapolate')
-            t = np.arange(round(t[0]), round(t[-1]) + 1, 1)
-            y = pd.Series([yf(ti) for ti in t], index=t, name=i)
+            y_ave = y_data['y_ave']
+            y_ci = y_data['y_sem']*1.96
+            if plot_u:
+                u_csv = os.path.join(root_dir, data_dir, 'u_combined.csv')
+                u_data = pd.read_csv(u_csv)
+                tu = u_data['tu_ave'].values
+                u = u_data['u_ave']
+            # if fold_change:
+            #     y = y/np.mean(y[:5])
+            color = next(color_cycle)
+            label = labels[i]
+            ax.fill_between(t, (y_ave - y_ci), (y_ave + y_ci), color=color, alpha=.2)
+            ax.plot(y_ave, color=color, label=label)
+            ax.set_xlabel('Time (s)')
+            ax.set_ylabel('AU')
             if fold_change:
-                y = y/np.mean(y[:5])
-            combined_y = pd.concat([combined_y, y], axis=1)
-            u_csv_fp = os.path.join(root_dir, data_dir, 'u.csv')
-            u_data = pd.read_csv(u_csv_fp)
-            uta = np.around(u_data['ta'].values, 1)
-            utb = np.around(u_data['tb'].values, 1)
-            uta = pd.Series(uta, name=i)
-            utb = pd.Series(utb, name=i)
-            combined_uta = pd.concat([combined_uta, uta], axis=1)
-            combined_utb = pd.concat([combined_utb, utb], axis=1)
-            ax.plot(y, alpha=0.7)
-        uta_ave = combined_uta.mean(axis=1).rename('uta_ave')
-        utb_ave = combined_utb.mean(axis=1).rename('utb_ave')
-        tu = np.around(np.arange(t[0], t[-1], 0.1), 1)
-        u = np.zeros_like(tu)
-        for ta, tb in zip(uta, utb):
-            ia = list(tu).index(ta)
-            ib = list(tu).index(tb)
-            u[ia:ib] = 1
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('AU')
-        ax.legend(labels=labels, loc='best')
-        if fold_change:
-            ax.set_ylabel('Fold Change')
-        ax0.plot(tu, u, color='#1976D2')
-        ax0.set_yticks([0, 1])
-        ax0.set_ylabel('BL')
-        fig.savefig(os.path.join(root_dir, 'y_compare.png'),
-            dpi=100, bbox_inches='tight', transparent=False)
-        plt.close(fig)
-
-
+                ax.set_ylabel('Fold Change')
+            ax.legend(loc='best')
+            if plot_u:
+                ax0.plot(tu, u, color='#1976D2')
+                ax0.set_yticks([0, 1])
+                ax0.set_ylabel('BL')
+            plot_name = 'y_combined.png'
+            fig.savefig(os.path.join(root_dir, plot_name),
+                dpi=100, bbox_inches='tight', transparent=False)
+            plt.close(fig)
+        
+        
 def compare_fluo_imgs(img_paths, results_dir):
     setup_dirs(os.path.join(results_dir, 'imgs'))
     setup_dirs(os.path.join(results_dir, 'debug'))
@@ -466,26 +472,27 @@ def compare_AUCs(root_dir, t_lim=(60, 120)):
     plt.close(fig)
 
 
-def process_10x_imgs(img_dir, save_dir, cmax_mult=2,
-    seg_params={'rs': 50, 'fh': None, 'cb': None, 'er': None, 'factor': 1}):
+def process_10x_imgs(img_dir, save_dir, cmax_mult=1.5,
+    seg_params={'rs': 20, 'fh': None, 'cb': None, 'er': None, 'factor': 1}):
     """Analyze fluorescence 10x images and generate figures."""
     y = []
     imgs = []
     for i, imgf in enumerate(tqdm(list_img_files(img_dir))):
         fname = os.path.splitext(os.path.basename(imgf))[0]
         img, raw, bkg, den = preprocess_img(imgf)
-        plot_bkg_profile(fname, raw, bkg, save_dir)
-        thr = segment_object(den, **seg_params)
-        roi = thr*img
-        nz = roi[roi > 0]
-        ave_int = np.median(nz)
-        if np.isnan(ave_int):
-            ave_int = 0
+        # thr = segment_object(den, **seg_params)
+        # roi = thr*img
+        # nz = roi[roi > 0]
+        # ave_int = np.mean(nz)
+        # if np.isnan(ave_int):
+        #     ave_int = np.mean(img)
+        thr = None
+        ave_int = np.mean(img[img > 0])
         y.append(ave_int)
-        if i == 0:
-            cmin = np.min(img)
-            cmax = cmax_mult*np.max(img)
-        cell_img = plot_cell_img(fname, den, thr, cmin, cmax, save_dir)
+        plot_bkg_profile(fname, raw, bkg, save_dir)
+        cmin = np.min(img)
+        cmax = cmax_mult*np.percentile(img, 99)
+        cell_img = plot_cell_img(fname, den, thr, cmin, cmax, save_dir, sb_microns=220)
         imgs.append(cell_img)
     np.savetxt(os.path.join(save_dir, 'y.csv'),
         np.array(y), delimiter=',', header='y', comments='')
@@ -495,10 +502,14 @@ def barplot_expts(root_dir):
     y_data = pd.read_csv(os.path.join(root_dir, 'y.csv'))
     with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
         fig, ax = plt.subplots(figsize=(16,8))
-        g = sns.barplot(x="System", y="Response", data=y_data, ax=ax)
-        # g.ax.set_yscale("log")
+        ax = sns.boxplot(x="System", y="Response", data=y_data, whis=np.inf)
+        g = sns.stripplot(x="System", y="Response", data=y_data, ax=ax, size=10, color=".3")
+        # ax.set_yscale("log")
         # g.ax.set_xticks([-0.2, 1.2])
         # plt.legend(loc='upper center', prop={"size": 20})
+        ax.set_xticklabels(["6TetO", "12TetO", "6LexO", "12LexO", "6UAS", "12UAS"])
+        ax.set_ylabel('Ave Fluorescence Intensity')
+        ax.set_xlabel('')
         plt.savefig(os.path.join(root_dir, 'y.png'), dpi=200, transparent=False, bbox_inches='tight')
         plt.close()
 
@@ -517,11 +528,19 @@ def compare_groups(root_dir):
 
 def compare_before_after(root_dir):
     y_data = pd.read_csv(os.path.join(root_dir, 'y.csv'))
-    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(custom_palette):
-        g = sns.catplot(x="System", y="Response", hue="Timepoint", data=y_data,
-            height=8, aspect=1.5, kind='bar', legend=False)
+    # palette = ['#B0BEC5', '#607D8B', '#90CAF9', '#2196F3']
+    palette = ['#607D8B', '#2196F3']
+    with plt.style.context(('seaborn-whitegrid', custom_styles)), sns.color_palette(palette):
+        g = sns.catplot(x="Group", y="Response", hue="Timepoint", data=y_data,
+            height=8, aspect=2, kind='strip', legend=False, dodge=True, s=10)
+        # g = sns.swarmplot(x="Group", y="Response", hue="Timepoint",
+        #            data=y_data, height=8, aspect=1.5, dodge=True, legend=False)
+        g.ax.set_xticklabels(["TetR-iLIDslow", "TetR-iLIDfast"])
+        g.ax.set_xlabel('')
+        g.ax.set_ylabel('Ave Fluorescence Intensity')
+        g.ax.set_yscale('log')
         handles, labels = g.ax.get_legend_handles_labels()
-        g.ax.legend(handles, ['0hr', '24hr (BL 1min every 10min)'], loc='best', prop={"size": 20})
+        g.ax.legend(handles, ['t=0hr', 't=24hr'], loc='best', prop={"size": 20})
         plt.savefig(os.path.join(root_dir, 'y.png'), dpi=200, transparent=False, bbox_inches='tight')
         plt.close()
 
@@ -546,27 +565,28 @@ if __name__ == '__main__':
     # process_pqr(fp0_img_dir, fp1_img_dir, results_dir)
 
     # i = 0
-    # root_dir = '/home/phuong/data/ILID/RA-16I/20200915-B3-sspBu_RA-16I-0/'
+    # root_dir = '/home/phuong/data/calcium/20200822-oSTIM-CarGECO/'
     # results_dir = os.path.join(root_dir, 'results', str(i))
     # img_dir = os.path.join(root_dir, 'mCherry', str(i))
     # u_csv = os.path.join(root_dir, 'u{}.csv'.format(i))
-    # process_fluo_timelapse(img_dir, results_dir, u_csv=None, cmax_mult=2,
-    #     seg_params={'rs': 5000, 'fh': 500, 'cb': None, 'er': None, 'factor': 1})
+    # process_fluo_timelapse(img_dir, results_dir, u_csv=None,
+    #     cmax_mult=2, t_unit='s', sb_microns=16,
+    #     seg_params={'rs': 4000, 'fh': None, 'cb': None, 'er': None, 'factor': 2})
 
 
-    # for i in range(9,10):
-    #     root_dir = '/home/phuong/data/ILID/RA-16I/20200921-B3-sspBu_RA-16I_spike/'
+    # for i in range(0, 1):
+    #     root_dir = '/home/phuong/data/ILID/RA-HF/20201004-B3-sspBu_RA-27V/'
     #     results_dir = os.path.join(root_dir, 'results', str(i))
     #     img_dir = os.path.join(root_dir, 'mCherry', str(i))
     #     u_csv = os.path.join(root_dir, 'u{}.csv'.format(i))
     #     process_fluo_timelapse(img_dir, results_dir, u_csv=u_csv, cmax_mult=2,
-    #     seg_params={'rs': 8000, 'fh': 500, 'cb': None, 'er': None, 'factor': 2})
+    #     seg_params={'rs': 8000, 'fh': 500, 'cb': 0, 'er': None, 'factor': 2})
 
-    # root_dir = '/home/phuong/data/ILID/RA-16I/20200921-B3-sspBu_RA-16I_spike/results/'
-    # combine_uy(root_dir, fold_change=True, plot_u=True)
+    # root_dir = '/home/phuong/data/ILID/RA-HF/20201004-B3-sspBu_RA-27V/results/'
+    # combine_uy(root_dir, fold_change=False, plot_u=True)
 
-    root_dir = '/home/phuong/data/ILID/spike/'
-    compare_plots(root_dir, ['B3 + RA', 'sspBu + 16I', 'sspBu + 27V'], fold_change=False)
+    # root_dir = '/home/phuong/data/ILID/combined_16I_LS/'
+    # compare_plots(root_dir, ['iLID[slow]', 'iLID[LS]'], fold_change=True)
 
     # img_paths = [
     #     '/home/phuong/data/Controls/L3K2/1.5.tif',
@@ -585,12 +605,13 @@ if __name__ == '__main__':
     # for bd in natsorted([x[1] for x in os.walk(base_dir)][0]):
     #     root_dir = os.path.join(base_dir, bd)
     
-    # root_dir = '/home/phuong/data/GExpress/20200907/20200907_4TetO-YFP/'
-    # img_dir = os.path.join(root_dir, 'Default')
-    # save_dir = os.path.join(root_dir, 'results')
-    # process_10x_imgs(img_dir, save_dir, cmax_mult=1,
-    #     seg_params={'rs': 20, 'fh': None, 'cb': None, 'er': None, 'factor': 0.1})
+    root_dir = '/home/phuong/data/LINUS/20210130_TetR-VPR-LINUS_6TetO-mScI/'
+    img_dir = os.path.join(root_dir, 'Default')
+    save_dir = os.path.join(root_dir, 'results')
+    process_10x_imgs(img_dir, save_dir, cmax_mult=2,
+        seg_params={'rs': 0, 'fh': None, 'cb': None, 'er': None, 'factor': 0.1})
 
 
-    # root_dir = '/home/phuong/data/GExpress/20200907/compare/'
+    # root_dir = '/home/phuong/data/GExpress/20210124/'
     # barplot_expts(root_dir)
+    # compare_before_after(root_dir)

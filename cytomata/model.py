@@ -151,3 +151,34 @@ def sim_CaM_M13(t, y0, Cf):
     solver = ode('cvode', model, old_api=False, **options)
     solution = solver.solve(t, y0)
     return solution.values.t, solution.values.y
+
+
+def sim_ilid(t, y0, uf, params):
+    def model(t, y, dy):
+        u = uf(t)
+        kf = params['kf']
+        kr = params['kr']
+        dy[0] = kr*y[1] - u*kf*y[0]
+        dy[1] = u*kf*y[0] - kr*y[1]
+    options = {'rtol': 1e-3, 'atol': 1e-6, 'max_step_size': 1}
+    solver = ode('cvode', model, old_api=False, **options)
+    solution = solver.solve(t, y0)
+    return solution.values.t, solution.values.y
+
+
+def sim_fresca(t, y0, uf, params):
+    def model(t, y, dy):
+        u = uf(t)
+        k1f = params['k1f']
+        k1r = params['k1r']
+        k2f = params['k2f']
+        k2r = params['k2r']
+        dy[0] = k1r*y[1] - u*k1f*y[0]*y[4]
+        dy[1] = u*k1f*y[0]*y[4] - k1r*y[1]
+        dy[2] = k2r*y[3] - u*k2f*y[2]*y[4]
+        dy[3] = u*k2f*y[2]*y[4] - k2r*y[3]
+        dy[4] = k1r*y[1] + k2r*y[3] - u*k1f*y[0]*y[4] - u*k2f*y[2]*y[4]
+    options = {'rtol': 1e-12, 'atol': 1e-15, 'max_step_size': 1, 'max_steps': 1e4}
+    solver = ode('cvode', model, old_api=False, **options)
+    solution = solver.solve(t, y0)
+    return solution.values.t, solution.values.y
