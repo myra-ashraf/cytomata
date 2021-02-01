@@ -23,11 +23,11 @@ def preprocess_img(imgf):
     raw = img.copy()
     bkg = img.copy()
     sig = estimate_sigma(img)
-    tval = threshold_li(bkg)
-    broi = bkg*(bkg < tval)
     rfrac = np.percentile(raw, 25)/np.percentile(raw, 75)
-    rfrac = np.max([0.35, rfrac])
-    tval = np.percentile(broi, rfrac * 100)
+    tval = threshold_li(bkg) * 1.25
+    broi = bkg*(bkg < tval)
+    rfrac = np.max([rfrac, 0.35])
+    tval = np.percentile(broi, rfrac*100)
     bkg[bkg >= tval] = tval
     bkg = gaussian(bkg, 50)
     img = img - bkg

@@ -564,14 +564,14 @@ if __name__ == '__main__':
     # results_dir = '/home/phuong/data/ILID/Controls/NES-mCh-PQR-3NLS-mTq2/'
     # process_pqr(fp0_img_dir, fp1_img_dir, results_dir)
 
-    # i = 0
-    # root_dir = '/home/phuong/data/calcium/20200822-oSTIM-CarGECO/'
-    # results_dir = os.path.join(root_dir, 'results', str(i))
-    # img_dir = os.path.join(root_dir, 'mCherry', str(i))
-    # u_csv = os.path.join(root_dir, 'u{}.csv'.format(i))
-    # process_fluo_timelapse(img_dir, results_dir, u_csv=None,
-    #     cmax_mult=2, t_unit='s', sb_microns=16,
-    #     seg_params={'rs': 4000, 'fh': None, 'cb': None, 'er': None, 'factor': 2})
+    i = 0
+    root_dir = '/home/phuong/data/LINUS/CRY2/20200623-ddFPRA_CRY2PHR_CIB307-100ms-100ND-mCh/'
+    results_dir = os.path.join(root_dir, 'results', str(i))
+    img_dir = os.path.join(root_dir, 'mCherry', str(i))
+    u_csv = os.path.join(root_dir, 'u{}.csv'.format(i))
+    process_fluo_timelapse(img_dir, results_dir, u_csv=None,
+        cmax_mult=3, t_unit='s', sb_microns=16,
+        seg_params={'rs': 4000, 'fh': None, 'cb': None, 'er': None, 'factor': 4})
 
 
     # for i in range(0, 1):
@@ -605,11 +605,11 @@ if __name__ == '__main__':
     # for bd in natsorted([x[1] for x in os.walk(base_dir)][0]):
     #     root_dir = os.path.join(base_dir, bd)
     
-    root_dir = '/home/phuong/data/LINUS/20210130_TetR-VPR-LINUS_6TetO-mScI/'
-    img_dir = os.path.join(root_dir, 'Default')
-    save_dir = os.path.join(root_dir, 'results')
-    process_10x_imgs(img_dir, save_dir, cmax_mult=2,
-        seg_params={'rs': 0, 'fh': None, 'cb': None, 'er': None, 'factor': 0.1})
+    # root_dir = '/home/phuong/data/LINUS/20210130_TetR-VPR-LINUS_6TetO-mScI/'
+    # img_dir = os.path.join(root_dir, 'Default')
+    # save_dir = os.path.join(root_dir, 'results')
+    # process_10x_imgs(img_dir, save_dir, cmax_mult=2,
+    #     seg_params={'rs': 0, 'fh': None, 'cb': None, 'er': None, 'factor': 0.1})
 
 
     # root_dir = '/home/phuong/data/GExpress/20210124/'

@@ -21,9 +21,9 @@
       async function check_dir_exists(dir) {
         let exists = await eel.check_dir_exists(dir)();
         if (exists) {
-          document.getElementById('out_dir_exists').innerHTML = ('Directory already exists and will be overwritten!');
+          document.getElementById('save_dir_exists').innerHTML = ('Directory already exists and will be overwritten!');
         } else {
-          document.getElementById('out_dir_exists').innerHTML = ('');
+          document.getElementById('save_dir_exists').innerHTML = ('');
         }
       }
 
@@ -33,20 +33,15 @@
         check_found_imgs(img_dir);
       }
 
-      async function guess_out_dir() {
-        let out_dir = await eel.guess_out_dir()();
-        document.getElementById('out_dir_form').value = out_dir;
-        check_dir_exists(out_dir);
+      async function guess_save_dir() {
+        let save_dir = await eel.guess_save_dir()();
+        document.getElementById('save_dir_form').value = save_dir;
+        check_dir_exists(save_dir);
       }
 
       eel.expose(update_img_results);
-      function update_img_results(img0, img1, img2, img3, iranges, prog) {
-        $("#proc_img0").attr("src", "data:image/png;base64," + img0);
-        $("#proc_img1").attr("src", "data:image/png;base64," + img1);
-        $("#proc_img2").attr("src", "data:image/png;base64," + img2);
-        $("#proc_img3").attr("src", "data:image/png;base64," + img3);
-        $('#img0_label').text('Original (' + iranges[0] + ' - ' + iranges[1] + ')');
-        $('#img2_label').text('Result (' + iranges[2] + ' - ' + iranges[3] + ')');
+      function update_img_results(img, prog) {
+        $("#proc_img").attr("src", "data:image/png;base64," + img);
         if (prog < 100) {
           $('#proc_img_progress').css('width', Math.floor(prog) + "%");
           $('#proc_img_progress').text(Math.floor(prog) + "%")
@@ -391,9 +386,9 @@
                     <small id="num_imgs_found" class="form-text text-muted"></small>
                   </div>
                   <div class="form-group">
-                    <label for="out_dir_form">Output Directory</label>
-                    <input type="text" class="form-control" id="out_dir_form" placeholder="Output Directory">
-                    <small id="out_dir_exists" class="form-text text-danger"></small>
+                    <label for="save_dir_form">Save Directory</label>
+                    <input type="text" class="form-control" id="save_dir_form" placeholder="Save Directory">
+                    <small id="save_dir_exists" class="form-text text-danger"></small>
                   </div>
                   <div class="form-group">
                     <label for="protocol_form">Protocol</label>
@@ -437,7 +432,7 @@
                     <div id="proc_img_progress" class="progress-bar" role="progressbar" style="width: 0%"></div>
                   </div>
                   <div class="row p-0 m-0">
-                    <div class="col-4 p-1"><label id='img0_label'>Original</label><img id="proc_img0" src="" class="img-fluid"></div>
+                    <div class="col-4 p-1"><label id='img0_label'>Original</label><img id="proc_img" src="" class="img-fluid"></div>
                     <div class="col-8 p-1"><img id="proc_img1" src="" class="img-fluid"></div>
                     <div class="col-4 p-1"><label id='img2_label'>Result</label><img id="proc_img2" src="" class="img-fluid"></div>
                     <div class="col-8 p-1"><img id="proc_img3" src="" class="img-fluid"></div>
@@ -456,16 +451,16 @@
     <script src="js/bootstrap.min.js"></script>
     <script type="text/javascript">
     guess_img_dir();
-    guess_out_dir();
+    guess_save_dir();
 
     $('#img_dir_form').on('change', function() {
       let img_dir = $('#img_dir_form').val();
       check_found_imgs(img_dir);
     });
 
-    $('#out_dir_form').on('change', function() {
-      let out_dir = $('#out_dir_form').val();
-      check_dir_exists(out_dir);
+    $('#save_dir_form').on('change', function() {
+      let save_dir = $('#save_dir_form').val();
+      check_dir_exists(save_dir);
     });
 
     $('#protocol_form').on('change', function() {
@@ -508,7 +503,7 @@
         $(this).toggleClass('proto-start proto-stop');
         $(this).text("Stop Protocol");
         let img_dir = $('#img_dir_form').val();
-        let out_dir = $('#out_dir_form').val();
+        let save_dir = $('#save_dir_form').val();
         let proto = $('#protocol_form').val();
         let param_thres_block = $('#thres_block_slider').val();
         let param_sub_offset = $('#sub_offset_slider').val();
@@ -522,7 +517,7 @@
           traj_len: param_traj_len,
           denoise: param_denoise
         };
-        eel.process_imgs(img_dir, out_dir, proto, params);
+        eel.process_imgs(img_dir, save_dir, proto, params);
       } else {
         $('#results_div').toggleClass('visible', false);
         $('#results_div').toggleClass('invisible', true);
