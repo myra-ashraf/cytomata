@@ -4,9 +4,6 @@ import os
 CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
 MM_CFG_FILE = os.path.join(CONFIG_DIR, 'mm_nikon2.cfg')
 
-IMAGING = None
-INDUCTION = None
-AUTFOCUS = None
 
 SETTINGS = {
     'img_sync': ['XYStage', 'TIZDrive', 'Wheel-A', 'Wheel-B', 'Wheel-C', 'TIFilterBlock1'],
@@ -66,19 +63,19 @@ SETTINGS = {
 
 # Hours-Timescale ## 
 IMAGING = {
-    't_info': [(0, 57601, 300)],
-    'chs': ['mCherry', 'DIC']
+    # 't_info': [(0, 57601, 300)],
+    # 'chs': ['mCherry', 'DIC']
 }
 
 INDUCTION = {
-    't_info': [(0, 57601, 30, 5)],
-    'ch_ind': 'BL'
+    # 't_info': [(0, 57601, 30, 10)],
+    # 'ch_ind': 'BL'
 }
 
 AUTOFOCUS = {
     't_info': [(0, 57601, 300)],
     'ch': 'DIC',
-    'bounds': [-3.0, 3.0],
-    'max_iter': 5,
+    'bounds': [-6.0, 6.0],
+    'z_step': 2,
     'offset': 0
 }

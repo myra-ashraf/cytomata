@@ -155,9 +155,6 @@ class Microscope(object):
         self.set_position('xy', (x0, y0))
 
     def take_images(self, cid, chs):
-        xi = self.get_position('x')
-        yi = self.get_position('y')
-        print(xi, yi)
         ti = time.time() - self.t0
         for ch in chs:
             self.set_channel(ch)
@@ -168,14 +165,19 @@ class Microscope(object):
                 imsave(img_path, img)
 
     def imaging_task(self, chs):
-        if self.settings['mpos'] and self.settings['mpos_mode'] == 'parallel':
-            for cid in range(len(self.coords)):
-                (x, y, z) = self.coords[cid]
+        if self.settings['mpos']:
+            if self.settings['mpos_mode'] == 'parallel':
+                for i in range(len(self.coords)):
+                    (x, y, z) = self.coords[i]
+                    self.set_position('xy', (x, y))
+                    self.take_images(i, chs)
+            elif self.settings['mpos_mode'] == 'sequential':
+                (x, y, z) = self.coords[self.cid]
                 self.set_position('xy', (x, y))
-                self.take_images(cid, chs)
+                self.take_images(self.cid, chs)
         else:
-            (x, y, z) = mscope.coords[self.cid]
-            mscope.set_position('xy', (x, y))
+            (x, y, z) = self.coords[self.cid]
+            self.set_position('xy', (x, y))
             self.take_images(self.cid, chs)
 
     def queue_imaging(self, t_info, chs):
@@ -205,14 +207,19 @@ class Microscope(object):
         np.savetxt(u_path, u_data, delimiter=',', header='ta,tb', comments='')
 
     def induction_task(self, width, ch_ind):
-        if self.settings['mpos'] and self.settings['mpos_mode'] == 'parallel':
-            for cid in range(len(self.coords)):
-                (x, y, z) = self.coords[cid]
+        if self.settings['mpos']:
+            if self.settings['mpos_mode'] == 'parallel':
+                for i in range(len(self.coords)):
+                    (x, y, z) = self.coords[i]
+                    self.set_position('xy', (x, y))
+                    self.pulse_light(i, width, ch_ind)
+            elif self.settings['mpos_mode'] == 'sequential':
+                (x, y, z) = self.coords[self.cid]
                 self.set_position('xy', (x, y))
-                self.pulse_light(cid, width, ch_ind)
+                self.pulse_light(self.cid, width, ch_ind)
         else:
-            (x, y, z) = mscope.coords[self.cid]
-            mscope.set_position('xy', (x, y))
+            (x, y, z) = self.coords[self.cid]
+            self.set_position('xy', (x, y))
             self.pulse_light(self.cid, width, ch_ind)
 
     def queue_induction(self, t_info, ch_ind):
@@ -226,7 +233,7 @@ class Microscope(object):
 
     def measure_focus(self):
         img = self.snap_image()
-        return np.var(laplace(img))
+        return np.var(img)
 
     def autofocus(self, cid, ch, bounds=[-3.0, 3.0], z_step=1.0, offset=0):
         self.set_channel(ch)
@@ -241,26 +248,32 @@ class Microscope(object):
             if foc > best_foc:
                 best_foc = foc
                 best_pos = zz
-        self.coords[cid] = best_pos + offset
+        self.coords[cid, 2] = best_pos + offset
+        print(best_foc, best_pos)
 
-    def autofocus_task(self, ch, bounds, max_iter, offset):
-        if self.settings['mpos'] and self.settings['mpos_mode'] == 'parallel':
-            for cid in range(len(self.coords)):
-                (x, y, z) = self.coords[cid]
+    def autofocus_task(self, ch, bounds, z_step, offset):
+        if self.settings['mpos']:
+            if self.settings['mpos_mode'] == 'parallel':
+                for i in range(len(self.coords)):
+                    (x, y, z) = self.coords[i]
+                    self.set_position('xy', (x, y))
+                    self.autofocus(i, ch, bounds, z_step, offset)
+            elif self.settings['mpos_mode'] == 'sequential':
+                (x, y, z) = self.coords[self.cid]
                 self.set_position('xy', (x, y))
-                self.autofocus(cid, ch, bounds, max_iter, offset)
+                self.autofocus(self.cid, ch, bounds, z_step, offset)
         else:
-            (x, y, z) = mscope.coords[self.cid]
-            mscope.set_position('xy', (x, y))
-            self.autofocus(self.cid, ch, bounds, max_iter, offset)
+            (x, y, z) = self.coords[self.cid]
+            self.set_position('xy', (x, y))
+            self.autofocus(self.cid, ch, bounds, z_step, offset)
 
-    def queue_autofocus(self, t_info, ch, bounds, max_iter, offset):
+    def queue_autofocus(self, t_info, ch, bounds, z_step, offset):
         for (start, stop, period) in t_info:
             times = deque(np.arange(start + self.t0, stop + self.t0, period))
             self.tasks.append({
                 'func': self.autofocus_task,
                 'times': times,
-                'kwargs': {'ch': ch, 'bounds': bounds, 'max_iter': max_iter, 'offset': offset}
+                'kwargs': {'ch': ch, 'bounds': bounds, 'z_step': z_step, 'offset': offset}
             })
 
     def run_tasks(self):
