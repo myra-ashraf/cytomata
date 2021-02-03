@@ -70,4 +70,4 @@ if __name__ == '__main__':
         # 'chromeFlags': ["--start-fullscreen"]
     }
 
-    eel.start('index.html', options=options)
+    eel.start('index.html')

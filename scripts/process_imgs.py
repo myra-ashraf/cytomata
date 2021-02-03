@@ -565,13 +565,13 @@ if __name__ == '__main__':
     # process_pqr(fp0_img_dir, fp1_img_dir, results_dir)
 
     i = 0
-    root_dir = '/home/phuong/data/LINUS/CRY2/20200623-ddFPRA_CRY2PHR_CIB307-100ms-100ND-mCh/'
+    root_dir = '/home/phuong/data/ILID/GEx/20210201_LexA-NLS-iLID_NLS-sspBn-VPR_6TetO-mScI/'
     results_dir = os.path.join(root_dir, 'results', str(i))
     img_dir = os.path.join(root_dir, 'mCherry', str(i))
     u_csv = os.path.join(root_dir, 'u{}.csv'.format(i))
     process_fluo_timelapse(img_dir, results_dir, u_csv=None,
-        cmax_mult=3, t_unit='s', sb_microns=16,
-        seg_params={'rs': 4000, 'fh': None, 'cb': None, 'er': None, 'factor': 4})
+        cmax_mult=3, t_unit='s', sb_microns=220,
+        seg_params={'rs': 5, 'fh': None, 'cb': None, 'er': None, 'factor': 0.2})
 
 
     # for i in range(0, 1):

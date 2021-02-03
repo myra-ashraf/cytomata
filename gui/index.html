@@ -262,10 +262,7 @@
             <a class="nav-link active" id="pills-home-tab" data-toggle="pill" href="#pills-home" role="tab">Home</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" id="pills-mic-tab" data-toggle="pill" href="#pills-mic" role="tab">Microscope</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" id="pills-proc-tab" data-toggle="pill" href="#pills-proc" role="tab">Processing</a>
+            <a class="nav-link" id="pills-proc-tab" data-toggle="pill" href="#pills-proc" role="tab">Process</a>
           </li>
         </ul>
       </div>
@@ -277,102 +274,6 @@
             </div>
             <div class="row justify-content-center mt-3">
               <button id="mscope_start_button" class="btn btn-outline-success col-3" type="button" onclick="">Start Microscope</button>
-            </div>
-          </div>
-          <div class="tab-pane fade" id="pills-mic" role="tabpanel">
-            <div class="row pr-3">
-              <div class="col-5 pb-3 pr-3">
-                <div class="form-row">
-                  <div class="input-group col-6 mb-3">
-                    <div class="input-group-prepend">
-                      <span class="input-group-text">Exp&nbsp;</span>
-                    </div>
-                    <input type="text" class="form-control" id="cam_exposure" placeholder="100">
-                  </div>
-                  <div class="input-group col-6 mb-3">
-                    <div class="input-group-prepend">
-                      <span class="input-group-text">Gain&nbsp;</span>
-                    </div>
-                    <select class="custom-select" id="gain">
-                      <option value='0'>1</option>
-                      <option value='1'>2</option>
-                      <option value='2'>3</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="form-row">
-                  <div class="input-group col-6 mb-3">
-                    <div class="input-group-prepend">
-                      <span class="input-group-text">Mag</span>
-                    </div>
-                    <select class="custom-select" id="mag">
-                      <option value='0'>10x</option>
-                      <option value='1'>20x</option>
-                      <option value='2'>40x</option>
-                    </select>
-                  </div>
-                  <div class="input-group col-6 mb-3">
-                    <div class="input-group-prepend">
-                      <span class="input-group-text">Chan</span>
-                    </div>
-                    <select class="custom-select" id="chan">
-                      <option value='0'>DIC</option>
-                      <option value='1'>GFP</option>
-                      <option value='2'>mCh</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="input-group mb-3">
-                  <div class="input-group-prepend">
-                    <button class="btn btn-outline-primary" type="button"><</button>
-                  </div>
-                  <input type="text" class="form-control" placeholder="X : 4502.23">
-                  <div class="input-group-append">
-                    <button class="btn btn-outline-primary" type="button">></button>
-                  </div>
-                </div>
-                <div class="input-group mb-3">
-                  <div class="input-group-prepend">
-                    <button class="btn btn-outline-primary" type="button"><</button>
-                  </div>
-                  <input type="text" class="form-control" placeholder="Y : 4502.23">
-                  <div class="input-group-append">
-                    <button class="btn btn-outline-primary" type="button">></button>
-                  </div>
-                </div>
-                <div class="input-group mb-3">
-                  <div class="input-group-prepend">
-                    <button class="btn btn-outline-primary" type="button"><</button>
-                  </div>
-                  <input type="text" class="form-control" placeholder="Z : 4502.23">
-                  <div class="input-group-append">
-                    <button class="btn btn-outline-primary" type="button">></button>
-                  </div>
-                </div>
-                <div class="form-row px-1 mb-3">
-                  <button class="col-5 mr-4 btn btn-outline-primary" type="button">Add Coord</button>
-                  <button class="col-5 ml-1 btn btn-outline-primary" type="button" data-toggle="modal" data-target="#view_coords_modal">View Coords</button>
-                </div>
-                <div class="form-row px-1 mb-3">
-                  <button class="col-5 mr-4 btn btn-outline-primary" type="button" data-toggle="modal" data-target="#acquire_z_modal">Acquire Z-Stack</button>
-                  <button class="col-5 ml-1 btn btn-outline-primary" type="button" data-toggle="modal" data-target="#acquire_xy_modal">Acquire XY-Field</button>
-                </div>
-                <div class="form-row px-1">
-                  <button class="col-11 btn btn-outline-primary" type="button" data-toggle="modal" data-target="#config_expt_modal">Configure Experiment</button>
-                </div>
-              </div>
-              <div class="col-7 pb-3 pl-3">
-                <div class="row justify-content-between">
-                  <div class="col-10 input-group">
-                    <input type="text" class="form-control" id="snap_save_dir" placeholder="Save Directory">
-                    <div class="input-group-append">
-                      <button class="btn btn-outline-primary px-4" type="button">Snap</button>
-                    </div>
-                  </div>
-                  <button class="col-2 btn btn-outline-primary" type="button">Live</button>
-                </div>
-                <img id="live_window" src="" class="invisible img-fluid">
-              </div>
             </div>
           </div>
           <div class="tab-pane fade" id="pills-proc" role="tabpanel">
