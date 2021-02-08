@@ -12,7 +12,7 @@ Setup Conda Environment
         pip install -r requirements.txt --ignore-installed
 
 PyInstaller OS-Specific Requirements:
-    Notably, you need to pip install pypiwin32 if using Windows.
+    Notably, you need to pip install pypiwin32 if using Windows or pywin32-ctypes on Linux.
     https://pyinstaller.readthedocs.io/en/v3.3.1/requirements.html
 
 PyInstaller Build Commands:
@@ -37,7 +37,7 @@ PyInstaller Build Commands:
                      pathex=['C:\\Users\\solar\\cytomata'],
                      binaries=[],
                      datas=[('C:\\Users\\solar\\anaconda3\\envs\\cy\\lib\\site-packages\\eel\\eel.js', 'eel'), ('gui', 'gui')],
-                     hiddenimports=['bottle_websocket', 'pywt._extensions._cwt', '_cffi_backend'],
+                     hiddenimports=['bottle_websocket', 'pywt._extensions._cwt', '_cffi_backend', 'cmath', 'skimage.filters.rank.core_cy_3d'],
                      hookspath=[],
                      runtime_hooks=[],
                      excludes=[],
