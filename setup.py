@@ -45,6 +45,6 @@ setuptools.setup(
     packages=setuptools.find_packages(exclude=['tests']),
     install_requires=[
         'numpy', 'scipy', 'pandas', 'matplotlib', 'seaborn', 'scikit-image', 'opencv-python',
-        'natsort', 'lmfit', 'tqdm', 'scikits.odes'
+        'natsort', 'tqdm', 'lmfit', 'scikits.odes'
     ]
 )

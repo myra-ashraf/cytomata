@@ -38,7 +38,7 @@ def preprocess_img(imgf):
     return img, raw, bkg, den
 
 
-def segment_object(img, factor=1, rs=5000, fh=500, er=11, cb=None):
+def segment_object(img, factor=1, rs=None, fh=None, cb=None):
     """Segment out bright objects from fluorescence image."""
     if not np.any(img):
         return img.astype(bool)
@@ -47,8 +47,6 @@ def segment_object(img, factor=1, rs=5000, fh=500, er=11, cb=None):
     thv_li = threshold_li(img) / 2
     thv = np.median([thv_ots, thv_yen, thv_li]) * factor
     thr = img > thv
-    if er is not None:
-        thr = binary_erosion(thr, selem=disk(er))
     if rs is not None:
         thr = remove_small_objects(ndi.label(thr)[0].astype(bool), min_size=rs)
     if fh is not None:
@@ -59,12 +57,19 @@ def segment_object(img, factor=1, rs=5000, fh=500, er=11, cb=None):
     return thr
 
 
-def segment_clusters(img):
+def segment_clusters(img, factor=1, rs=None):
     """Segment out bright clusters from fluorescence image."""
-    log = laplace(gaussian(img, sigma=1.25))
-    # thr = log > 0.1*np.std(img.ravel())
-    thv_li = threshold_li(log) / 15
-    thr = log > thv_li
+    thv_img = threshold_li(img)
+    thr_img = median(img > thv_img, disk(5))
+    log = gaussian(laplace(img, mask=thr_img), sigma=2)
+    samp = img[thr_img]
+    samp = samp[samp < np.percentile(samp, 95)]
+    thr = log > (0.1*np.std(samp) * factor)
+    thr = median(thr, disk(3))
+    if rs is not None:
+        thr = remove_small_objects(ndi.label(thr)[0].astype(bool), min_size=rs)
+    if not np.any(thr):
+        thr = thr_img
     return thr
 
 
@@ -87,6 +92,7 @@ def process_u_csv(ty, u_csv, save_dir):
     t_ann_img = []
     for tbl in t_on:
         t_ann_img.append(min(ty, key=lambda ti : abs(ti - tbl)))
+    t_ann_img = np.unique(t_ann_img)
     u_data = np.column_stack((tu, u))
     u_path = os.path.join(save_dir, 'u.csv')
     np.savetxt(u_path, u_data, delimiter=',', header='t,u', comments='')
