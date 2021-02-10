@@ -60,15 +60,17 @@ class Microscope(object):
             raise ValueError('Invalid axis arg in Microscope.get_position(axis).')
 
     def set_position(self, axis, value):
+        x0 = self.get_position('x')
+        y0 = self.get_position('y')
+        print(x0, y0)
         if axis.lower() == 'xy' and self.xy_device:
-            if (value[0] > self.xlim[0] and value[0] < self.xlim[1] and
-            value[1] > self.ylim[0] and value[1] < self.ylim[1]):
-                self.core.setXYPosition(self.xy_device, value[0], value[1])
-                print('MOVE TO XY:', value)
+            if abs(value[0] - x0) > 1 and abs(value[1] - y0) > 1:
+                if (value[0] > self.xlim[0] and value[0] < self.xlim[1] and
+                value[1] > self.ylim[0] and value[1] < self.ylim[1]):
+                    self.core.setXYPosition(self.xy_device, value[0], value[1])
         elif axis.lower() == 'z' and self.z_device:
             if value > self.zlim[0] and value < self.zlim[1]:
                 self.core.setPosition(self.z_device, value)
-                print('MOVE TO Z:', value)
         else:
             raise ValueError('Invalid axis arg in Microscope.set_position(axis).')
 
